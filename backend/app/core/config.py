@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "FeedLog"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     environment: str = "development"
 
     database_url: str = "sqlite+aiosqlite:///./feedback.db"
