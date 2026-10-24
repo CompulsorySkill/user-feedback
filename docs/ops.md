@@ -39,8 +39,9 @@ curl -fsS https://<SITE_ADDRESS>/api/health
 - Caddy 首次启动会自动申请证书，数据保存在 `caddy-data` 卷。
 - 只在本机验证 Caddy 配置而不部署时，可设置 `SITE_ADDRESS=:80`，并同步把
   `PUBLIC_ORIGIN` / `RUSTFS_ENDPOINT_PUBLIC` 改为对应的 `http://` 地址。
-- 若使用 GHCR 镜像：在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE`，先
-  `docker login ghcr.io`，再 `docker compose pull && docker compose up -d`，无需 `--build`。
+- 若使用 GHCR 镜像：在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 为固定版本
+  （如 `…/backend:1.0.0`），先 `docker login ghcr.io`，再
+  `docker compose pull && docker compose up -d`，无需 `--build`。
 - 迁移随 backend 启动执行；多副本部署时改为独立一次性任务：
   `docker compose run --rm backend alembic upgrade head`。
 
@@ -81,7 +82,7 @@ docker compose exec -T postgres psql -U feedback -d feedback_restore \
 回滚策略：
 
 1. 数据错误：停止写入 → 恢复最近备份到新库 → 切换 `DATABASE_URL` → 重启；
-2. 版本错误：镜像回退到上一个 `sha-*` tag，并 `alembic downgrade` 到对应版本；
+2. 版本错误：镜像回退到上一个 semver（如 `1.0.0`）或 `sha-*` tag，并 `alembic downgrade` 到对应版本；
 3. 配置错误：还原 `deploy/.env` 并重启，配置校验会阻止不完整配置启动。
 
 ## 5. 密钥与管理员变更
@@ -112,7 +113,9 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
   其余静态文件回退到 `index.html`。
 - Caddy 证书与配置：`caddy-data` / `caddy-config` 卷；迁移前先备份。
 - RustFS 数据：`rustfs-data` 卷；Postgres 数据：`postgres-data` 卷。
-- 镜像回滚：设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 到上一个 `sha-*` tag，
+- 镜像 tag：`main` 推送生成 `latest` + `sha-<commit>`；`v*` Git tag 生成
+  `1.0.0`、`1.0` + `sha-<commit>`，tag 构建不会覆盖 `latest`。
+- 镜像回滚：设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 到上一个 semver 或 `sha-*` tag，
   `docker compose pull && docker compose up -d`。
 - RustFS 容量告警仍需在宿主机 / 监控侧配置；清理任务只删除超过保留期且未被引用的对象。
 
