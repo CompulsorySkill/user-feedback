@@ -5,8 +5,9 @@
     uv run python -m scripts.seed_dev
     uv run python -m scripts.seed_dev --reset
 
-媒体文件写入 ``backend/.dev-storage/``（已 gitignore），由 Vite dev server 的
-``/storage`` 中间件提供；生产环境由 Nginx 反代 RustFS，路径语义一致。
+媒体文件写入 ``backend/.dev-storage/``（已 gitignore），并上传到本机 RustFS 的
+``storage`` bucket；前端经 Vite ``/storage`` 代理读取，生产环境由 Nginx 反代，
+路径语义一致。
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from sqlalchemy import delete, select
 
 from app.core.db import SessionLocal, engine
 from app.models import Board, ChangelogEntry, Post, User
+from scripts import bootstrap_storage
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 STORAGE_DIR = BACKEND_DIR / ".dev-storage"
@@ -110,7 +112,7 @@ def video_node(src: str, poster: str | None = None) -> dict[str, Any]:
 
 
 def ensure_demo_media() -> dict[str, str | None]:
-    """ffmpeg 可用时生成演示封面与 MP4，否则跳过媒体节点。"""
+    """生成演示封面与 MP4 并上传到本机 RustFS；失败则跳过媒体节点。"""
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     cover = UPLOADS_DIR / "demo-cover.png"
     video = UPLOADS_DIR / "demo.mp4"
@@ -157,6 +159,24 @@ def ensure_demo_media() -> dict[str, str | None]:
                 ],
                 check=False,
             )
+
+    if not cover.exists() and not video.exists():
+        return {"cover": None, "video": None}
+
+    try:
+        client = bootstrap_storage.build_client()
+        bootstrap_storage.ensure_bucket(client)
+        if cover.exists():
+            bootstrap_storage.upload_file(
+                client, cover, "uploads/demo-cover.png", "image/png"
+            )
+        if video.exists():
+            bootstrap_storage.upload_file(
+                client, video, "uploads/demo.mp4", "video/mp4"
+            )
+    except Exception as exc:  # noqa: BLE001 - RustFS 未启动时降级为无媒体
+        print(f"RustFS 不可用，跳过演示媒体上传：{exc}")
+        return {"cover": None, "video": None}
 
     return {
         "cover": "uploads/demo-cover.png" if cover.exists() else None,
