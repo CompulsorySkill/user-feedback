@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     anonymous_cookie_max_age: int = 60 * 60 * 24 * 180
     presign_expires_seconds: int = 600
 
+    # 本系统会话 JWT 有效期。
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"

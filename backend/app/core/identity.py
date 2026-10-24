@@ -1,8 +1,4 @@
-"""匿名身份：HttpOnly 签名 cookie。
-
-cookie 值为 ``<token>.<hmac>``，数据库只存 token（``anon:<token>``），
-不依赖 IP / UA；登录合并留待 P3。
-"""
+"""身份：匿名签名 cookie + 登录用户会话。"""
 
 from __future__ import annotations
 
@@ -15,6 +11,7 @@ from dataclasses import dataclass
 from fastapi import Request, Response
 
 from app.core.config import settings
+from app.models import User
 
 
 def _sign(token: str) -> str:
@@ -49,6 +46,22 @@ class AnonymousIdentity:
     def key(self) -> str:
         """写入 Upload / RateLimitCounter / Vote 的身份键。"""
         return f"anon:{self.token}"
+
+
+@dataclass(frozen=True)
+class AuthenticatedUser:
+    user: User
+
+    @property
+    def key(self) -> str:
+        return f"user:{self.user.id}"
+
+    @property
+    def is_admin(self) -> bool:
+        return self.user.role == "admin"
+
+
+Identity = AuthenticatedUser | AnonymousIdentity | None
 
 
 def get_anonymous_identity(request: Request) -> AnonymousIdentity | None:

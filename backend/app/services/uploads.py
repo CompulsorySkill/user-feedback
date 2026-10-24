@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from app.core.config import settings
 from app.core.errors import AppException
-from app.core.identity import AnonymousIdentity
+from app.core.identity import Identity
 from app.core.storage import StorageBackend, build_object_key
 from app.models import Upload
 from app.schemas.upload import (
@@ -21,8 +21,10 @@ class UploadService:
         self.storage = storage
 
     async def presign(
-        self, identity: AnonymousIdentity, payload: UploadPresignRequest
+        self, identity: Identity, payload: UploadPresignRequest
     ) -> UploadPresignResponse:
+        if identity is None:
+            raise AppException(403, code="IDENTITY_REQUIRED", detail="缺少身份")
         content_type = payload.content_type.strip().lower()
         allowed_types = PURPOSE_CONTENT_TYPES[payload.purpose]
         if content_type not in allowed_types:

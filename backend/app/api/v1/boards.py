@@ -1,4 +1,4 @@
-"""看板、看板内反馈列表与匿名发帖。"""
+"""看板、看板内反馈列表与发帖。"""
 
 from __future__ import annotations
 
@@ -7,8 +7,12 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Request, Response
 from fastapi import status as http_status
 
-from app.api.deps import BoardServiceDep, PostServiceDep
-from app.core.identity import ensure_anonymous_identity
+from app.api.deps import (
+    BoardServiceDep,
+    IdentityDep,
+    PostServiceDep,
+    resolve_write_identity,
+)
 from app.schemas.board import BoardSummary
 from app.schemas.common import Page
 from app.schemas.post import PostCreateRequest, PostDetail, PostSummary
@@ -47,14 +51,15 @@ async def list_board_posts(
     "/{slug}/posts",
     response_model=PostDetail,
     status_code=http_status.HTTP_201_CREATED,
-    summary="匿名发布反馈",
+    summary="发布反馈（匿名或登录）",
 )
 async def create_post(
     slug: str,
     payload: PostCreateRequest,
     request: Request,
     response: Response,
+    identity: IdentityDep,
     service: PostServiceDep,
 ) -> PostDetail:
-    identity = ensure_anonymous_identity(request, response)
-    return await service.create(slug, payload, identity)
+    actor = resolve_write_identity(identity, request, response)
+    return await service.create(slug, payload, actor)

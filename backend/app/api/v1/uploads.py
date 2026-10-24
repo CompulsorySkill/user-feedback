@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response
 
-from app.api.deps import UploadServiceDep
-from app.core.identity import ensure_anonymous_identity
+from app.api.deps import IdentityDep, UploadServiceDep, resolve_write_identity
 from app.schemas.upload import UploadPresignRequest, UploadPresignResponse
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
@@ -20,7 +19,8 @@ async def presign_upload(
     payload: UploadPresignRequest,
     request: Request,
     response: Response,
+    identity: IdentityDep,
     service: UploadServiceDep,
 ) -> UploadPresignResponse:
-    identity = ensure_anonymous_identity(request, response)
-    return await service.presign(identity, payload)
+    actor = resolve_write_identity(identity, request, response)
+    return await service.presign(actor, payload)

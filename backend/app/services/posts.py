@@ -1,4 +1,4 @@
-"""反馈帖业务规则：读路径 + 匿名创建。"""
+"""反馈帖业务规则：读路径、创建、状态机与编辑权限。"""
 
 from __future__ import annotations
 
@@ -7,7 +7,11 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppException
-from app.core.identity import AnonymousIdentity
+from app.core.identity import (
+    AnonymousIdentity,
+    AuthenticatedUser,
+    Identity,
+)
 from app.core.pagination import decode_cursor, encode_cursor
 from app.core.rate_limit import enforce_rate_limit
 from app.models import Post
@@ -21,6 +25,7 @@ from app.schemas.post import (
     PostCreateRequest,
     PostDetail,
     PostSummary,
+    PostUpdateRequest,
 )
 from app.services.rich_text import validate_rich_text
 
@@ -106,12 +111,16 @@ class PostService:
         self,
         slug: str,
         payload: PostCreateRequest,
-        identity: AnonymousIdentity,
+        identity: Identity,
     ) -> PostDetail:
+        if identity is None:
+            raise AppException(403, code="IDENTITY_REQUIRED", detail="缺少身份")
         board = await self.boards.get_public_by_slug(slug)
         if board is None:
             raise AppException(404, code="BOARD_NOT_FOUND", detail="看板不存在")
-        if not board.allow_guest_posting:
+
+        authenticated = isinstance(identity, AuthenticatedUser)
+        if not authenticated and not board.allow_guest_posting:
             raise AppException(
                 403,
                 code="GUEST_POSTING_DISABLED",
@@ -134,9 +143,11 @@ class PostService:
             content=payload.content,
             excerpt=excerpt,
             status="open",
-            author_id=None,
-            anonymous_token=identity.token,
-            anonymous_name=payload.anonymous_name,
+            author_id=identity.user.id if authenticated else None,
+            anonymous_token=identity.token
+            if isinstance(identity, AnonymousIdentity)
+            else None,
+            anonymous_name=None if authenticated else payload.anonymous_name,
             client_env=payload.environment.model_dump(exclude_none=True)
             if payload.environment is not None
             else None,
@@ -145,3 +156,70 @@ class PostService:
         await self.session.commit()
 
         return await self.get(post.id)
+
+    async def change_status(
+        self, post_id: uuid.UUID, target: str, identity: Identity
+    ) -> PostDetail:
+        row = await self.posts.get_with_board(post_id)
+        if row is None:
+            raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
+        post, _board, _author = row
+
+        if isinstance(identity, AuthenticatedUser):
+            if identity.is_admin:
+                post.status = target
+            elif post.author_id == identity.user.id:
+                # 作者仅可单向关闭，关闭后不能自行重开。
+                if target != "closed" or post.status == "closed":
+                    raise AppException(
+                        403, code="STATUS_FORBIDDEN", detail="无权变更该状态"
+                    )
+                post.status = "closed"
+            else:
+                raise AppException(
+                    403, code="STATUS_FORBIDDEN", detail="无权变更该状态"
+                )
+        else:
+            # 匿名 Post 无作者身份，匿名 cookie 不作为授权依据。
+            raise AppException(403, code="STATUS_FORBIDDEN", detail="无权变更该状态")
+
+        await self.session.commit()
+        return await self.get(post_id)
+
+    async def update(
+        self,
+        post_id: uuid.UUID,
+        payload: PostUpdateRequest,
+        identity: Identity,
+    ) -> PostDetail:
+        row = await self.posts.get_with_board(post_id)
+        if row is None:
+            raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
+        post, _board, _author = row
+
+        is_admin = isinstance(identity, AuthenticatedUser) and identity.is_admin
+        is_author = (
+            isinstance(identity, AuthenticatedUser)
+            and post.author_id == identity.user.id
+        )
+        if not (is_admin or is_author):
+            raise AppException(
+                403, code="POST_EDIT_FORBIDDEN", detail="无权编辑该反馈"
+            )
+        if post.status == "closed" and not is_admin:
+            raise AppException(
+                403, code="POST_CLOSED", detail="已关闭的反馈不能编辑"
+            )
+
+        if payload.title is not None:
+            post.title = payload.title
+        if payload.content is not None:
+            post.content = payload.content
+            post.excerpt = await validate_rich_text(
+                payload.content,
+                identity_key=identity.key,
+                allowed_purposes=POST_MEDIA_PURPOSES,
+                uploads=self.uploads,
+            )
+        await self.session.commit()
+        return await self.get(post_id)

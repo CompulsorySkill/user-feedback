@@ -1,4 +1,4 @@
-"""投票业务规则：匿名唯一、计数同事务维护、关闭后拒绝。"""
+"""投票业务规则：登录 / 匿名双路径、关闭冻结、计数同事务。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppException
-from app.core.identity import AnonymousIdentity
+from app.core.identity import AnonymousIdentity, AuthenticatedUser, Identity
 from app.core.rate_limit import enforce_rate_limit
 from app.models import Board, Post
 from app.repositories.posts import PostRepository
@@ -28,20 +28,37 @@ class VoteService:
         self.posts = posts
         self.votes = votes
 
-    async def _target(self, post_id: uuid.UUID) -> tuple[Post, Board]:
+    async def _target(
+        self, post_id: uuid.UUID, identity: Identity
+    ) -> tuple[Post, Board, int | None, str | None]:
+        if identity is None:
+            raise AppException(403, code="IDENTITY_REQUIRED", detail="缺少身份")
+
         row = await self.posts.get_with_board(post_id)
         if row is None:
             raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
         post, board, _author = row
+
         if post.status == "closed":
             raise AppException(
                 403, code="POST_CLOSED", detail="反馈已关闭，不能投票"
             )
-        if not board.allow_guest_voting:
-            raise AppException(
-                403, code="GUEST_VOTING_DISABLED", detail="该看板仅允许登录用户投票"
-            )
-        return post, board
+
+        user_id: int | None = None
+        anonymous_token: str | None = None
+        if isinstance(identity, AuthenticatedUser):
+            user_id = identity.user.id
+        else:
+            if not board.allow_guest_voting:
+                raise AppException(
+                    403,
+                    code="GUEST_VOTING_DISABLED",
+                    detail="该看板仅允许登录用户投票",
+                )
+            assert isinstance(identity, AnonymousIdentity)
+            anonymous_token = identity.token
+
+        return post, board, user_id, anonymous_token
 
     async def _current_count(self, post_id: uuid.UUID) -> int:
         count = await self.session.scalar(
@@ -49,25 +66,28 @@ class VoteService:
         )
         return int(count or 0)
 
-    async def add(
-        self, post_id: uuid.UUID, identity: AnonymousIdentity
-    ) -> VoteResponse:
-        await self._target(post_id)
+    async def add(self, post_id: uuid.UUID, identity: Identity) -> VoteResponse:
+        _post, _board, user_id, anonymous_token = await self._target(
+            post_id, identity
+        )
+        assert identity is not None
         await enforce_rate_limit(
             self.session, identity_key=identity.key, action="vote"
         )
 
-        if await self.votes.exists(post_id, anonymous_token=identity.token):
-            # 重复投票幂等返回，前端可安全重试。
+        if await self.votes.exists(
+            post_id, user_id=user_id, anonymous_token=anonymous_token
+        ):
             count = await self._current_count(post_id)
             await self.session.commit()
             return VoteResponse(voted=True, vote_count=count)
 
-        self.votes.add(post_id, anonymous_token=identity.token)
+        self.votes.add(
+            post_id, user_id=user_id, anonymous_token=anonymous_token
+        )
         try:
             await self.session.flush()
         except IntegrityError:
-            # 并发下唯一索引兜底。
             await self.session.rollback()
             return VoteResponse(
                 voted=True, vote_count=await self._current_count(post_id)
@@ -83,15 +103,18 @@ class VoteService:
             voted=True, vote_count=await self._current_count(post_id)
         )
 
-    async def remove(
-        self, post_id: uuid.UUID, identity: AnonymousIdentity
-    ) -> VoteResponse:
-        await self._target(post_id)
+    async def remove(self, post_id: uuid.UUID, identity: Identity) -> VoteResponse:
+        _post, _board, user_id, anonymous_token = await self._target(
+            post_id, identity
+        )
+        assert identity is not None
         await enforce_rate_limit(
             self.session, identity_key=identity.key, action="vote"
         )
 
-        removed = await self.votes.remove(post_id, anonymous_token=identity.token)
+        removed = await self.votes.remove(
+            post_id, user_id=user_id, anonymous_token=anonymous_token
+        )
         if removed:
             await self.session.execute(
                 update(Post)

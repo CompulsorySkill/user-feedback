@@ -68,3 +68,22 @@ class PostCreateRequest(BaseModel):
             return None
         name = value.strip()
         return name or None
+
+
+class PostStatusUpdate(BaseModel):
+    status: PostStatus
+
+
+class PostUpdateRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    content: dict[str, Any] | None = None
+
+    @field_validator("title")
+    @classmethod
+    def _strip_optional_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        title = value.strip()
+        if not title:
+            raise ValueError("标题不能为空")
+        return title
