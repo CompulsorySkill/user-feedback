@@ -9,7 +9,7 @@
 backend/    FastAPI + SQLAlchemy 2.x async + Alembic
 frontend/   Vite 8 + Vue 3.5 + TypeScript
 deploy/     配置单一来源（deploy/.env）与后续 Compose / Nginx 部署产物
-docs/       方案与接口文档
+docs/       方案、API 与 SSO 文档
 ```
 
 ## 本地开发
@@ -78,7 +78,7 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | P1 读路径 | ✅ 本地 | 看板 / 反馈 / 更新日志列表与详情、keyset 分页、Tiptap JSON 白名单渲染（含图片与 MP4）、匿名可读全部公开内容 |
 | P2 写路径 + 匿名 + 视频 | ✅ 本地 | 匿名签名 cookie、RustFS presign 直传（图片 / MP4）、匿名发帖、投票与取消、数据库限流、富文本媒体归属校验；Docker / Nginx 仍延后 |
 | P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写、3 层楼中楼评论 |
-| P4 加固 + CI | ⬜ | |
+| P4 加固 + CI | ✅ 本地（Docker 镜像待启用） | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练（16.9 实跑 upgrade/downgrade + API 冒烟）、双 CI workflow（镜像任务随 Docker 阶段启用）、`docs/sso.md` 与 `docs/api.md` |
 
 ## 已实现接口
 
@@ -105,3 +105,17 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 
 错误统一为 `{ "detail": ..., "code": ... }`；分页游标无效返回 400 `INVALID_CURSOR`，
 限流返回 429 `RATE_LIMITED`，伪造媒体引用返回 400 `INVALID_CONTENT`。
+
+权限矩阵、状态机、上传契约见 [docs/api.md](docs/api.md)；SSO 对接与管理员维护见 [docs/sso.md](docs/sso.md)。
+
+## Postgres 迁移演练（P4）
+
+`DATABASE_URL` 指向 Postgres 后直接运行迁移链，无需改代码：
+
+```bash
+$env:DATABASE_URL="postgresql+asyncpg://postgres:test@127.0.0.1:5432/feedback"
+uv run alembic upgrade head
+uv run alembic downgrade base && uv run alembic upgrade head
+```
+
+CI 的 backend workflow 使用 `postgres:16-alpine` service 执行同样的 upgrade / downgrade 往返，再跑 SQLite 测试。

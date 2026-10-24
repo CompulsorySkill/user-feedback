@@ -82,7 +82,7 @@ uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 | 生产 | `postgresql+asyncpg://...` |
 
 SQLite 连接自动附加 `check_same_thread=False`、`journal_mode=WAL`、`busy_timeout=5000`、`foreign_keys=ON`。
-迁移使用方言感知类型（`Uuid` / `DateTime(timezone=True)` / `JSON`）与 `sqlite_where` / `postgresql_where` 渲染部分唯一索引。
+Postgres 连接固定会话时区为 UTC（业务层统一使用 naive UTC）。迁移使用方言感知类型（`Uuid` / `DateTime(timezone=True)` / `JSON`）与 `sqlite_where` / `postgresql_where` 渲染部分唯一索引。
 
 ```bash
 # 生成迁移（改完模型后）
@@ -94,10 +94,12 @@ $env:DATABASE_URL="postgresql+asyncpg://feedback:pw@localhost:5432/feedback"
 uv run alembic upgrade head --sql
 ```
 
+P4 已在本机 Postgres 16.9 上实跑 `upgrade head → downgrade base → upgrade head`，并用 PG 实例跑通健康检查、keyset 分页、匿名发帖/投票/评论与管理员更新日志发布。
+
 ## 测试
 
 ```bash
 uv run pytest -q
 ```
 
-用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化），以及 P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）。
+用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）以及 P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开）。
