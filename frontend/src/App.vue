@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { IconMessageCircle, IconSpeakerphone } from '@tabler/icons-vue'
+import { IconMessageCircle } from '@tabler/icons-vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { site } from '@/config/site'
 import { useAuthStore } from '@/stores/auth'
@@ -70,10 +70,6 @@ onUnmounted(() => {
       <div class="container footer-inner">
         <span>{{ site.name }} · 用户意见反馈系统</span>
         <span class="footer-stack">FastAPI · Vue 3.5 · Vite 8</span>
-        <span class="footer-note">
-          <IconSpeakerphone :size="14" :stroke-width="2" />
-          字体全部本地系统栈，无第三方字体请求
-        </span>
       </div>
     </footer>
   </div>

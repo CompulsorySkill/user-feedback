@@ -31,14 +31,6 @@ onMounted(load)
 
 <template>
   <div class="container">
-    <header class="page-header">
-      <p class="eyebrow">All feedback</p>
-      <h1>全部反馈</h1>
-      <p class="hero-lead">
-        {{ totalCount }} 条反馈，来自 {{ boards.length }} 个看板；按最近更新或投票排序浏览。
-      </p>
-    </header>
-
     <p v-if="loading" class="loading-line">
       <IconLoader2 class="spin" :size="16" :stroke-width="2" /> 正在加载看板…
     </p>
@@ -52,7 +44,21 @@ onMounted(load)
 
     <div v-else class="board-layout" :class="{ 'board-layout-single': !boards.length }">
       <BoardSidebar :boards="boards" :total-count="totalCount" />
-      <PostFeed show-board />
+
+      <div class="board-main">
+        <header class="board-header">
+          <div class="board-header-main">
+            <span class="board-slug">ALL FEEDBACK</span>
+            <h1>全部反馈</h1>
+            <div class="board-meta">
+              <span>{{ totalCount }} 条反馈</span>
+              <span>{{ boards.length }} 个看板</span>
+            </div>
+          </div>
+        </header>
+
+        <PostFeed show-board />
+      </div>
     </div>
   </div>
 </template>

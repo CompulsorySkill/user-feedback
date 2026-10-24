@@ -205,14 +205,8 @@ code {
 }
 
 .footer-stack {
-  color: var(--text-muted);
-}
-
-.footer-note {
   margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  color: var(--text-muted);
 }
 
 /* ---------- 通用 ---------- */
@@ -1005,10 +999,6 @@ h6.rt-heading {
   .post-detail,
   .changelog-detail {
     padding: 22px 20px;
-  }
-
-  .footer-note {
-    margin-left: 0;
   }
 }
 
