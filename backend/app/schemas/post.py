@@ -1,4 +1,4 @@
-"""反馈帖读路径响应模式。"""
+"""反馈帖读路径响应模式与创建请求。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.board import BoardRef
 from app.schemas.common import UTCModel
@@ -30,3 +30,16 @@ class PostSummary(UTCModel):
 class PostDetail(PostSummary):
     board: BoardRef
     content: dict[str, Any]
+
+
+class PostCreateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    content: dict[str, Any]
+
+    @field_validator("title")
+    @classmethod
+    def _strip_title(cls, value: str) -> str:
+        title = value.strip()
+        if not title:
+            raise ValueError("标题不能为空")
+        return title

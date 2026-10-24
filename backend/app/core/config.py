@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     upload_max_bytes: int = 104857600
     rate_limit_enabled: bool = True
 
+    # 匿名身份 cookie 与 presign 有效期。
+    anonymous_cookie_name: str = "feedlog_anonymous"
+    anonymous_cookie_max_age: int = 60 * 60 * 24 * 180
+    presign_expires_seconds: int = 600
+
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
