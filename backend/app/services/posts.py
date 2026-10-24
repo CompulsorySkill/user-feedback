@@ -16,7 +16,12 @@ from app.repositories.posts import PostRepository
 from app.repositories.uploads import UploadRepository
 from app.schemas.board import BoardRef
 from app.schemas.common import Page
-from app.schemas.post import PostCreateRequest, PostDetail, PostSummary
+from app.schemas.post import (
+    ClientEnvironment,
+    PostCreateRequest,
+    PostDetail,
+    PostSummary,
+)
 from app.services.rich_text import validate_rich_text
 
 # 反馈中允许的媒体节点 -> Upload purpose
@@ -36,6 +41,8 @@ def _summary(post, board_slug: str, author_name: str | None) -> PostSummary:
         vote_count=post.vote_count,
         comment_count=post.comment_count,
         author_name=author_name,
+        anonymous_name=post.anonymous_name,
+        is_anonymous=post.author_id is None,
         created_at=post.created_at,
         updated_at=post.updated_at,
     )
@@ -90,6 +97,9 @@ class PostService:
             **_summary(post, board.slug, author_name).model_dump(),
             board=BoardRef(id=board.id, slug=board.slug, name=board.name),
             content=post.content,
+            environment=ClientEnvironment(**post.client_env)
+            if post.client_env
+            else None,
         )
 
     async def create(
@@ -126,6 +136,10 @@ class PostService:
             status="open",
             author_id=None,
             anonymous_token=identity.token,
+            anonymous_name=payload.anonymous_name,
+            client_env=payload.environment.model_dump(exclude_none=True)
+            if payload.environment is not None
+            else None,
         )
         self.session.add(post)
         await self.session.commit()

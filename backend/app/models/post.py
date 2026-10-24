@@ -51,6 +51,10 @@ class Post(TimestampMixin, Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     anonymous_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 匿名发布时允许自填昵称；展示侧必须同时标注「匿名」。
+    anonymous_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # 用户主动勾选时保存的浏览器 / 操作系统环境信息。
+    client_env: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     vote_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"

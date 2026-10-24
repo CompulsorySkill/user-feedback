@@ -2,7 +2,12 @@ from app.schemas.board import BoardRef, BoardSummary
 from app.schemas.changelog import ChangelogDetail, ChangelogSummary
 from app.schemas.common import Page
 from app.schemas.health import HealthResponse
-from app.schemas.post import PostCreateRequest, PostDetail, PostSummary
+from app.schemas.post import (
+    ClientEnvironment,
+    PostCreateRequest,
+    PostDetail,
+    PostSummary,
+)
 from app.schemas.upload import (
     UploadPresignRequest,
     UploadPresignResponse,
@@ -15,6 +20,7 @@ __all__ = [
     "BoardSummary",
     "ChangelogDetail",
     "ChangelogSummary",
+    "ClientEnvironment",
     "HealthResponse",
     "Page",
     "PostCreateRequest",

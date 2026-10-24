@@ -83,7 +83,7 @@ cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（�
 | GET | `/api/v1/boards` | 公开看板列表（含反馈数） |
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
 | GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页 |
-| POST | `/api/v1/boards/{slug}/posts` | 匿名发布反馈（`201`，签发匿名 cookie） |
+| POST | `/api/v1/boards/{slug}/posts` | 匿名发布反馈（`201`，签发匿名 cookie）；可带自定义昵称与浏览器环境信息 |
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON 与看板信息） |
 | POST | `/api/v1/posts/{id}/vote` | 投票（幂等，关闭后拒绝） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |

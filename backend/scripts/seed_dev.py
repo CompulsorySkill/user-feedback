@@ -529,6 +529,27 @@ CHANGELOGS = [
 # 写入
 # --------------------------------------------------------------------------- #
 
+# 匿名反馈的自定义昵称（展示时会追加「匿名」标记）
+GUEST_NAMES = {
+    4: "路过的产品经理",
+    7: "夜班运维",
+    11: "匿名设计师",
+    15: "潜水用户",
+}
+
+# 部分匿名反馈附带浏览器 / 操作系统环境信息
+GUEST_ENV_INDEXES = {4, 7}
+DEMO_ENV = {
+    "user_agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0"
+    ),
+    "platform": "Win32",
+    "language": "zh-CN",
+    "viewport": "1920×1080",
+    "timezone": "Asia/Shanghai",
+}
+
 
 async def seed(reset: bool) -> None:
     media = ensure_demo_media()
@@ -565,6 +586,8 @@ async def seed(reset: bool) -> None:
             content = build_rich_post(nodes, media)
             author = users[item["author"]] if item["author"] is not None else None
             created_at = NOW - timedelta(hours=item["hours_ago"])
+            anonymous_name = None if author else GUEST_NAMES.get(index)
+            client_env = None if author or index not in GUEST_ENV_INDEXES else DEMO_ENV
             post = Post(
                 board_id=boards[item["board"]].id,
                 title=item["title"],
@@ -573,6 +596,8 @@ async def seed(reset: bool) -> None:
                 status=item["status"],
                 author_id=author.id if author else None,
                 anonymous_token=None if author else f"seed-anon-{index:02d}",
+                anonymous_name=anonymous_name,
+                client_env=dict(client_env) if client_env else None,
                 vote_count=item["votes"],
                 comment_count=item["comments"],
                 created_at=created_at,

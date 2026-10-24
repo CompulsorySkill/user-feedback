@@ -164,6 +164,83 @@ async def test_create_post_with_owned_image(
     assert body["board"]["slug"] == "product"
 
 
+async def test_create_post_with_anonymous_name_and_environment(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+
+    response = await client.post(
+        "/api/v1/boards/product/posts",
+        json={
+            "title": "附带环境的匿名反馈",
+            "content": doc(),
+            "anonymous_name": "  路过的产品经理  ",
+            "environment": {
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "platform": "Win32",
+                "language": "zh-CN",
+                "viewport": "1280×900",
+                "timezone": "Asia/Shanghai",
+                "injected": "应被忽略",
+            },
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["anonymous_name"] == "路过的产品经理"
+    assert body["is_anonymous"] is True
+    assert body["author_name"] is None
+    assert body["environment"] == {
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "platform": "Win32",
+        "language": "zh-CN",
+        "viewport": "1280×900",
+        "timezone": "Asia/Shanghai",
+    }
+
+    detail = await client.get(f"/api/v1/posts/{body['id']}")
+    assert detail.json()["environment"] == body["environment"]
+
+    listing = await client.get("/api/v1/boards/product/posts")
+    item = listing.json()["items"][0]
+    assert item["anonymous_name"] == "路过的产品经理"
+    assert item["is_anonymous"] is True
+
+
+async def test_blank_anonymous_name_becomes_null(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+
+    response = await client.post(
+        "/api/v1/boards/product/posts",
+        json={"title": "空白昵称", "content": doc(), "anonymous_name": "   "},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["anonymous_name"] is None
+    assert response.json()["is_anonymous"] is True
+
+
+async def test_environment_rejects_oversized_field(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+
+    response = await client.post(
+        "/api/v1/boards/product/posts",
+        json={
+            "title": "超长 UA",
+            "content": doc(),
+            "environment": {"user_agent": "x" * 600},
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+
+
 async def test_create_post_rejects_forged_media(
     client: AsyncClient, sqlite_conn
 ) -> None:

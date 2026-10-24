@@ -52,7 +52,7 @@ def test_upgrade_creates_all_tables(sqlite_conn: sqlite3.Connection) -> None:
     assert _tables(sqlite_conn) == EXPECTED_TABLES
 
     version = sqlite_conn.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("0001_initial",)
+    assert version == ("0002_guest_name_env",)
 
 
 def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:
