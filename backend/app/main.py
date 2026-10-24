@@ -7,14 +7,25 @@ import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.db import SessionLocal, engine
 from app.core.errors import register_exception_handlers
+from app.core.logging import install_access_log_redaction
 from app.core.rate_limit import cleanup_rate_limit_counters
+
+install_access_log_redaction()
+
+
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    return response
 
 
 async def _rate_limit_cleanup_loop() -> None:
@@ -56,6 +67,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.middleware("http")(security_headers)
 
     register_exception_handlers(app)
     app.include_router(api_router, prefix="/api")

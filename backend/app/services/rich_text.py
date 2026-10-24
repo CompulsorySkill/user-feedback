@@ -1,22 +1,64 @@
 """富文本（Tiptap JSON）结构校验与纯文本摘要。
 
-落库前唯一防线：限制深度与节点数，校验 image/video 的 src 属于
-当前身份的 Upload 记录，防止伪造外链或盗用他人 key。
+落库前唯一防线：
+- 限制 payload 大小、深度、节点数、单个文本长度；
+- 节点与 mark 白名单（未知节点/标记直接拒绝）；
+- image/video 的 src 必须属于当前身份的 Upload 记录，防止伪造外链或盗用 key。
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any
+from urllib.parse import urlparse
 
 from app.core.errors import AppException
 from app.repositories.uploads import UploadRepository
 
 MAX_DEPTH = 8
 MAX_NODES = 2000
+MAX_TEXT_LENGTH = 20000
+MAX_PAYLOAD_BYTES = 256 * 1024
+MAX_LINK_LENGTH = 2048
+
+ALLOWED_NODES = {
+    "doc",
+    "paragraph",
+    "heading",
+    "text",
+    "hardBreak",
+    "bulletList",
+    "orderedList",
+    "listItem",
+    "blockquote",
+    "codeBlock",
+    "horizontalRule",
+    "image",
+    "video",
+}
+ALLOWED_MARKS = {"bold", "italic", "strike", "underline", "code", "link"}
 
 
 def _invalid(message: str) -> AppException:
     return AppException(400, code="INVALID_CONTENT", detail=message)
+
+
+def _validate_marks(marks: Any) -> None:
+    if marks is None:
+        return
+    if not isinstance(marks, list):
+        raise _invalid("富文本 marks 必须是数组")
+    for mark in marks:
+        if not isinstance(mark, dict) or mark.get("type") not in ALLOWED_MARKS:
+            raise _invalid("富文本包含不允许的标记")
+        if mark.get("type") == "link":
+            attrs = mark.get("attrs")
+            href = attrs.get("href") if isinstance(attrs, dict) else None
+            if not isinstance(href, str) or len(href) > MAX_LINK_LENGTH:
+                raise _invalid("链接地址非法")
+            parsed = urlparse(href)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise _invalid("链接只允许 http(s)")
 
 
 async def validate_rich_text(
@@ -29,6 +71,17 @@ async def validate_rich_text(
     """校验并返回 excerpt（纯文本前 200 字）。"""
     if not isinstance(content, dict) or content.get("type") != "doc":
         raise _invalid("富文本顶层必须是 doc")
+
+    try:
+        payload_size = len(
+            json.dumps(content, ensure_ascii=False, separators=(",", ":")).encode(
+                "utf-8"
+            )
+        )
+    except (TypeError, ValueError):
+        raise _invalid("富文本无法序列化") from None
+    if payload_size > MAX_PAYLOAD_BYTES:
+        raise _invalid("富文本体积超限")
 
     media: list[tuple[str, str]] = []
     text_parts: list[str] = []
@@ -46,10 +99,17 @@ async def validate_rich_text(
             raise _invalid("富文本节点数量超限")
 
         node_type = node.get("type")
+        if node_type not in ALLOWED_NODES:
+            raise _invalid("富文本包含不允许的节点")
+
         if node_type == "text":
             text = node.get("text")
-            if isinstance(text, str):
-                text_parts.append(text)
+            if not isinstance(text, str):
+                raise _invalid("文本节点缺少 text")
+            if len(text) > MAX_TEXT_LENGTH:
+                raise _invalid("单个文本节点过长")
+            text_parts.append(text)
+            _validate_marks(node.get("marks"))
 
         if node_type in {"image", "video"}:
             attrs = node.get("attrs")
