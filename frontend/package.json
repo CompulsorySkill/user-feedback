@@ -8,7 +8,8 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "smoke:p2": "node scripts/smoke-p2.mjs",
-    "smoke:p3": "node scripts/smoke-p3.mjs"
+    "smoke:p3": "node scripts/smoke-p3.mjs",
+    "smoke:admin": "node scripts/smoke-admin.mjs"
   },
   "dependencies": {
     "@tabler/icons-vue": "^3.49.0",

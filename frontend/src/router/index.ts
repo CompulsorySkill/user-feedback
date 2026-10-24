@@ -25,6 +25,16 @@ const router = createRouter({
       component: () => import('@/views/PostDetailView.vue'),
     },
     {
+      path: '/post/:id/edit',
+      name: 'post-edit',
+      component: () => import('@/views/EditPostView.vue'),
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
+    },
+    {
       path: '/changelog',
       name: 'changelog',
       component: () => import('@/views/ChangelogListView.vue'),
@@ -76,6 +86,8 @@ router.afterEach((to) => {
     board: '看板',
     'new-post': '发布反馈',
     post: '反馈详情',
+    'post-edit': '编辑反馈',
+    login: '登录',
     changelog: '更新日志',
     'changelog-detail': '更新日志',
     'changelog-new': '新建更新日志',

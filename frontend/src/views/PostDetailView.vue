@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   IconArrowLeft,
+  IconEdit,
   IconLoader2,
   IconMessage,
   IconRefresh,
@@ -16,14 +17,21 @@ import PostStatusControl from '@/components/PostStatusControl.vue'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import VoteButton from '@/components/VoteButton.vue'
+import { useAuthStore } from '@/stores/auth'
 import { formatDate, formatRelative } from '@/utils/date'
 
 const route = useRoute()
+const auth = useAuthStore()
 const post = ref<PostDetail | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
 
 const isClosed = computed(() => post.value?.status === 'closed')
+const canEdit = computed(() => {
+  if (!post.value) return false
+  if (auth.isAdmin) return true
+  return post.value.is_author && post.value.status !== 'closed'
+})
 
 function onPostUpdated(updated: PostDetail): void {
   post.value = updated
@@ -76,7 +84,17 @@ watch(() => route.params.id, load, { immediate: true })
             </span>
             <span class="meta-item subtle">更新于 {{ formatRelative(post.updated_at) }}</span>
           </div>
-          <PostStatusControl :post="post" @updated="onPostUpdated" />
+          <div class="post-detail-actions">
+            <PostStatusControl :post="post" @updated="onPostUpdated" />
+            <RouterLink
+              v-if="canEdit"
+              :to="`/post/${post.id}/edit`"
+              class="button button-ghost button-small"
+            >
+              <IconEdit :size="15" :stroke-width="2" />
+              编辑反馈
+            </RouterLink>
+          </div>
         </header>
 
         <div v-if="isClosed" class="notice notice-closed">

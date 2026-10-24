@@ -6,10 +6,12 @@ import { ApiError } from '@/api/client'
 import { createPost, getBoard } from '@/api/boards'
 import type { Board } from '@/api/types'
 import PostEditor from '@/components/PostEditor.vue'
+import { useAuthStore } from '@/stores/auth'
 import type { JSONContent } from '@/types/content'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const board = ref<Board | null>(null)
 const loading = ref(true)
@@ -109,11 +111,18 @@ onMounted(load)
         </p>
       </header>
 
-      <div v-if="!board.allow_guest_posting" class="notice notice-closed">
-        该看板已关闭匿名发布，登录能力将在 P3 开放。
+      <div
+        v-if="!board.allow_guest_posting && !auth.isAuthenticated"
+        class="notice notice-closed"
+      >
+        该看板已关闭匿名发布，请先登录后再发布。
       </div>
 
-      <form v-else class="compose" @submit.prevent="submit">
+      <form
+        v-else
+        class="compose"
+        @submit.prevent="submit"
+      >
         <div class="field">
           <span class="field-label">昵称（可选）</span>
           <input

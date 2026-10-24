@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { IconMessageCircle, IconSpeakerphone } from '@tabler/icons-vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+const route = useRoute()
 
 onMounted(() => {
   void auth.hydrate()
@@ -32,7 +33,15 @@ onMounted(() => {
             <span v-if="auth.isAdmin" class="admin-badge">管理员</span>
             <button type="button" class="link-button" @click="auth.logout()">退出</button>
           </template>
-          <span v-else class="identity">匿名访问</span>
+          <template v-else>
+            <span class="identity">匿名访问</span>
+            <RouterLink
+              class="login-link"
+              :to="{ name: 'login', query: { redirect: route.fullPath } }"
+            >
+              登录
+            </RouterLink>
+          </template>
         </div>
       </div>
     </header>
