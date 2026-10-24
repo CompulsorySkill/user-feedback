@@ -73,8 +73,9 @@ keyset 分页。响应：
 |---|---|---|
 | `status` | `open / planned / in_progress / completed / closed` | 按状态筛选；非法值 422 |
 | `sort` | `recent`（默认）/ `top` | `recent` 按 `(created_at, id)`；`top` 按 `(vote_count, id)` 降序 |
+| `q` | 1–100 字符 | 按标题与摘要做大小写不敏感模糊匹配；`%`/`_` 按字面量处理 |
 
-两种排序各自使用对应的 keyset 游标，切换排序或筛选时必须丢弃旧 `cursor`。
+两种排序各自使用对应的 keyset 游标，切换排序或筛选时必须丢弃旧 `cursor`。搜索与状态筛选、排序可以组合使用，游标同样需要丢弃。
 
 ## 6. 限流
 

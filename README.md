@@ -90,7 +90,7 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | GET | `/api/health` | 健康检查（含数据库探活） |
 | GET | `/api/v1/boards` | 公开看板列表（含反馈数） |
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
-| GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=` 筛选与 `sort=recent\|top` |
+| GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索 |
 | POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称与浏览器环境信息 |
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |
 | PATCH | `/api/v1/posts/{id}` | 编辑反馈（作者非关闭态 / 管理员） |
