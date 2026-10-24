@@ -45,6 +45,7 @@ class PostDetail(PostSummary):
     board: BoardRef
     content: dict[str, Any]
     environment: ClientEnvironment | None = None
+    is_author: bool = False
 
 
 class PostCreateRequest(BaseModel):

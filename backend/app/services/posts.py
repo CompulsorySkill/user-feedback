@@ -92,12 +92,18 @@ class PostService:
         )
         return Page(items=items, next_cursor=next_cursor)
 
-    async def get(self, post_id: uuid.UUID) -> PostDetail:
+    async def get(
+        self, post_id: uuid.UUID, viewer: Identity = None
+    ) -> PostDetail:
         row = await self.posts.get_with_board(post_id)
         if row is None:
             raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
 
         post, board, author_name = row
+        is_author = (
+            isinstance(viewer, AuthenticatedUser)
+            and post.author_id == viewer.user.id
+        )
         return PostDetail(
             **_summary(post, board.slug, author_name).model_dump(),
             board=BoardRef(id=board.id, slug=board.slug, name=board.name),
@@ -105,6 +111,7 @@ class PostService:
             environment=ClientEnvironment(**post.client_env)
             if post.client_env
             else None,
+            is_author=is_author,
         )
 
     async def create(
@@ -155,7 +162,7 @@ class PostService:
         self.session.add(post)
         await self.session.commit()
 
-        return await self.get(post.id)
+        return await self.get(post.id, identity)
 
     async def change_status(
         self, post_id: uuid.UUID, target: str, identity: Identity
@@ -184,7 +191,7 @@ class PostService:
             raise AppException(403, code="STATUS_FORBIDDEN", detail="无权变更该状态")
 
         await self.session.commit()
-        return await self.get(post_id)
+        return await self.get(post_id, identity)
 
     async def update(
         self,
@@ -222,4 +229,4 @@ class PostService:
                 uploads=self.uploads,
             )
         await self.session.commit()
-        return await self.get(post_id)
+        return await self.get(post_id, identity)

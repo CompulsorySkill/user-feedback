@@ -26,8 +26,10 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 
 
 @router.get("/{post_id}", response_model=PostDetail, summary="反馈详情")
-async def get_post(post_id: uuid.UUID, service: PostServiceDep) -> PostDetail:
-    return await service.get(post_id)
+async def get_post(
+    post_id: uuid.UUID, identity: IdentityDep, service: PostServiceDep
+) -> PostDetail:
+    return await service.get(post_id, identity)
 
 
 @router.patch("/{post_id}", response_model=PostDetail, summary="编辑反馈")
