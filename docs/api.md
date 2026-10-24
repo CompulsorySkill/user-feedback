@@ -128,9 +128,19 @@ keyset 分页。响应：
 | GET | `/v1/changelogs`、`/v1/changelogs/{id}` | 公开；草稿仅管理员 |
 | POST / PATCH / DELETE | `/v1/changelogs[/{id}]` | 管理员 |
 | POST | `/v1/changelogs/{id}/publish`、`/unpublish` | 管理员 |
-| GET | `/sso/jwt?token=&return_to=` | 公开 |
+| GET | `/sso/jwt?token=&return_to=` | 公开（产品侧跳转，失败降级匿名） |
+| POST | `/sso/jwt` | 公开；`{token, return_to}` 换取会话，返回 `redirect_to` |
 | GET | `/v1/auth/me`、`/capabilities` | 公开（按 cookie） |
 | POST | `/v1/auth/refresh`、`/logout` | 公开（按 cookie） |
 | POST | `/v1/auth/dev-login` | 仅 `ENVIRONMENT=development`；生产返回 404 |
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。
+
+## 9. 会话续期
+
+access token 过期（默认 15 分钟）时，携带旧 access cookie 的响应会附加
+`X-Session-Expired: 1`。前端收到后调用 `POST /v1/auth/refresh` 并重放原请求一次，
+用户无感；刷新失败则降级匿名并显示登录入口。
+
+SSO 登录时若匿名数据合并失败：不阻断登录，记录日志并保留匿名 cookie，
+账号会话照常签发，便于后续重试。

@@ -64,27 +64,32 @@
 前端提供 `/login` 登录页：
 
 - **开发快速登录**：`ENVIRONMENT=development` 时可用，输入邮箱直接签发会话；邮箱命中 `ADMIN_EMAILS` 即为管理员。生产环境该接口返回 404。
-- **SSO token 粘贴**：把下面命令生成的 JWT 粘到登录页即可。
+- **SSO token 粘贴**：前端通过 `POST /api/sso/jwt` 提交 `{token, return_to}`，由后端下发
+  HttpOnly 会话并返回 `redirect_to`；token 不会进入 URL / 浏览器历史。产品侧原有的
+  `GET /api/sso/jwt?token=...` 跳转仍然兼容（访问日志已做 `token=***` 脱敏）。
 
 ```bash
 # 用 deploy/.env 中的 SSO_SECRETS[0] 签发 5 分钟 token
 uv run python -c "import jwt,time; print(jwt.encode({'email':'admin@example.com','name':'管理员','exp':int(time.time())+300}, 'dev-only-sso-secret-0123456789abcdef', algorithm='HS256'))"
 ```
 
-也可以直接打开：
-
-```
-http://127.0.0.1:5173/api/sso/jwt?token=<token>&return_to=/b/product
-```
-
-`ADMIN_EMAILS` 包含该邮箱时，头部显示「管理员」徽标；`pnpm smoke:p3` / `pnpm smoke:admin` 覆盖了登录与后续管理链路。
+`ADMIN_EMAILS` 包含该邮箱时，头部显示「管理员」徽标；`pnpm smoke:p3` / `pnpm smoke:admin` /
+`pnpm smoke:session` 覆盖了登录、续期与后续管理链路。
 
 ## 8. 会话接口
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
+| POST | `/api/sso/jwt` | 提交 `{token, return_to}` 换取会话（推荐，token 不进 URL） |
+| GET | `/api/sso/jwt?token=&return_to=` | 产品侧跳转登录，失败降级匿名 |
 | GET | `/api/v1/auth/me` | 当前身份（登录用户 / 匿名 / 未识别） |
+| GET | `/api/v1/auth/capabilities` | 登录能力（是否开放开发快速登录） |
+| POST | `/api/v1/auth/dev-login` | 仅 development；生产 404 |
 | POST | `/api/v1/auth/refresh` | 用 refresh cookie 轮换 access（同时轮换 refresh） |
 | POST | `/api/v1/auth/logout` | 清除会话 cookie |
 
-access 过期后前端调用 `/auth/refresh`；refresh 失效则重新走 SSO 跳转。
+access 过期后不会中断操作：后端在响应头返回 `X-Session-Expired: 1`，前端 API 客户端会
+自动调用 `/auth/refresh` 并重放一次原请求（并发请求共享同一次刷新）；刷新失败才降级为匿名并提示重新登录。
+
+匿名合并失败（数据库异常等）不会阻断登录：系统记录日志、保留匿名 cookie 与未合并数据，
+会话正常签发；可排查后让用户重新登录完成合并。

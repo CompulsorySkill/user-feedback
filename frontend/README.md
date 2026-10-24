@@ -44,6 +44,7 @@ pnpm check:style  # 校验每页字号 ≤3 种、操作按钮高度一致（需
 - `pnpm smoke:p2`：编辑器插入图片 → presign 直传 → 发布 → 详情渲染 → 投票 / 取消
 - `pnpm smoke:p3`：SSO 登录 → 管理员状态流转 → 评论与楼中楼回复 → 更新日志草稿发布
 - `pnpm smoke:admin`：开发快速登录 → 状态筛选 → 最热排序 → 管理员编辑已关闭反馈
+- `pnpm smoke:session`：注入失效 access cookie → 自动 refresh 重放 → POST SSO 登录（URL 不含 token）
 
 两项都默认使用本机 Edge（`EDGE_PATH` 覆盖）。若当前环境不允许由 Node 直接拉起浏览器，
 可先手动启动带调试端口的 Edge，再通过 `CDP_URL` 复用：

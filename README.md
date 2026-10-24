@@ -9,7 +9,7 @@
 backend/    FastAPI + SQLAlchemy 2.x async + Alembic
 frontend/   Vite 8 + Vue 3.5 + TypeScript
 deploy/     配置单一来源（deploy/.env）与后续 Compose / Nginx 部署产物
-docs/       方案、API 与 SSO 文档
+docs/       方案、API / SSO 文档与生产运维手册
 ```
 
 ## 本地开发
@@ -80,6 +80,9 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写、3 层楼中楼评论 |
 | P4 加固 + CI | ✅ 本地（Docker 镜像待启用） | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练（16.9 实跑 upgrade/downgrade + API 冒烟）、双 CI workflow（镜像任务随 Docker 阶段启用）、`docs/sso.md` 与 `docs/api.md` |
 
+近期加固（A2–A5）：会话自动续期（`X-Session-Expired` + refresh 重放）、POST SSO 登录（token 不进 URL）、
+匿名合并失败降级、生产配置/备份恢复演练。运维步骤见 [docs/ops.md](docs/ops.md)。
+
 ## 已实现接口
 
 | 方法 | 路径 | 说明 |
@@ -101,6 +104,7 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | POST/PATCH/DELETE | `/api/v1/changelogs[/{id}]` | 更新日志写（仅管理员） |
 | POST | `/api/v1/changelogs/{id}/publish`、`/unpublish` | 发布 / 撤回（仅管理员） |
 | GET | `/api/sso/jwt?token=&return_to=` | SSO 跳转登录（失败降级匿名） |
+| POST | `/api/sso/jwt` | SSO 登录（token 走 body，不进 URL） |
 | GET/POST | `/api/v1/auth/me`、`/refresh`、`/logout` | 当前身份、刷新、登出 |
 | GET/POST | `/api/v1/auth/capabilities`、`/dev-login` | 登录能力；开发环境快速登录（生产 404） |
 
