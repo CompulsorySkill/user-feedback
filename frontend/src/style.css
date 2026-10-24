@@ -1082,6 +1082,30 @@ h6.rt-heading {
   min-width: 0;
 }
 
+.search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.search-row .search-box {
+  flex: 0 1 480px;
+  margin-bottom: 0;
+}
+
+.search-row .sort-group {
+  flex: none;
+  height: 44px;
+  padding: 3px;
+}
+
+.search-row .sort-button {
+  height: 100%;
+  padding: 0 16px;
+}
+
 .search-box {
   position: relative;
   max-width: 480px;

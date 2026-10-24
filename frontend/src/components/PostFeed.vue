@@ -237,26 +237,41 @@ watch(
 
 <template>
   <section class="board-main">
-    <div class="search-box">
-      <IconSearch class="search-icon" :size="16" :stroke-width="2" />
-      <input
-        v-model="searchInput"
-        class="search-input"
-        type="search"
-        maxlength="100"
-        placeholder="搜索标题或摘要…"
-        aria-label="搜索反馈"
-        @input="onSearchInput"
-      />
-      <button
-        v-if="searchInput"
-        type="button"
-        class="search-clear"
-        aria-label="清除搜索"
-        @click="clearSearch"
-      >
-        <IconX :size="14" :stroke-width="2" />
-      </button>
+    <div class="search-row">
+      <div class="search-box">
+        <IconSearch class="search-icon" :size="16" :stroke-width="2" />
+        <input
+          v-model="searchInput"
+          class="search-input"
+          type="search"
+          maxlength="100"
+          placeholder="搜索标题或摘要…"
+          aria-label="搜索反馈"
+          @input="onSearchInput"
+        />
+        <button
+          v-if="searchInput"
+          type="button"
+          class="search-clear"
+          aria-label="清除搜索"
+          @click="clearSearch"
+        >
+          <IconX :size="14" :stroke-width="2" />
+        </button>
+      </div>
+
+      <div class="sort-group" role="group" aria-label="排序">
+        <button
+          v-for="item in SORT_OPTIONS"
+          :key="item.value"
+          type="button"
+          class="sort-button"
+          :class="{ 'is-active': sort === item.value }"
+          @click="setSort(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
     </div>
 
     <div class="list-toolbar">
@@ -274,18 +289,6 @@ watch(
             {{ item.label }}
           </button>
         </div>
-      </div>
-      <div class="sort-group" role="group" aria-label="排序">
-        <button
-          v-for="item in SORT_OPTIONS"
-          :key="item.value"
-          type="button"
-          class="sort-button"
-          :class="{ 'is-active': sort === item.value }"
-          @click="setSort(item.value)"
-        >
-          {{ item.label }}
-        </button>
       </div>
     </div>
 

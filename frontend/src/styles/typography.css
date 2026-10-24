@@ -150,6 +150,10 @@ samp {
   padding: 0 12px;
 }
 
+.search-row .sort-button {
+  font-size: var(--fs-body);
+}
+
 .vote-button {
   height: var(--control-height-sm);
   padding: 0 12px;
