@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+feedback.db
+feedback.db-shm
+feedback.db-wal
+.dev-storage
+tests
+.python-version

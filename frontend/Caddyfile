@@ -1,0 +1,52 @@
+{
+	admin off
+	email {$ACME_EMAIL:ops@example.com}
+}
+
+# 域名由 deploy/.env 的 SITE_ADDRESS 提供；本地无域名时可用 :80。
+{$SITE_ADDRESS:localhost} {
+	# 媒体走 RustFS 已是压缩格式，避免对视频/图片做二次压缩。
+	@compressible not path /storage/*
+	encode @compressible zstd gzip
+
+	# 只接受 100MB 以内的请求体；与 UPLOAD_MAX_BYTES 保持一致。
+	request_body {
+		max_size 100MB
+	}
+
+	# 访问日志默认关闭：GET /api/sso/jwt 的 token 在查询串中，
+	# 避免 Caddy 访问日志记录 token；后端 Uvicorn 访问日志已做脱敏。
+	# 需要访问日志时请先确认 SSO 只走 POST，或接入可脱敏的日志管道。
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# 不重写路径：/storage/<key> 原样转给 RustFS，保证 SigV4 canonical URI 一致。
+	handle /storage/* {
+		reverse_proxy rustfs:9000
+	}
+
+	# 静态资源缺失返回 404，不落到 SPA fallback。
+	handle /assets/* {
+		root * /srv
+		file_server
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+}

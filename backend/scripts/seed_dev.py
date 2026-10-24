@@ -6,7 +6,7 @@
     uv run python -m scripts.seed_dev --reset
 
 媒体文件写入 ``backend/.dev-storage/``（已 gitignore），并上传到本机 RustFS 的
-``storage`` bucket；前端经 Vite ``/storage`` 代理读取，生产环境由 Nginx 反代，
+``storage`` bucket；前端经 Vite ``/storage`` 代理读取，生产环境由 Caddy 反代，
 路径语义一致。
 """
 

@@ -8,7 +8,7 @@
 ```
 backend/    FastAPI + SQLAlchemy 2.x async + Alembic
 frontend/   Vite 8 + Vue 3.5 + TypeScript
-deploy/     配置单一来源（deploy/.env）与后续 Compose / Nginx 部署产物
+deploy/     配置单一来源（deploy/.env）与 Docker Compose / Caddy 部署产物
 docs/       方案、API / SSO 文档与生产运维手册
 ```
 
@@ -33,7 +33,7 @@ RUSTFS_ACCESS_KEY=...
 RUSTFS_SECRET_KEY=...
 ```
 
-`APP_NAME` 会同步到前端头部、页脚与浏览器标题，修改后重启后端并刷新页面即可。
+`APP_NAME` 会同步到前端头部与浏览器标题，修改后重启后端并刷新页面即可。
 `RUSTFS_ENDPOINT_PUBLIC` 必须与浏览器实际访问的站点同源，否则 SigV4 签名对不上。
 
 ### 2. 后端
@@ -74,15 +74,40 @@ cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（�
 cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + 评论 + 更新日志发布
 ```
 
+## Docker 生产部署（Caddy）
+
+生产拓扑：Caddy（frontend 镜像）同域提供静态站点、`/api/` 与 `/storage/`；
+Postgres、RustFS、backend 只在 Compose 内网可达，RustFS 不暴露公网端口。
+
+前置：域名 DNS 指向目标机、公网开放 TCP 80/443 与 UDP 443、Docker Engine + Compose v2。
+
+```bash
+cd deploy
+cp .env.production.example .env
+# 必改：SITE_ADDRESS / ACME_EMAIL / POSTGRES_PASSWORD
+#      SSO_SECRETS / SESSION_JWT_SECRET / ADMIN_EMAILS
+#      RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY
+docker compose up -d --build
+docker compose run --rm backend python -m scripts.bootstrap_storage
+curl https://<SITE_ADDRESS>/api/health
+```
+
+- Caddy 自动申请/续期 HTTPS 证书；本地无域名时可把 `SITE_ADDRESS` 设为 `:80`（同时把 `PUBLIC_ORIGIN`、`RUSTFS_ENDPOINT_PUBLIC` 改成对应的 `http://` 地址）。
+- `docker compose up -d --build` 在目标机构建 `backend` / `frontend` 镜像；也可在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 后，先 `docker login ghcr.io` 再 `docker compose pull && docker compose up -d`。
+- 迁移在 backend 启动命令中执行；多副本时应拆成独立的一次性任务。
+- 数据卷：`postgres-data`、`rustfs-data`、`caddy-data`（证书）、`caddy-config`。
+- 当前开发机没有 Docker Engine，Compose/Caddyfile 已做静态校验，首次部署请按 [docs/ops.md](docs/ops.md) 的验收清单在目标机执行。
+
 ## 分阶段进度
 
 | 阶段 | 状态 | 说明 |
 |---|---|---|
-| P0 骨架 | ✅ 本地 | Alembic 初始迁移（SQLite 已验证 / Postgres 方言离线渲染）、API 骨架与 `/api/health`、Vite + Vue 骨架；Docker Compose 与 Nginx 反代按计划延后 |
+| P0 骨架 | ✅ 本地 | Alembic 初始迁移（SQLite 已验证 / Postgres 方言离线渲染）、API 骨架与 `/api/health`、Vite + Vue 骨架；Docker Compose / Caddy 交付物见生产部署 |
 | P1 读路径 | ✅ 本地 | 看板 / 反馈 / 更新日志列表与详情、keyset 分页、Tiptap JSON 白名单渲染（含图片与 MP4）、匿名可读全部公开内容 |
-| P2 写路径 + 匿名 + 视频 | ✅ 本地 | 匿名签名 cookie、RustFS presign 直传（图片 / MP4）、匿名发帖、投票与取消、数据库限流、富文本媒体归属校验；Docker / Nginx 仍延后 |
+| P2 写路径 + 匿名 + 视频 | ✅ 本地 | 匿名签名 cookie、RustFS presign 直传（图片 / MP4）、匿名发帖、投票与取消、数据库限流、富文本媒体归属校验 |
 | P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写、3 层楼中楼评论 |
-| P4 加固 + CI | ✅ 本地（Docker 镜像待启用） | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练（16.9 实跑 upgrade/downgrade + API 冒烟）、双 CI workflow（镜像任务随 Docker 阶段启用）、`docs/sso.md` 与 `docs/api.md` |
+| P4 加固 + CI | ✅ 本地 | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练、双 CI workflow（含 GHCR 镜像构建） |
+| Docker + Caddy 交付 | ✅ 配置交付 | 双镜像、Compose、Caddy 自动 HTTPS、GHCR 构建、部署文档；当前开发机无 Docker，运行验收待目标机执行 |
 
 近期加固（A2–A5）：会话自动续期（`X-Session-Expired` + refresh 重放）、POST SSO 登录（token 不进 URL）、
 匿名合并失败降级、生产配置/备份恢复演练。运维步骤见 [docs/ops.md](docs/ops.md)。

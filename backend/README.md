@@ -112,4 +112,14 @@ P4 已在本机 Postgres 16.9 上实跑 `upgrade head → downgrade base → upg
 uv run pytest -q
 ```
 
-用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留。A2–A5 另覆盖会话过期标记与 refresh、POST SSO、合并失败降级、生产配置校验、Secure cookie、SSO 密钥轮换与 ADMIN_EMAILS 升降级。当前 **103 passed**。
+用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留、标签与站点配置。A2–A5 另覆盖会话过期标记与 refresh、POST SSO、合并失败降级、生产配置校验、Secure cookie、SSO 密钥轮换与 ADMIN_EMAILS 升降级。当前 **124 passed**。
+
+## Docker
+
+```bash
+docker build -t feedback-backend .
+```
+
+镜像启动时先执行 `alembic upgrade head`，再以 2 个 worker 启动 uvicorn；
+非 root UID 10001 运行，健康检查走 `/api/health`。完整四服务编排见
+[`deploy/docker-compose.yml`](../deploy/docker-compose.yml)，入口为 Caddy。

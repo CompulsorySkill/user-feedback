@@ -20,7 +20,7 @@ export default defineConfig({
         target: apiTarget,
         changeOrigin: false,
       },
-      // 与生产 Nginx 一致：不重写路径、透传 Host，保证 SigV4 的 canonical URI
+      // 与生产 Caddy 一致：不重写路径、透传 Host，保证 SigV4 的 canonical URI
       // 与浏览器实际请求（/storage/<key>）完全一致；Range 请求原样透传。
       '/storage': {
         target: storageTarget,

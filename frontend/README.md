@@ -11,8 +11,9 @@ pnpm dev      # http://127.0.0.1:5173
 ```
 
 - `/api` 代理到 `http://127.0.0.1:8000`，可用 `VITE_API_PROXY_TARGET` 覆盖。
-- `/storage` 代理到本机 RustFS（`http://127.0.0.1:9000`，`VITE_STORAGE_PROXY_TARGET` 可覆盖），不重写路径、透传 Host 与 Range，与生产 Nginx 行为一致。
+- `/storage` 代理到本机 RustFS（`http://127.0.0.1:9000`，`VITE_STORAGE_PROXY_TARGET` 可覆盖），不重写路径、透传 Host 与 Range，与生产 Caddy 行为一致。
 - 媒体由后端 `scripts/seed_dev.py` 生成并上传 RustFS。
+- 生产镜像见 [Dockerfile](Dockerfile) 与 [Caddyfile](Caddyfile)：Vite 产物由 Caddy 同域提供，`/api/` 与 `/storage/` 反代到内网服务。
 
 ```bash
 pnpm build          # vue-tsc 类型检查 + 产物构建
