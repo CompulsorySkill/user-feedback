@@ -57,7 +57,7 @@
 
 ## 5. 分页
 
-keyset 分页，按 `(created_at, id) DESC`。响应：
+keyset 分页。响应：
 
 ```json
 { "items": [ ... ], "next_cursor": "eyJ0IjoiMjAyNi0xMC0yNFQxMjowMDowMCIsImkiOiJ1dWlkIn0" }
@@ -66,6 +66,15 @@ keyset 分页，按 `(created_at, id) DESC`。响应：
 - `limit` 1–100（默认 20；前端反馈列表用 10）。
 - 下一页传 `cursor=<next_cursor>`；`next_cursor=null` 表示结束。
 - 游标无效返回 `400 INVALID_CURSOR`。
+
+反馈列表额外支持：
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `status` | `open / planned / in_progress / completed / closed` | 按状态筛选；非法值 422 |
+| `sort` | `recent`（默认）/ `top` | `recent` 按 `(created_at, id)`；`top` 按 `(vote_count, id)` 降序 |
+
+两种排序各自使用对应的 keyset 游标，切换排序或筛选时必须丢弃旧 `cursor`。
 
 ## 6. 限流
 
@@ -99,6 +108,7 @@ keyset 分页，按 `(created_at, id) DESC`。响应：
 - 顶层必须 `doc`；payload ≤ 256KB；深度 ≤ 8；节点 ≤ 2000；单文本 ≤ 20000 字符
 - 节点与 mark 白名单（未知节点 / 标记直接拒绝）；链接仅 http(s)
 - `image` / `video` 的 `src` 必须是**当前身份**的 `Upload`，且 purpose / content_type 匹配，否则 `400 INVALID_CONTENT`
+- 编辑时允许保留原内容中已存在的媒体 key（历史数据或他人上传），新增媒体仍必须是编辑者自己的 `Upload`
 
 ## 8. 端点一览
 
@@ -119,6 +129,8 @@ keyset 分页，按 `(created_at, id) DESC`。响应：
 | POST / PATCH / DELETE | `/v1/changelogs[/{id}]` | 管理员 |
 | POST | `/v1/changelogs/{id}/publish`、`/unpublish` | 管理员 |
 | GET | `/sso/jwt?token=&return_to=` | 公开 |
-| GET / POST | `/v1/auth/me`、`/refresh`、`/logout` | 公开（按 cookie） |
+| GET | `/v1/auth/me`、`/capabilities` | 公开（按 cookie） |
+| POST | `/v1/auth/refresh`、`/logout` | 公开（按 cookie） |
+| POST | `/v1/auth/dev-login` | 仅 `ENVIRONMENT=development`；生产返回 404 |
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。

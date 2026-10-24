@@ -46,18 +46,22 @@ uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 |---|---|---|
 | GET | `/api/v1/boards` | 公开看板 + 反馈数 |
 | GET | `/api/v1/boards/{slug}` | 看板详情（私有/不存在 → 404 `BOARD_NOT_FOUND`） |
-| GET | `/api/v1/boards/{slug}/posts` | keyset 分页，`limit` ≤ 100，`cursor` 为上一页 `next_cursor` |
+| GET | `/api/v1/boards/{slug}/posts` | keyset 分页；`status=` 状态筛选、`sort=recent\|top` 最近/最热 |
 | POST | `/api/v1/boards/{slug}/posts` | 匿名发帖；校验富文本结构与媒体归属，`201` |
 | GET | `/api/v1/posts/{id}` | 反馈详情，私有看板内反馈同样 404 |
 | POST | `/api/v1/posts/{id}/vote` | 匿名投票（幂等；`closed` → 403 `POST_CLOSED`） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
 | POST | `/api/v1/uploads/presign` | presigned PUT（图片 4 种类型 / `video/mp4`，≤100MB） |
-| GET | `/api/v1/changelogs` | 仅已发布；P1 无鉴权，`include_drafts` 不生效 |
-| GET | `/api/v1/changelogs/{id}` | 草稿 → 404 `CHANGELOG_NOT_FOUND` |
+| GET | `/api/v1/changelogs` | 已发布；管理员可用 `include_drafts=true` |
+| GET | `/api/v1/changelogs/{id}` | 草稿 → 404（非管理员） |
+| GET | `/api/v1/auth/capabilities` | 登录能力（是否开放开发快速登录） |
+| POST | `/api/v1/auth/dev-login` | 仅 development 环境；生产 404 |
 
-游标编码见 `app/core/pagination.py`：`base64url({"t": 创建时间, "i": UUID})`，按 `(created_at, id) DESC` 做 keyset，无效游标返回 400 `INVALID_CURSOR`。
+游标编码见 `app/core/pagination.py`：`recent` 用 `base64url({"t": created_at, "i": uuid})`，`top` 用 `{"v": vote_count, "i": uuid}`；两种排序各自维护游标，切换排序/筛选时必须丢弃旧游标。无效游标返回 400 `INVALID_CURSOR`。
 
-## 匿名身份与写路径（P2）- **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
+## 匿名身份与写路径（P2）
+
+- **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
 - **上传**：`POST /uploads/presign` 校验 purpose / content-type / size 后，用公网同域 endpoint（`RUSTFS_ENDPOINT_PUBLIC`）+ path-style + `s3v4` 生成 URL，并写入 `Uploads` 归属；key 由服务端生成（`uploads/{uuid}.<ext>`）。
 - **富文本校验**：`doc` 顶层、深度 ≤ 8、节点 ≤ 2000；`image` / `video` 的 `src` 必须是当前身份的 `Upload` 记录且 purpose/类型匹配，否则 400 `INVALID_CONTENT`。
 - **限流**：`rate_limit_counters` 固定窗口 UPSERT，vote 20/min、post 5/10min、comment 10/min；每小时清理 1 小时前的窗口。
@@ -102,4 +106,4 @@ P4 已在本机 Postgres 16.9 上实跑 `upgrade head → downgrade base → upg
 uv run pytest -q
 ```
 
-用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）以及 P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开）。
+用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留。当前 **88 passed**。

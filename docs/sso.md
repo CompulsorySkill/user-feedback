@@ -61,18 +61,23 @@
 
 ## 7. 本地联调
 
+前端提供 `/login` 登录页：
+
+- **开发快速登录**：`ENVIRONMENT=development` 时可用，输入邮箱直接签发会话；邮箱命中 `ADMIN_EMAILS` 即为管理员。生产环境该接口返回 404。
+- **SSO token 粘贴**：把下面命令生成的 JWT 粘到登录页即可。
+
 ```bash
 # 用 deploy/.env 中的 SSO_SECRETS[0] 签发 5 分钟 token
 uv run python -c "import jwt,time; print(jwt.encode({'email':'admin@example.com','name':'管理员','exp':int(time.time())+300}, 'dev-only-sso-secret-0123456789abcdef', algorithm='HS256'))"
 ```
 
-浏览器打开：
+也可以直接打开：
 
 ```
 http://127.0.0.1:5173/api/sso/jwt?token=<token>&return_to=/b/product
 ```
 
-`ADMIN_EMAILS` 包含该邮箱时，头部显示「管理员」徽标；`pnpm smoke:p3` 覆盖了整条链路。
+`ADMIN_EMAILS` 包含该邮箱时，头部显示「管理员」徽标；`pnpm smoke:p3` / `pnpm smoke:admin` 覆盖了登录与后续管理链路。
 
 ## 8. 会话接口
 

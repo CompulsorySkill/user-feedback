@@ -87,7 +87,7 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | GET | `/api/health` | 健康检查（含数据库探活） |
 | GET | `/api/v1/boards` | 公开看板列表（含反馈数） |
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
-| GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页 |
+| GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=` 筛选与 `sort=recent\|top` |
 | POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称与浏览器环境信息 |
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |
 | PATCH | `/api/v1/posts/{id}` | 编辑反馈（作者非关闭态 / 管理员） |
@@ -102,11 +102,14 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | POST | `/api/v1/changelogs/{id}/publish`、`/unpublish` | 发布 / 撤回（仅管理员） |
 | GET | `/api/sso/jwt?token=&return_to=` | SSO 跳转登录（失败降级匿名） |
 | GET/POST | `/api/v1/auth/me`、`/refresh`、`/logout` | 当前身份、刷新、登出 |
+| GET/POST | `/api/v1/auth/capabilities`、`/dev-login` | 登录能力；开发环境快速登录（生产 404） |
 
 错误统一为 `{ "detail": ..., "code": ... }`；分页游标无效返回 400 `INVALID_CURSOR`，
 限流返回 429 `RATE_LIMITED`，伪造媒体引用返回 400 `INVALID_CONTENT`。
 
 权限矩阵、状态机、上传契约见 [docs/api.md](docs/api.md)；SSO 对接与管理员维护见 [docs/sso.md](docs/sso.md)。
+
+前端 `/login` 提供两种登录方式：SSO token 粘贴（生产可用）与开发环境快速登录（仅 `ENVIRONMENT=development`，邮箱命中 `ADMIN_EMAILS` 即管理员）。
 
 ## Postgres 迁移演练（P4）
 
