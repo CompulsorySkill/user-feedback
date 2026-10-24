@@ -79,6 +79,7 @@ class PostService:
         cursor_raw: str | None,
         status: str | None = None,
         sort: str = "recent",
+        query: str | None = None,
     ) -> Page[PostSummary]:
         board = await self.boards.get_public_by_slug(slug)
         if board is None:
@@ -91,6 +92,7 @@ class PostService:
                 limit=limit + 1,
                 sort="top",
                 status=status,
+                query=query,
                 top_cursor=top_cursor,
             )
             has_more = len(rows) > limit
@@ -107,6 +109,7 @@ class PostService:
                 limit=limit + 1,
                 sort="recent",
                 status=status,
+                query=query,
                 cursor=cursor,
             )
             has_more = len(rows) > limit

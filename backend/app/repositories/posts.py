@@ -30,12 +30,24 @@ class PostRepository:
         limit: int,
         sort: PostSort = "recent",
         status: str | None = None,
+        query: str | None = None,
         cursor: Cursor | None = None,
         top_cursor: TopCursor | None = None,
     ) -> list[tuple[Post, str | None]]:
         stmt = self._base().where(Post.board_id == board_id)
         if status is not None:
             stmt = stmt.where(Post.status == status)
+        if query:
+            escaped = (
+                query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            pattern = f"%{escaped}%"
+            stmt = stmt.where(
+                or_(
+                    Post.title.ilike(pattern, escape="\\"),
+                    Post.excerpt.ilike(pattern, escape="\\"),
+                )
+            )
 
         if sort == "top":
             if top_cursor is not None:

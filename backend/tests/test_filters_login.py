@@ -134,6 +134,97 @@ async def test_invalid_status_and_sort_rejected(client: AsyncClient, sqlite_conn
     assert bad_sort.status_code == 422
 
 
+async def test_search_matches_title_and_excerpt(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="搜索关键词 Alpha",
+        created_at=BASE,
+    )
+    insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="另一条反馈",
+        created_at=BASE - timedelta(minutes=1),
+        excerpt="摘要里也包含 alpha",
+    )
+    insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="完全无关",
+        created_at=BASE - timedelta(minutes=2),
+    )
+
+    response = await client.get(
+        "/api/v1/boards/product/posts", params={"q": "alpha"}
+    )
+
+    assert response.status_code == 200
+    titles = [item["title"] for item in response.json()["items"]]
+    assert titles == ["搜索关键词 Alpha", "另一条反馈"]
+
+
+async def test_search_combines_status_filter(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="搜索 open",
+        created_at=BASE,
+        status="open",
+    )
+    insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="搜索 closed",
+        created_at=BASE - timedelta(minutes=1),
+        status="closed",
+    )
+
+    response = await client.get(
+        "/api/v1/boards/product/posts",
+        params={"q": "搜索", "status": "closed"},
+    )
+
+    assert [item["status"] for item in response.json()["items"]] == ["closed"]
+
+
+async def test_search_escapes_sql_wildcards(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    insert_post(
+        sqlite_conn, board_id=board_id, title="完成度 100%", created_at=BASE
+    )
+    insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="普通反馈",
+        created_at=BASE - timedelta(minutes=1),
+    )
+
+    response = await client.get(
+        "/api/v1/boards/product/posts", params={"q": "%"}
+    )
+
+    assert [item["title"] for item in response.json()["items"]] == ["完成度 100%"]
+
+
+async def test_search_query_length_limit(client: AsyncClient, sqlite_conn) -> None:
+    insert_board(sqlite_conn)
+
+    response = await client.get(
+        "/api/v1/boards/product/posts", params={"q": "x" * 101}
+    )
+
+    assert response.status_code == 422
+
+
 # --------------------------------------------------------------------------- #
 # 最热排序与 keyset 分页
 # --------------------------------------------------------------------------- #

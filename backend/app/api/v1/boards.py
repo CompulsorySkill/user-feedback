@@ -32,6 +32,10 @@ SortQuery = Annotated[
     str,
     Query(pattern="^(recent|top)$", description="recent=最近，top=最热（投票最多）"),
 ]
+SearchQuery = Annotated[
+    str | None,
+    Query(min_length=1, max_length=100, description="按标题与摘要模糊搜索"),
+]
 
 
 @router.get("", response_model=list[BoardSummary], summary="公开看板列表")
@@ -56,9 +60,15 @@ async def list_board_posts(
     cursor: CursorQuery = None,
     status: StatusQuery = None,
     sort: SortQuery = "recent",
+    q: SearchQuery = None,
 ) -> Page[PostSummary]:
     return await service.list_for_board(
-        slug, limit=limit, cursor_raw=cursor, status=status, sort=sort
+        slug,
+        limit=limit,
+        cursor_raw=cursor,
+        status=status,
+        sort=sort,
+        query=q,
     )
 
 
