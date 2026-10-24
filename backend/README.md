@@ -8,13 +8,13 @@ FastAPI + SQLAlchemy 2.x（async）+ Alembic。schema 唯一权威是 Alembic，
 app/
   api/          路由层（/api/health、/api/v1/*）
   core/         config / db / errors / pagination / identity / rate_limit / storage
-  models/       SQLAlchemy 模型（8 张表）
+  models/       SQLAlchemy 模型（11 张表）
   schemas/      Pydantic v2 请求 / 响应模式
   services/     业务规则（公开性、分页、匿名写、富文本校验、投票）
   repositories/ 数据访问（SQLAlchemy 查询）
   main.py       应用入口（lifespan 内启停限流清理任务）
 alembic/        迁移环境与版本
-scripts/        RustFS 初始化与开发种子数据
+scripts/        RustFS 初始化、开发种子数据与上传对象清理
 tests/          pytest（独立 SQLite 库 + 完整迁移链）
 ```
 
@@ -40,18 +40,31 @@ uv run python -m scripts.seed_dev          # 已有数据则跳过
 uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 ```
 
+清理超过 24 小时且未被任何反馈 / 更新日志引用的上传记录与 RustFS 对象（建议每日 cron；
+单次最多删除 200 条，继续向后扫描）：
+
+```bash
+uv run python -m scripts.cleanup_uploads --dry-run   # 只统计
+uv run python -m scripts.cleanup_uploads             # 删除记录 + 对象
+```
+
+只处理 `uploads` 表中有 presign 记录的对象，不做 bucket 全量扫描；管理员也可在
+`/admin/audit` 或 `POST /api/v1/admin/uploads/cleanup` 手动触发。
+
 ## 接口
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/v1/boards` | 公开看板 + 反馈数 |
 | GET | `/api/v1/boards/{slug}` | 看板详情（私有/不存在 → 404 `BOARD_NOT_FOUND`） |
-| GET | `/api/v1/boards/{slug}/posts` | keyset 分页；`status=` 状态筛选、`sort=recent\|top`、`q=` 标题/摘要搜索 |
+| GET | `/api/v1/boards/{slug}/posts` | keyset 分页；`status=`、`sort=recent\|top`、`q=`、重复 `tag=`（OR） |
 | POST | `/api/v1/boards/{slug}/posts` | 匿名发帖；校验富文本、媒体归属与标签（≤5），`201` |
-| GET | `/api/v1/posts` | 全部公开看板聚合列表；`board=` / `status=` / `sort=` / `q=`，keyset 分页 |
+| GET | `/api/v1/posts` | 全部公开看板聚合列表；`board=` / `status=` / `sort=` / `q=` / 重复 `tag=`，keyset 分页 |
 | GET | `/api/v1/site` | 站点名称（`APP_NAME`） |
-| GET | `/api/v1/tags` | 内置标签（含使用数） |
+| GET | `/api/v1/tags` | 内置标签（含使用数）；`include_custom=true` 返回全部标签 |
 | GET / POST / DELETE | `/api/v1/admin/tags[/{id}]` | 管理员标签维护；删除会解除全部帖子关联 |
+| GET | `/api/v1/admin/audit-logs` | 审计日志（`before_id` keyset、`action=` 筛选） |
+| POST | `/api/v1/admin/uploads/cleanup` | 清理超期未引用上传对象（`dry_run` 可预演） |
 | GET | `/api/v1/admin/boards` | 管理员看板列表（含未公开） |
 | POST / PATCH / DELETE | `/api/v1/admin/boards[/{id}]` | 管理员增改删；slug 冲突 409 `BOARD_SLUG_TAKEN`；非空看板默认 409 `BOARD_NOT_EMPTY`，`?force=true` 级联删除反馈/评论/投票 |
 | GET | `/api/v1/posts/{id}` | 反馈详情，私有看板内反馈同样 404 |
@@ -72,6 +85,8 @@ uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 - **富文本校验**：`doc` 顶层、深度 ≤ 8、节点 ≤ 2000；`image` / `video` 的 `src` 必须是当前身份的 `Upload` 记录且 purpose/类型匹配，否则 400 `INVALID_CONTENT`。
 - **限流**：`rate_limit_counters` 固定窗口 UPSERT，vote 20/min、post 5/10min、comment 10/min；每小时清理 1 小时前的窗口。
 - **投票**：匿名唯一索引去重，计数与投票同事务维护；`closed` 与关闭访客投票的看板直接拒绝。
+- **上传清理**：`Upload` 仅代表 presign 归属；清理任务扫描反馈 / 更新日志 JSON，删除超过
+  `UPLOAD_CLEANUP_GRACE_HOURS`（默认 24）仍未被引用的 RustFS 对象与 `Upload` 行。
 
 ## SSO / 会话 / 权限（P3）
 
@@ -81,6 +96,8 @@ uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 - Post 状态机：管理员任意流转、作者仅单向关闭；`closed` 冻结编辑 / 投票 / 评论，管理员可重开。
 - 更新日志写端点全部 `require_admin`；草稿仅管理员可见，撤回保留 `published_at`。
 - 评论：扁平返回 `parent_id`，深度 ≤3，超出挂到根评论并前缀「回复 @xxx」；关闭与访客开关校验、计数同事务、10/min 限流。
+- 审计：管理员对看板 / 标签 / 更新日志 / 反馈的写操作与上传清理写入 `audit_logs`
+  （actor 邮箱快照、IP、目标、detail）；失败 best-effort，不阻塞主流程。查询接口仅管理员可用。
 
 ## 数据库
 
@@ -112,7 +129,7 @@ P4 已在本机 Postgres 16.9 上实跑 `upgrade head → downgrade base → upg
 uv run pytest -q
 ```
 
-用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留、标签与站点配置。A2–A5 另覆盖会话过期标记与 refresh、POST SSO、合并失败降级、生产配置校验、Secure cookie、SSO 密钥轮换与 ADMIN_EMAILS 升降级。当前 **124 passed**。
+用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留、标签与站点配置。A2–A5 另覆盖会话过期标记与 refresh、POST SSO、合并失败降级、生产配置校验、Secure cookie、SSO 密钥轮换与 ADMIN_EMAILS 升降级。当前 **132 passed**。
 
 ## Docker
 

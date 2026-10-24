@@ -1,13 +1,8 @@
+import { buildPostQuery, type PostQueryOptions, type PostSort } from '@/utils/postFilters'
 import { api } from './client'
-import type {
-  Board,
-  BoardInput,
-  Page,
-  PostCreateInput,
-  PostDetail,
-  PostStatus,
-  PostSummary,
-} from './types'
+import type { Board, BoardInput, Page, PostCreateInput, PostDetail, PostSummary } from './types'
+
+export type { PostSort }
 
 export function listBoards(): Promise<Board[]> {
   return api.get<Board[]>('/v1/boards')
@@ -17,32 +12,14 @@ export function getBoard(slug: string): Promise<Board> {
   return api.get<Board>(`/v1/boards/${encodeURIComponent(slug)}`)
 }
 
-export type PostSort = 'recent' | 'top'
-
-export interface ListPostsOptions {
-  limit?: number
-  cursor?: string | null
-  status?: PostStatus | null
-  sort?: PostSort
-  q?: string | null
-}
-
-function postQuery(options: ListPostsOptions): string {
-  const params = new URLSearchParams()
-  params.set('limit', String(options.limit ?? 10))
-  if (options.cursor) params.set('cursor', options.cursor)
-  if (options.status) params.set('status', options.status)
-  params.set('sort', options.sort ?? 'recent')
-  if (options.q) params.set('q', options.q)
-  return params.toString()
-}
+export type ListPostsOptions = Omit<PostQueryOptions, 'board'>
 
 export function listBoardPosts(
   slug: string,
   options: ListPostsOptions = {},
 ): Promise<Page<PostSummary>> {
   return api.get<Page<PostSummary>>(
-    `/v1/boards/${encodeURIComponent(slug)}/posts?${postQuery(options)}`,
+    `/v1/boards/${encodeURIComponent(slug)}/posts?${buildPostQuery(options)}`,
   )
 }
 
@@ -50,9 +27,7 @@ export function listBoardPosts(
 export function listAllPosts(
   options: ListPostsOptions & { board?: string | null } = {},
 ): Promise<Page<PostSummary>> {
-  const params = new URLSearchParams(postQuery(options))
-  if (options.board) params.set('board', options.board)
-  return api.get<Page<PostSummary>>(`/v1/posts?${params.toString()}`)
+  return api.get<Page<PostSummary>>(`/v1/posts?${buildPostQuery(options)}`)
 }
 
 export function createPost(slug: string, input: PostCreateInput): Promise<PostDetail> {

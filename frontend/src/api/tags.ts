@@ -5,6 +5,11 @@ export function listBuiltinTags(): Promise<TagSummary[]> {
   return api.get<TagSummary[]>('/v1/tags')
 }
 
+/** 筛选器使用：内置标签 + 用户创建的标签。 */
+export function listFilterTags(): Promise<TagSummary[]> {
+  return api.get<TagSummary[]>('/v1/tags?include_custom=true')
+}
+
 export function listAdminTags(): Promise<TagSummary[]> {
   return api.get<TagSummary[]>('/v1/admin/tags')
 }

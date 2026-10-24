@@ -690,6 +690,41 @@
   box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
 }
 
+.tag-filter {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -4px 0 18px;
+}
+
+.tag-filter-label {
+  flex: none;
+  line-height: var(--control-height-sm);
+  color: var(--text-subtle);
+}
+
+.tag-filter .filter-group {
+  min-width: 0;
+}
+
+.tag-filter .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tag-filter .filter-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tag-filter-count {
+  color: inherit;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+
 .post-detail-actions {
   display: flex;
   align-items: center;

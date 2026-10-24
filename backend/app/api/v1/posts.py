@@ -9,12 +9,14 @@ from fastapi import APIRouter, Query, Request, Response
 from fastapi import status as http_status
 
 from app.api.deps import (
+    AuditServiceDep,
     CommentServiceDep,
     IdentityDep,
     PostServiceDep,
     VoteServiceDep,
     resolve_write_identity,
 )
+from app.core.identity import AuthenticatedUser
 from app.schemas.common import Page
 from app.schemas.comment import CommentCreateRequest, CommentItem, CommentList
 from app.schemas.post import (
@@ -24,6 +26,7 @@ from app.schemas.post import (
     PostUpdateRequest,
 )
 from app.schemas.vote import VoteResponse
+from app.services.audit import request_ip
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -48,6 +51,10 @@ BoardQuery = Annotated[
     str | None,
     Query(min_length=1, max_length=64, description="限定某个公开看板的 slug"),
 ]
+TagQuery = Annotated[
+    list[str] | None,
+    Query(description="按标签筛选，可重复传参 tag=；多个标签为 OR，最多 5 个"),
+]
 
 
 @router.get("", response_model=Page[PostSummary], summary="全部看板反馈汇总")
@@ -59,6 +66,7 @@ async def list_posts(
     sort: SortQuery = "recent",
     q: SearchQuery = None,
     board: BoardQuery = None,
+    tag: TagQuery = None,
 ) -> Page[PostSummary]:
     return await service.list_all(
         limit=limit,
@@ -67,6 +75,7 @@ async def list_posts(
         sort=sort,
         query=q,
         board_slug=board,
+        tags=tag,
     )
 
 
@@ -81,20 +90,53 @@ async def get_post(
 async def update_post(
     post_id: uuid.UUID,
     payload: PostUpdateRequest,
+    request: Request,
     identity: IdentityDep,
     service: PostServiceDep,
+    audit: AuditServiceDep,
 ) -> PostDetail:
-    return await service.update(post_id, payload, identity)
+    post = await service.update(post_id, payload, identity)
+    if isinstance(identity, AuthenticatedUser) and identity.is_admin:
+        await audit.record(
+            action="post.update",
+            actor=identity.user,
+            target_type="post",
+            target_id=post_id,
+            detail={
+                "title": post.title,
+                "title_changed": payload.title is not None,
+                "content_changed": payload.content is not None,
+                "tags_changed": payload.tags is not None,
+            },
+            ip=request_ip(request),
+        )
+    return post
 
 
 @router.patch("/{post_id}/status", response_model=PostDetail, summary="变更反馈状态")
 async def change_status(
     post_id: uuid.UUID,
     payload: PostStatusUpdate,
+    request: Request,
     identity: IdentityDep,
     service: PostServiceDep,
+    audit: AuditServiceDep,
 ) -> PostDetail:
-    return await service.change_status(post_id, payload.status, identity)
+    post = await service.change_status(post_id, payload.status, identity)
+    if isinstance(identity, AuthenticatedUser):
+        await audit.record(
+            action="post.status",
+            actor=identity.user,
+            target_type="post",
+            target_id=post_id,
+            detail={
+                "title": post.title,
+                "status": post.status,
+                "by_admin": identity.is_admin,
+            },
+            ip=request_ip(request),
+        )
+    return post
 
 
 @router.post("/{post_id}/vote", response_model=VoteResponse, summary="投票")

@@ -7,6 +7,7 @@ import './style.css'
 import './styles/write-path.css'
 import './styles/typography.css'
 import './styles/tags.css'
+import './styles/audit.css'
 
 async function bootstrap(): Promise<void> {
   await loadSiteName()

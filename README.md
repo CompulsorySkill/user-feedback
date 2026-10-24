@@ -67,11 +67,10 @@ pnpm dev
 
 ```bash
 cd backend && uv run pytest
+cd frontend && pnpm test           # Vitest 单元 / 组件测试（无需浏览器与本地服务）
 cd frontend && pnpm lint           # oxlint（Vue 插件）
 cd frontend && pnpm format:check   # oxfmt
 cd frontend && pnpm build
-cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（需本地服务与 Edge）
-cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + 评论 + 更新日志发布
 ```
 
 ## Docker 生产部署（Caddy）
@@ -90,6 +89,8 @@ cp .env.production.example .env
 docker compose up -d --build
 docker compose run --rm backend python -m scripts.bootstrap_storage
 curl https://<SITE_ADDRESS>/api/health
+# 建议每日 cron 清理未引用上传对象（可先用 --dry-run 预演）
+docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 24
 ```
 
 - Caddy 自动申请/续期 HTTPS 证书；本地无域名时可把 `SITE_ADDRESS` 设为 `:80`（同时把 `PUBLIC_ORIGIN`、`RUSTFS_ENDPOINT_PUBLIC` 改成对应的 `http://` 地址）。
@@ -107,6 +108,7 @@ curl https://<SITE_ADDRESS>/api/health
 | P2 写路径 + 匿名 + 视频 | ✅ 本地 | 匿名签名 cookie、RustFS presign 直传（图片 / MP4）、匿名发帖、投票与取消、数据库限流、富文本媒体归属校验 |
 | P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写、3 层楼中楼评论 |
 | P4 加固 + CI | ✅ 本地 | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练、双 CI workflow（含 GHCR 镜像构建） |
+| 运营完善 | ✅ 本地 | 标签筛选（多选 OR）、审计日志（管理员操作留痕 + 查询页）、未引用上传对象清理（CLI + 管理员触发）、Vitest 前端单测替代浏览器脚本 |
 | Docker + Caddy 交付 | ✅ 配置交付 | 双镜像、Compose、Caddy 自动 HTTPS、GHCR 构建、部署文档；当前开发机无 Docker，运行验收待目标机执行 |
 
 近期加固（A2–A5）：会话自动续期（`X-Session-Expired` + refresh 重放）、POST SSO 登录（token 不进 URL）、
@@ -119,14 +121,16 @@ curl https://<SITE_ADDRESS>/api/health
 | GET | `/api/health` | 健康检查（含数据库探活） |
 | GET | `/api/v1/boards` | 公开看板列表（含反馈数） |
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
-| GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索 |
+| GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索、重复 `tag=` 标签筛选（OR） |
 | POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称、浏览器环境信息与标签（≤5 个） |
 | GET | `/api/v1/site` | 站点配置（当前为 `APP_NAME`） |
-| GET | `/api/v1/tags` | 内置标签列表（含使用数） |
+| GET | `/api/v1/tags` | 内置标签列表（含使用数）；`include_custom=true` 返回全部标签，供筛选器使用 |
 | GET | `/api/v1/admin/tags` | 全部标签（管理员） |
 | POST | `/api/v1/admin/tags` | 新增内置标签（管理员） |
 | DELETE | `/api/v1/admin/tags/{id}` | 删除标签并从所有反馈移除（管理员） |
-| GET | `/api/v1/posts?limit=&cursor=` | 全部公开看板的反馈聚合列表；支持 `board=`、`status=`、`sort=`、`q=` |
+| GET | `/api/v1/posts?limit=&cursor=` | 全部公开看板的反馈聚合列表；支持 `board=`、`status=`、`sort=`、`q=`、重复 `tag=` |
+| GET | `/api/v1/admin/audit-logs?limit=&before_id=&action=` | 管理操作审计日志（管理员，按 id 倒序） |
+| POST | `/api/v1/admin/uploads/cleanup?dry_run=&grace_hours=` | 清理超期未引用上传对象（管理员，可预演） |
 | GET | `/api/v1/admin/boards` | 看板列表（管理员，含未公开） |
 | POST / PATCH / DELETE | `/api/v1/admin/boards[/{id}]` | 新建 / 修改 / 删除看板（管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除） |
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |

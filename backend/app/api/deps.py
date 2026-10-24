@@ -18,6 +18,7 @@ from app.core.identity import (
 from app.core.security import ACCESS_COOKIE, decode_session_token
 from app.core.storage import S3Storage, get_storage
 from app.models import User
+from app.repositories.audit import AuditRepository
 from app.repositories.boards import BoardRepository
 from app.repositories.changelogs import ChangelogRepository
 from app.repositories.comments import CommentRepository
@@ -25,11 +26,13 @@ from app.repositories.posts import PostRepository
 from app.repositories.tags import TagRepository
 from app.repositories.uploads import UploadRepository
 from app.repositories.votes import VoteRepository
+from app.services.audit import AuditService
 from app.services.boards import BoardService
 from app.services.changelogs import ChangelogService
 from app.services.comments import CommentService
 from app.services.posts import PostService
 from app.services.tags import TagService
+from app.services.upload_cleanup import UploadCleanupService
 from app.services.uploads import UploadService
 from app.services.votes import VoteService
 
@@ -64,6 +67,10 @@ def get_tag_repository(session: SessionDep) -> TagRepository:
     return TagRepository(session)
 
 
+def get_audit_repository(session: SessionDep) -> AuditRepository:
+    return AuditRepository(session)
+
+
 BoardRepoDep = Annotated[BoardRepository, Depends(get_board_repository)]
 PostRepoDep = Annotated[PostRepository, Depends(get_post_repository)]
 ChangelogRepoDep = Annotated[ChangelogRepository, Depends(get_changelog_repository)]
@@ -71,6 +78,7 @@ UploadRepoDep = Annotated[UploadRepository, Depends(get_upload_repository)]
 VoteRepoDep = Annotated[VoteRepository, Depends(get_vote_repository)]
 CommentRepoDep = Annotated[CommentRepository, Depends(get_comment_repository)]
 TagRepoDep = Annotated[TagRepository, Depends(get_tag_repository)]
+AuditRepoDep = Annotated[AuditRepository, Depends(get_audit_repository)]
 
 
 def get_storage_backend() -> S3Storage:
@@ -144,6 +152,10 @@ def get_tag_service(session: SessionDep, tags: TagRepoDep) -> TagService:
     return TagService(session, tags)
 
 
+def get_audit_service(session: SessionDep, audit: AuditRepoDep) -> AuditService:
+    return AuditService(session, audit)
+
+
 def get_changelog_service(
     session: SessionDep,
     changelogs: ChangelogRepoDep,
@@ -154,6 +166,12 @@ def get_changelog_service(
 
 def get_upload_service(session: SessionDep, storage: StorageDep) -> UploadService:
     return UploadService(session, storage)
+
+
+def get_upload_cleanup_service(
+    session: SessionDep, storage: StorageDep
+) -> UploadCleanupService:
+    return UploadCleanupService(session, storage)
 
 
 def get_vote_service(
@@ -174,7 +192,11 @@ def get_comment_service(
 BoardServiceDep = Annotated[BoardService, Depends(get_board_service)]
 PostServiceDep = Annotated[PostService, Depends(get_post_service)]
 TagServiceDep = Annotated[TagService, Depends(get_tag_service)]
+AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
 ChangelogServiceDep = Annotated[ChangelogService, Depends(get_changelog_service)]
 UploadServiceDep = Annotated[UploadService, Depends(get_upload_service)]
+UploadCleanupServiceDep = Annotated[
+    UploadCleanupService, Depends(get_upload_cleanup_service)
+]
 VoteServiceDep = Annotated[VoteService, Depends(get_vote_service)]
 CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]

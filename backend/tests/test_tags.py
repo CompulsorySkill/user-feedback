@@ -173,6 +173,60 @@ async def test_tag_limit_and_invalid_names(client: AsyncClient, sqlite_conn) -> 
     assert too_long.json()["code"] == "TAG_INVALID"
 
 
+async def test_post_lists_filter_by_tag(client: AsyncClient, sqlite_conn) -> None:
+    insert_board(sqlite_conn)
+    await create_post(client, title="缺陷一", tags=["Bug"])
+    await create_post(client, title="缺陷二", tags=["UI", "Bug"])
+    await create_post(client, title="其他", tags=["Other"])
+
+    all_posts = await client.get("/api/v1/posts", params={"tag": "bug"})
+    assert all_posts.status_code == 200
+    assert {item["title"] for item in all_posts.json()["items"]} == {"缺陷一", "缺陷二"}
+
+    board_posts = await client.get(
+        "/api/v1/boards/product/posts", params={"tag": "Bug"}
+    )
+    assert {item["title"] for item in board_posts.json()["items"]} == {
+        "缺陷一",
+        "缺陷二",
+    }
+
+    # 多个标签之间是 OR；大小写不敏感。
+    any_tag = await client.get(
+        "/api/v1/posts", params=[("tag", "bug"), ("tag", "other")]
+    )
+    assert {item["title"] for item in any_tag.json()["items"]} == {
+        "缺陷一",
+        "缺陷二",
+        "其他",
+    }
+
+    missing = await client.get("/api/v1/posts", params={"tag": "不存在"})
+    assert missing.json()["items"] == []
+
+    too_many = await client.get(
+        "/api/v1/posts",
+        params=[("tag", f"t{index}") for index in range(6)],
+    )
+    assert too_many.status_code == 400
+    assert too_many.json()["code"] == "TAG_LIMIT"
+
+
+async def test_public_tag_list_can_include_custom(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+    await create_post(client, title="带自定义标签", tags=["性能"])
+
+    builtin_only = await client.get("/api/v1/tags")
+    assert builtin_only.json() == []
+
+    all_tags = await client.get("/api/v1/tags", params={"include_custom": "true"})
+    assert [(tag["name"], tag["post_count"]) for tag in all_tags.json()] == [
+        ("性能", 1)
+    ]
+
+
 # --------------------------------------------------------------------------- #
 # 内置标签管理
 # --------------------------------------------------------------------------- #

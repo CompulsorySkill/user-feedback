@@ -4,11 +4,26 @@ const dateFormatter = new Intl.DateTimeFormat('zh-CN', {
   day: 'numeric',
 })
 
+const dateTimeFormatter = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
 const relativeFormatter = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' })
 
 export function formatDate(iso: string | null): string {
   if (!iso) return '—'
   return dateFormatter.format(new Date(iso))
+}
+
+export function formatDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  return dateTimeFormatter.format(new Date(iso))
 }
 
 export function formatRelative(iso: string | null): string {

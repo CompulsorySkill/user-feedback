@@ -1,0 +1,110 @@
+/* 审计日志：管理操作流水。 */
+
+.audit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.audit-result {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.audit-result-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--error);
+}
+
+.audit-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.audit-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audit-filter .field-label {
+  flex: none;
+  white-space: nowrap;
+}
+
+.audit-select {
+  min-width: 180px;
+}
+
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audit-item {
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.audit-item-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audit-action {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 550;
+}
+
+.audit-actor {
+  color: var(--text-muted);
+}
+
+.audit-time {
+  margin-left: auto;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: var(--text-subtle);
+}
+
+.audit-code {
+  font-family: var(--mono);
+}
+
+.audit-detail {
+  margin-top: 8px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.audit-empty {
+  padding: 28px 0;
+  color: var(--text-subtle);
+}

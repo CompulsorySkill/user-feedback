@@ -7,14 +7,11 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "oxlint --deny-warnings src scripts",
-    "format": "oxfmt src scripts index.html vite.config.ts package.json",
-    "format:check": "oxfmt --check src scripts index.html vite.config.ts package.json",
-    "smoke:p2": "node scripts/smoke-p2.mjs",
-    "smoke:p3": "node scripts/smoke-p3.mjs",
-    "smoke:admin": "node scripts/smoke-admin.mjs",
-    "smoke:session": "node scripts/smoke-session.mjs",
-    "check:style": "node scripts/check-style.mjs"
+    "lint": "oxlint --deny-warnings src tests",
+    "format": "oxfmt src tests index.html vite.config.ts vitest.config.ts package.json",
+    "format:check": "oxfmt --check src tests index.html vite.config.ts vitest.config.ts package.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tabler/icons-vue": "^3.49.0",
@@ -31,12 +28,14 @@
   "devDependencies": {
     "@types/node": "^24.19.2",
     "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^30.1.3",
     "oxfmt": "0.74.0",
     "oxlint": "1.89.0",
-    "puppeteer-core": "^25.16.0",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",
+    "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
   }
 }

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 from fastapi import status as http_status
 
-from app.api.deps import AdminUserDep, TagServiceDep
+from app.api.deps import AdminUserDep, AuditServiceDep, TagServiceDep
 from app.schemas.tag import TagCreateRequest, TagSummary
+from app.services.audit import request_ip
 
 router = APIRouter(prefix="/admin/tags", tags=["admin"])
 
@@ -24,10 +25,21 @@ async def list_tags(admin: AdminUserDep, service: TagServiceDep) -> list[TagSumm
 )
 async def create_tag(
     payload: TagCreateRequest,
+    request: Request,
     admin: AdminUserDep,
     service: TagServiceDep,
+    audit: AuditServiceDep,
 ) -> TagSummary:
-    return await service.create_builtin(payload, admin)
+    tag = await service.create_builtin(payload, admin)
+    await audit.record(
+        action="tag.create",
+        actor=admin,
+        target_type="tag",
+        target_id=tag.id,
+        detail={"name": tag.name},
+        ip=request_ip(request),
+    )
+    return tag
 
 
 @router.delete(
@@ -37,8 +49,17 @@ async def create_tag(
 )
 async def delete_tag(
     tag_id: int,
+    request: Request,
     admin: AdminUserDep,
     service: TagServiceDep,
+    audit: AuditServiceDep,
 ) -> Response:
     await service.delete(tag_id)
+    await audit.record(
+        action="tag.delete",
+        actor=admin,
+        target_type="tag",
+        target_id=tag_id,
+        ip=request_ip(request),
+    )
     return Response(status_code=http_status.HTTP_204_NO_CONTENT)

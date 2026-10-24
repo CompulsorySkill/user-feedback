@@ -90,6 +90,27 @@ export interface Page<T> {
   next_cursor: string | null
 }
 
+export interface AuditLogItem {
+  id: number
+  actor_email: string | null
+  action: string
+  target_type: string | null
+  target_id: string | null
+  detail: Record<string, unknown> | null
+  ip: string | null
+  created_at: string
+}
+
+export interface UploadCleanupResult {
+  dry_run: boolean
+  grace_hours: number
+  scanned: number
+  referenced: number
+  deleted: number
+  failed: number
+  errors: string[]
+}
+
 export type UploadPurpose = 'post_image' | 'post_video' | 'changelog_image' | 'changelog_video'
 
 export interface UploadTicket {

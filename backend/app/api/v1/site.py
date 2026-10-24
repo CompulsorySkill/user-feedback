@@ -17,6 +17,8 @@ async def get_site_info() -> SiteInfo:
     return SiteInfo(name=settings.app_name)
 
 
-@router.get("/tags", response_model=list[TagSummary], summary="内置标签列表")
-async def list_tags(service: TagServiceDep) -> list[TagSummary]:
-    return await service.list_public()
+@router.get("/tags", response_model=list[TagSummary], summary="公开标签列表")
+async def list_tags(
+    service: TagServiceDep, include_custom: bool = False
+) -> list[TagSummary]:
+    return await service.list_public(include_custom=include_custom)

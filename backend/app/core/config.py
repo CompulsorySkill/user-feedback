@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     rustfs_access_key: str = ""
     rustfs_secret_key: str = ""
     upload_max_bytes: int = 104857600
+    # presign 后超过该时长仍未被任何反馈 / 更新日志引用的对象会被清理。
+    upload_cleanup_grace_hours: int = 24
     rate_limit_enabled: bool = True
 
     # 匿名身份 cookie 与 presign 有效期。

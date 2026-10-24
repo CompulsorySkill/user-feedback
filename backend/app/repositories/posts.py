@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from typing import Literal
 
 from sqlalchemy import Select, and_, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import Cursor, TopCursor
-from app.models import Board, Post, User
+from app.models import Board, Post, PostTag, Tag, User
 
 PostSort = Literal["recent", "top"]
 
@@ -37,6 +38,7 @@ class PostRepository:
         sort: PostSort = "recent",
         status: str | None = None,
         query: str | None = None,
+        tag_normalized: Sequence[str] | None = None,
         cursor: Cursor | None = None,
         top_cursor: TopCursor | None = None,
     ) -> list[PostRow]:
@@ -58,6 +60,13 @@ class PostRepository:
                     Post.excerpt.ilike(pattern, escape="\\"),
                 )
             )
+        if tag_normalized:
+            tagged_posts = (
+                select(PostTag.post_id)
+                .join(Tag, Tag.id == PostTag.tag_id)
+                .where(Tag.normalized.in_(list(tag_normalized)))
+            )
+            stmt = stmt.where(Post.id.in_(tagged_posts))
 
         if sort == "top":
             if top_cursor is not None:
@@ -94,6 +103,7 @@ class PostRepository:
         sort: PostSort = "recent",
         status: str | None = None,
         query: str | None = None,
+        tag_normalized: Sequence[str] | None = None,
         cursor: Cursor | None = None,
         top_cursor: TopCursor | None = None,
     ) -> list[PostRow]:
@@ -103,6 +113,7 @@ class PostRepository:
             sort=sort,
             status=status,
             query=query,
+            tag_normalized=tag_normalized,
             cursor=cursor,
             top_cursor=top_cursor,
         )
@@ -115,16 +126,18 @@ class PostRepository:
         status: str | None = None,
         query: str | None = None,
         board_slug: str | None = None,
+        tag_normalized: Sequence[str] | None = None,
         cursor: Cursor | None = None,
         top_cursor: TopCursor | None = None,
     ) -> list[PostRow]:
-        """全部公开看板的反馈汇总；可按看板筛选。"""
+        """全部公开看板的反馈汇总；可按看板与标签筛选。"""
         return await self._list(
             board_slug=board_slug,
             limit=limit,
             sort=sort,
             status=status,
             query=query,
+            tag_normalized=tag_normalized,
             cursor=cursor,
             top_cursor=top_cursor,
         )

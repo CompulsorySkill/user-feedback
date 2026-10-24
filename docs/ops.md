@@ -17,6 +17,7 @@
 - [ ] `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` 已替换默认值
 - [ ] RustFS bucket 已执行 `docker compose run --rm backend python -m scripts.bootstrap_storage`
 - [ ] Caddy 自动申请 TLS；确认 `feedlog_access` / `feedlog_refresh` 带 `Secure`
+- [ ] 已配置每日上传清理任务（`UPLOAD_CLEANUP_GRACE_HOURS` 默认 24）
 
 启动校验由 `app/core/config.py` 的 production validator 完成：缺少 SSO/RustFS 配置、
 或 `DATABASE_URL` 非 Postgres 时，进程直接报错退出，不会带开发默认值上线。
@@ -102,6 +103,7 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
 错误日志由 Compose 收集；后端 Uvicorn 访问日志已脱敏。
 
 限流计数表每小时自动清理 1 小时前的窗口；`alembic_version` 与 `docs/api.md` 的版本需保持一致。
+管理操作可在 `/admin/audit` 或 `GET /api/v1/admin/audit-logs` 查询（仅追加，actor 删除后保留邮箱快照）。
 
 ## 7. Docker/Caddy 运维
 
@@ -112,4 +114,32 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
 - RustFS 数据：`rustfs-data` 卷；Postgres 数据：`postgres-data` 卷。
 - 镜像回滚：设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 到上一个 `sha-*` tag，
   `docker compose pull && docker compose up -d`。
-- 未引用上传对象清理与 RustFS 容量告警仍是后续工作（当前删除反馈不会删除 RustFS 对象）。
+- RustFS 容量告警仍需在宿主机 / 监控侧配置；清理任务只删除超过保留期且未被引用的对象。
+
+## 8. 上传对象清理
+
+presign 会先写 `uploads` 记录，只有在反馈 / 更新日志富文本中出现过的 object key 才算被引用。
+超过 `UPLOAD_CLEANUP_GRACE_HOURS`（默认 24 小时）仍未引用的对象会被清理，覆盖：
+
+- presign 后浏览器从未成功 PUT；
+- 编辑反馈/日志时删除了图片 / 视频；
+- 看板被级联删除后遗留的媒体。
+
+先预演，再执行：
+
+```bash
+cd deploy
+docker compose exec -T backend python -m scripts.cleanup_uploads --dry-run
+docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 24
+```
+
+管理员也可在 `/admin/audit` 页面点「预演清理 / 清理上传对象」，或调用
+`POST /api/v1/admin/uploads/cleanup`。单次最多删除 200 条；已引用记录不会阻塞后续扫描，孤儿对象多于 200 条时由 cron 多次执行。
+建议每日低峰运行一次，例如宿主机 cron：
+
+```cron
+15 4 * * * cd /srv/user-feedback/deploy && docker compose exec -T backend python -m scripts.cleanup_uploads >> /var/log/feedback-cleanup.log 2>&1
+```
+
+清理动作会写入 `audit_logs`（`upload.cleanup`），包含扫描数、删除数、失败数与错误摘要。
+只处理 `uploads` 表中有记录的对象，**不会**扫描 bucket 删除运维手动放入的文件。

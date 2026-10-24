@@ -73,8 +73,8 @@
 uv run python -c "import jwt,time; print(jwt.encode({'email':'admin@example.com','name':'管理员','exp':int(time.time())+300}, 'dev-only-sso-secret-0123456789abcdef', algorithm='HS256'))"
 ```
 
-`ADMIN_EMAILS` 包含该邮箱时，头部显示「管理员」徽标；`pnpm smoke:p3` / `pnpm smoke:admin` /
-`pnpm smoke:session` 覆盖了登录、续期与后续管理链路。
+`ADMIN_EMAILS` 包含该邮箱时，头部显示「管理员」徽标；管理动作会写入 `/admin/audit` 审计日志。
+前端 `pnpm test` 覆盖会话续期与筛选等纯逻辑，SSO / 管理链路的端到端验收按根目录 README 的部署清单执行。
 
 ## 8. 会话接口
 

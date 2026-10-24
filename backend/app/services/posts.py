@@ -34,7 +34,7 @@ from app.schemas.post import (
     PostUpdateRequest,
 )
 from app.services.rich_text import collect_media_keys, validate_rich_text
-from app.services.tags import TagService, to_ref
+from app.services.tags import TagService, normalize_tag_filter, to_ref
 
 # 反馈中允许的媒体节点 -> Upload purpose
 POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
@@ -135,10 +135,12 @@ class PostService:
         status: str | None = None,
         sort: str = "recent",
         query: str | None = None,
+        tags: list[str] | None = None,
     ) -> Page[PostSummary]:
         board = await self.boards.get_public_by_slug(slug)
         if board is None:
             raise AppException(404, code="BOARD_NOT_FOUND", detail="看板不存在")
+        tag_normalized = normalize_tag_filter(tags)
 
         async def fetch(size: int, order: str, **kwargs):
             return await self.posts.list_by_board(
@@ -147,6 +149,7 @@ class PostService:
                 sort=order,
                 status=status,
                 query=query,
+                tag_normalized=tag_normalized,
                 **kwargs,
             )
 
@@ -163,12 +166,14 @@ class PostService:
         sort: str = "recent",
         query: str | None = None,
         board_slug: str | None = None,
+        tags: list[str] | None = None,
     ) -> Page[PostSummary]:
         """全部公开看板的反馈汇总，供根页面使用。"""
         if board_slug:
             board = await self.boards.get_public_by_slug(board_slug)
             if board is None:
                 raise AppException(404, code="BOARD_NOT_FOUND", detail="看板不存在")
+        tag_normalized = normalize_tag_filter(tags)
 
         async def fetch(size: int, order: str, **kwargs):
             return await self.posts.list_all(
@@ -177,6 +182,7 @@ class PostService:
                 status=status,
                 query=query,
                 board_slug=board_slug,
+                tag_normalized=tag_normalized,
                 **kwargs,
             )
 

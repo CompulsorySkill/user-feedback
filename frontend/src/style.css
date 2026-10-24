@@ -174,14 +174,6 @@ code {
   gap: 12px;
 }
 
-.env-pill {
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  background: var(--surface);
-}
-
 .identity {
   color: var(--text-subtle);
 }

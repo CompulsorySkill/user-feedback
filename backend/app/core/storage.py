@@ -13,6 +13,7 @@ from typing import Protocol
 
 import boto3
 from botocore.client import Config
+from botocore.exceptions import ClientError
 
 from app.core.config import settings
 
@@ -35,8 +36,9 @@ class PresignedUpload:
 
 
 class StorageBackend(Protocol):
-    def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload:
-        ...
+    def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload: ...
+
+    def delete_object(self, object_key: str) -> None: ...
 
 
 def build_object_key(content_type: str) -> str:
@@ -59,12 +61,20 @@ def _make_client(endpoint_url: str, access_key: str, secret_key: str):
 
 
 class S3Storage:
-    """对外只暴露 presign；删除 / 校验对象时另建内部 client。"""
+    """浏览器侧 presign 走公网 endpoint；服务端删除走内网 endpoint。"""
 
     def __init__(self) -> None:
         self.bucket = settings.rustfs_bucket
         self._signer = _make_client(
             settings.rustfs_endpoint_public,
+            settings.rustfs_access_key,
+            settings.rustfs_secret_key,
+        )
+        internal_endpoint = (
+            settings.rustfs_endpoint_internal or settings.rustfs_endpoint_public
+        )
+        self._admin = _make_client(
+            internal_endpoint,
             settings.rustfs_access_key,
             settings.rustfs_secret_key,
         )
@@ -85,6 +95,15 @@ class S3Storage:
             expires_in=settings.presign_expires_seconds,
             headers={"Content-Type": content_type},
         )
+
+    def delete_object(self, object_key: str) -> None:
+        try:
+            self._admin.delete_object(Bucket=self.bucket, Key=object_key)
+        except ClientError as exc:
+            # 对象从未成功上传时也允许清理数据库记录。
+            code = str(exc.response.get("Error", {}).get("Code", ""))
+            if code not in {"NoSuchKey", "404", "NotFound"}:
+                raise
 
 
 @lru_cache

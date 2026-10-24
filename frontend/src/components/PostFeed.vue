@@ -4,9 +4,17 @@ import { useRoute, useRouter } from 'vue-router'
 import { IconLoader2, IconRefresh, IconSearch, IconX } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { listAllPosts, listBoardPosts, type ListPostsOptions, type PostSort } from '@/api/boards'
-import type { PostStatus, PostSummary } from '@/api/types'
+import { listFilterTags } from '@/api/tags'
+import type { PostStatus, PostSummary, TagSummary } from '@/api/types'
 import EmptyState from '@/components/EmptyState.vue'
 import PostCard from '@/components/PostCard.vue'
+import {
+  MAX_FILTER_TAGS,
+  normalizeSearch,
+  normalizeSort,
+  normalizeStatus,
+  normalizeTags,
+} from '@/utils/postFilters'
 
 const PAGE_SIZE = 10
 
@@ -22,7 +30,6 @@ const SORT_OPTIONS: Array<{ value: PostSort; label: string }> = [
   { value: 'recent', label: '最近' },
   { value: 'top', label: '最热' },
 ]
-const VALID_STATUSES = new Set<string>(STATUS_FILTERS.map((item) => item.value).filter(Boolean))
 
 const props = defineProps<{
   boardSlug?: string | null
@@ -33,6 +40,7 @@ const route = useRoute()
 const router = useRouter()
 
 const posts = ref<PostSummary[]>([])
+const availableTags = ref<TagSummary[]>([])
 const nextCursor = ref<string | null>(null)
 const loading = ref(true)
 const loadingMore = ref(false)
@@ -40,8 +48,9 @@ const errorMessage = ref('')
 const loadMoreError = ref('')
 
 const statusFilter = ref<PostStatus | ''>(normalizeStatus(route.query.status))
-const sort = ref<PostSort>(route.query.sort === 'top' ? 'top' : 'recent')
-const searchQuery = ref(normalizeQuery(route.query.q))
+const sort = ref<PostSort>(normalizeSort(route.query.sort))
+const tagFilter = ref<string[]>(normalizeTags(route.query.tag))
+const searchQuery = ref(normalizeSearch(route.query.q))
 const searchInput = ref(searchQuery.value)
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -58,16 +67,12 @@ function scheduleLoad(): void {
 }
 
 const hasFilter = computed(
-  () => statusFilter.value !== '' || sort.value !== 'recent' || searchQuery.value !== '',
+  () =>
+    statusFilter.value !== '' ||
+    sort.value !== 'recent' ||
+    tagFilter.value.length > 0 ||
+    searchQuery.value !== '',
 )
-
-function normalizeStatus(value: unknown): PostStatus | '' {
-  return typeof value === 'string' && VALID_STATUSES.has(value) ? (value as PostStatus) : ''
-}
-
-function normalizeQuery(value: unknown): string {
-  return typeof value === 'string' ? value.trim().slice(0, 100) : ''
-}
 
 function options(cursor?: string | null): ListPostsOptions & { board?: string | null } {
   return {
@@ -76,6 +81,7 @@ function options(cursor?: string | null): ListPostsOptions & { board?: string | 
     status: statusFilter.value || null,
     sort: sort.value,
     q: searchQuery.value || null,
+    tags: tagFilter.value,
     board: props.boardSlug || null,
   }
 }
@@ -126,9 +132,10 @@ async function loadMore(): Promise<void> {
 }
 
 function syncQuery(): void {
-  const query: Record<string, string> = {}
+  const query: Record<string, string | string[]> = {}
   if (statusFilter.value) query.status = statusFilter.value
   if (sort.value !== 'recent') query.sort = sort.value
+  if (tagFilter.value.length) query.tag = tagFilter.value
   if (searchQuery.value) query.q = searchQuery.value
   void router.replace({ query })
 }
@@ -142,6 +149,22 @@ function setStatus(value: PostStatus | ''): void {
 function setSort(value: PostSort): void {
   if (sort.value === value) return
   sort.value = value
+  syncQuery()
+}
+
+function isTagActive(name: string): boolean {
+  return tagFilter.value.some((tag) => tag.toLocaleLowerCase() === name.toLocaleLowerCase())
+}
+
+function toggleTag(name: string): void {
+  if (isTagActive(name)) {
+    tagFilter.value = tagFilter.value.filter(
+      (tag) => tag.toLocaleLowerCase() !== name.toLocaleLowerCase(),
+    )
+  } else {
+    if (tagFilter.value.length >= MAX_FILTER_TAGS) return
+    tagFilter.value = [...tagFilter.value, name]
+  }
   syncQuery()
 }
 
@@ -166,12 +189,27 @@ function clearSearch(): void {
 function clearFilters(): void {
   statusFilter.value = ''
   sort.value = 'recent'
+  tagFilter.value = []
   searchInput.value = ''
   searchQuery.value = ''
   syncQuery()
 }
 
-onMounted(load)
+async function loadTags(): Promise<void> {
+  try {
+    const tags = await listFilterTags()
+    // 只有被使用中的标签才值得出现在筛选器里。
+    availableTags.value = tags.filter((tag) => tag.post_count > 0)
+  } catch {
+    // 标签筛选是增强功能，失败不影响反馈列表。
+    availableTags.value = []
+  }
+}
+
+onMounted(() => {
+  void loadTags()
+  void load()
+})
 onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer)
 })
@@ -183,11 +221,12 @@ watch(
   },
 )
 watch(
-  () => [route.query.status, route.query.sort, route.query.q],
+  () => [route.query.status, route.query.sort, route.query.tag, route.query.q],
   () => {
     statusFilter.value = normalizeStatus(route.query.status)
-    sort.value = route.query.sort === 'top' ? 'top' : 'recent'
-    const query = normalizeQuery(route.query.q)
+    sort.value = normalizeSort(route.query.sort)
+    tagFilter.value = normalizeTags(route.query.tag)
+    const query = normalizeSearch(route.query.q)
     searchQuery.value = query
     // URL 变化（返回/前进/清除筛选）时同步输入框，但不打断正在输入的内容。
     if (document.activeElement?.tagName !== 'INPUT') searchInput.value = query
@@ -247,6 +286,25 @@ watch(
       </div>
     </div>
 
+    <div v-if="availableTags.length" class="tag-filter" role="group" aria-label="标签筛选">
+      <span class="tag-filter-label">标签</span>
+      <div class="filter-group">
+        <button
+          v-for="tag in availableTags"
+          :key="tag.id"
+          type="button"
+          class="filter-chip"
+          :class="{ 'is-active': isTagActive(tag.name) }"
+          :disabled="!isTagActive(tag.name) && tagFilter.length >= MAX_FILTER_TAGS"
+          :title="`${tag.name} · ${tag.post_count} 条反馈`"
+          @click="toggleTag(tag.name)"
+        >
+          {{ tag.name }}
+          <span class="tag-filter-count">{{ tag.post_count }}</span>
+        </button>
+      </div>
+    </div>
+
     <p v-if="loading" class="loading-line">
       <IconLoader2 class="spin" :size="16" :stroke-width="2" /> 正在加载反馈…
     </p>
@@ -265,7 +323,7 @@ watch(
           searchQuery
             ? `没有找到匹配「${searchQuery}」的反馈，试试其他关键词。`
             : hasFilter
-              ? '试试切换状态或排序，或清除筛选。'
+              ? '试试切换状态、标签或排序，或清除筛选。'
               : showBoard
                 ? '所有看板暂时都没有公开的反馈内容。'
                 : '该看板暂时没有公开的反馈内容。'

@@ -62,6 +62,11 @@ jobs:
           uv run alembic downgrade base
           uv run alembic upgrade head
 
+      - name: Alembic model/schema check
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:test@localhost:5432/test
+        run: uv run alembic check
+
       - name: Pytest (SQLite)
         run: uv run pytest -q
 

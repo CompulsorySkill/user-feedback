@@ -29,6 +29,7 @@
 | 编辑自己的反馈 / 标签 | ❌ | ❌（匿名无作者身份） | 非 closed 时 ✅ | ✅（含 closed） |
 | 变更状态 | ❌ | ❌ | 仅单向关闭自己的反馈 | 任意流转（含重开） |
 | 维护内置标签 | ❌ | ❌ | ❌ | ✅ |
+| 查看审计日志 / 清理上传对象 | ❌ | ❌ | ❌ | ✅ |
 | 更新日志写 / 发布 | ❌ | ❌ | ❌ | ✅ |
 
 未登录访问管理员前端路由返回 **404**（不暴露入口）；后端返回 403 `ADMIN_REQUIRED`。
@@ -47,7 +48,7 @@
 
 - 匿名 Post 没有作者，只有管理员能改状态。
 - `closed` 冻结：不可编辑、不可新投票、不可新评论；已有数据保留，管理员重开后恢复。
-- 状态变化只更新 `status` 与 `updated_at`，不记录历史。
+- 状态变化只更新 `status` 与 `updated_at`，不保留逐条版本历史；管理员与作者的状态变更会写入审计日志（`post.status`）。
 
 ## 4. 标签
 
@@ -55,8 +56,22 @@
 - 标签名按 `casefold` 归一化去重，展示保留首次写入的写法；同名标签全局复用。
 - 作者可修改自己反馈的标签（`closed` 除外）；管理员可修改任意反馈的标签。
 - 管理员可在 `/admin/tags` 维护**内置标签**；内置标签会出现在发布/编辑反馈的推荐列表中，普通标签不会。
-- 公开接口 `GET /tags` 只返回内置标签；管理员 `GET /admin/tags` 返回全部标签及使用数。
+- 公开接口 `GET /tags` 默认只返回内置标签；`GET /tags?include_custom=true` 返回全部标签，
+  供列表筛选器使用。管理员 `GET /admin/tags` 同样返回全部标签及使用数。
 - 删除标签会从所有反馈上移除关联，但不会删除反馈本身。
+
+### 标签筛选
+
+反馈列表（`/posts` 与 `/boards/{slug}/posts`）支持重复查询参数 `tag=`：
+
+```http
+GET /api/v1/posts?tag=Bug&tag=%E6%80%A7%E8%83%BD&sort=recent
+```
+
+- 标签名按 `casefold` 匹配，大小写不敏感；最多同时选 5 个，超过返回 `400 TAG_LIMIT`。
+- 多个标签之间是 **OR**（命中任一标签即返回），可与 `status`、`q`、`sort`、`board` 组合。
+- 不存在的标签返回空列表，不报错。
+- 切换筛选条件时必须丢弃旧 `cursor`。
 
 ## 5. 更新日志语义
 
@@ -84,8 +99,9 @@ keyset 分页。响应：
 | `status` | `open / planned / in_progress / completed / closed` | 按状态筛选；非法值 422 |
 | `sort` | `recent`（默认）/ `top` | `recent` 按 `(created_at, id)`；`top` 按 `(vote_count, id)` 降序 |
 | `q` | 1–100 字符 | 按标题与摘要做大小写不敏感模糊匹配；`%`/`_` 按字面量处理 |
+| `tag` | 可重复，≤5 个 | 标签筛选，大小写不敏感，多个标签为 OR |
 
-两种排序各自使用对应的 keyset 游标，切换排序或筛选时必须丢弃旧 `cursor`。搜索与状态筛选、排序可以组合使用，游标同样需要丢弃。
+两种排序各自使用对应的 keyset 游标，切换排序或筛选时必须丢弃旧 `cursor`。搜索、状态、标签与排序可以组合使用，游标同样需要丢弃。
 
 ## 7. 限流
 
@@ -121,7 +137,46 @@ keyset 分页。响应：
 - `image` / `video` 的 `src` 必须是**当前身份**的 `Upload`，且 purpose / content_type 匹配，否则 `400 INVALID_CONTENT`
 - 编辑时允许保留原内容中已存在的媒体 key（历史数据或他人上传），新增媒体仍必须是编辑者自己的 `Upload`
 
-## 9. 端点一览
+### 未引用对象清理
+
+`POST /api/v1/admin/uploads/cleanup?dry_run=false&grace_hours=24`（管理员）
+
+- 扫描 `uploads` 表中创建超过 `grace_hours`（默认 24，最大 720）的记录；
+- 只保留在反馈 / 更新日志富文本中出现的 object key；
+- 未引用对象从 RustFS 删除，并删除对应 `Upload` 行；单次最多删除 200 条，
+  但会继续向后扫描（已引用记录不会阻塞后续孤儿对象）；
+- `dry_run=true` 只返回可清理数量，不删除任何对象；
+- 也可用 CLI `python -m scripts.cleanup_uploads` 执行并写入 `upload.cleanup` 审计记录。
+
+## 9. 审计日志
+
+`GET /api/v1/admin/audit-logs?limit=50&before_id=&action=`（管理员）
+
+```json
+{
+  "items": [
+    {
+      "id": 42,
+      "actor_email": "admin@example.com",
+      "action": "board.update",
+      "target_type": "board",
+      "target_id": "3",
+      "detail": { "name": "新名称" },
+      "ip": "203.0.113.10",
+      "created_at": "2026-10-25T00:00:00+00:00"
+    }
+  ],
+  "next_cursor": "42"
+}
+```
+
+- 仅追加，不随目标对象删除；actor 被删除后保留邮箱快照。
+- 记录动作：`board.create/update/delete`、`tag.create/delete`、`post.update`（管理员）、
+  `post.status`、`changelog.create/update/delete/publish/unpublish`、`upload.cleanup`。
+- `action` 精确筛选；`before_id` 为上一页最后一条的 `id`；按 `id` 倒序。
+- 审计写入失败 best-effort：记录服务端日志，不回滚已提交的业务操作。
+
+## 10. 端点一览
 
 | 方法 | 路径 | 权限 |
 |---|---|---|
@@ -130,11 +185,13 @@ keyset 分页。响应：
 | GET | `/v1/boards/{slug}/posts` | 公开 |
 | POST | `/v1/boards/{slug}/posts` | 匿名 / 登录；可带 `tags` |
 | GET | `/v1/site` | 公开（`APP_NAME`） |
-| GET | `/v1/tags` | 公开；内置标签 |
+| GET | `/v1/tags` | 公开；内置标签（`include_custom=true` 含用户标签） |
 | GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
+| GET | `/v1/admin/audit-logs` | 管理员；审计日志 |
+| POST | `/v1/admin/uploads/cleanup` | 管理员；清理未引用上传对象 |
 | POST | `/v1/admin/tags` | 管理员；新增内置标签 |
 | DELETE | `/v1/admin/tags/{id}` | 管理员；删除标签并解除帖子关联 |
-| GET | `/v1/posts` | 公开；全部公开看板聚合，支持 `board=`、`status=`、`sort=`、`q=` |
+| GET | `/v1/posts` | 公开；全部公开看板聚合，支持 `board=`、`status=`、`sort=`、`q=`、`tag=` |
 | GET | `/v1/admin/boards` | 管理员 |
 | POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
 | GET | `/v1/posts/{id}` | 公开（返回 `is_author`） |
@@ -155,7 +212,7 @@ keyset 分页。响应：
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。
 
-## 10. 会话续期
+## 11. 会话续期
 
 access token 过期（默认 15 分钟）时，携带旧 access cookie 的响应会附加
 `X-Session-Expired: 1`。前端收到后调用 `POST /v1/auth/refresh` 并重放原请求一次，

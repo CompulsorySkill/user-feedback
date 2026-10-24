@@ -36,6 +36,10 @@ SearchQuery = Annotated[
     str | None,
     Query(min_length=1, max_length=100, description="按标题与摘要模糊搜索"),
 ]
+TagQuery = Annotated[
+    list[str] | None,
+    Query(description="按标签筛选，可重复传参 tag=；多个标签为 OR，最多 5 个"),
+]
 
 
 @router.get("", response_model=list[BoardSummary], summary="公开看板列表")
@@ -61,6 +65,7 @@ async def list_board_posts(
     status: StatusQuery = None,
     sort: SortQuery = "recent",
     q: SearchQuery = None,
+    tag: TagQuery = None,
 ) -> Page[PostSummary]:
     return await service.list_for_board(
         slug,
@@ -69,6 +74,7 @@ async def list_board_posts(
         status=status,
         sort=sort,
         query=q,
+        tags=tag,
     )
 
 

@@ -25,6 +25,26 @@ def normalize_tag_name(value: str) -> tuple[str, str]:
     return name, name.casefold()
 
 
+def normalize_tag_filter(values: list[str] | None) -> list[str]:
+    """筛选参数同样按 casefold 归一化；多个标签之间是 OR。"""
+    if not values:
+        return []
+    if len(values) > MAX_TAGS_PER_POST:
+        raise AppException(
+            400,
+            code="TAG_LIMIT",
+            detail=f"筛选最多同时选择 {MAX_TAGS_PER_POST} 个标签",
+        )
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        _name, key = normalize_tag_name(value)
+        if key not in seen:
+            seen.add(key)
+            normalized.append(key)
+    return normalized
+
+
 def normalize_tag_names(values: list[str]) -> list[tuple[str, str]]:
     if len(values) > MAX_TAGS_PER_POST:
         raise AppException(
@@ -61,8 +81,12 @@ class TagService:
         self.session = session
         self.tags = tags
 
-    async def list_public(self) -> list[TagSummary]:
-        rows = await self.tags.list_builtin()
+    async def list_public(self, *, include_custom: bool = False) -> list[TagSummary]:
+        rows = (
+            await self.tags.list_all()
+            if include_custom
+            else await self.tags.list_builtin()
+        )
         return [_summary(tag, count) for tag, count in rows]
 
     async def list_admin(self) -> list[TagSummary]:

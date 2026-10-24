@@ -78,6 +78,9 @@ async def client(db_path: Path) -> AsyncIterator[AsyncClient]:
 class FakeStorage:
     """测试用存储：不访问 RustFS，只返回可断言的假 URL。"""
 
+    def __init__(self) -> None:
+        self.deleted: list[str] = []
+
     def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload:
         return PresignedUpload(
             object_key=object_key,
@@ -85,6 +88,9 @@ class FakeStorage:
             expires_in=600,
             headers={"Content-Type": content_type},
         )
+
+    def delete_object(self, object_key: str) -> None:
+        self.deleted.append(object_key)
 
 
 # --------------------------------------------------------------------------- #
@@ -171,6 +177,31 @@ def insert_post(
     )
     conn.commit()
     return post_id.hex
+
+
+def insert_upload(
+    conn: sqlite3.Connection,
+    *,
+    object_key: str,
+    created_at: datetime,
+    identity: str = "anon:test",
+    purpose: str = "post_image",
+    content_type: str = "image/png",
+    size: int = 1024,
+) -> None:
+    conn.execute(
+        "INSERT INTO uploads (object_key, identity, purpose, content_type, size,"
+        " created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            object_key,
+            identity,
+            purpose,
+            content_type,
+            size,
+            sqlite_timestamp(created_at),
+        ),
+    )
+    conn.commit()
 
 
 def insert_changelog(
