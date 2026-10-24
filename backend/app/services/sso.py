@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import SSOClaims
 from app.models import Post, User, Vote
+
+logger = logging.getLogger(__name__)
 
 
 def role_for(email: str) -> str:
@@ -63,3 +67,20 @@ async def merge_anonymous_identity(
         else:
             vote.user_id = user_id
             vote.anonymous_token = None
+
+
+async def merge_anonymous_identity_safely(
+    session: AsyncSession, anonymous_token: str, user_id: int
+) -> bool:
+    """合并匿名数据；失败不阻断登录，回滚并记录日志。
+
+    返回 True 表示合并成功（调用方可以清除匿名 cookie）。
+    """
+    try:
+        await merge_anonymous_identity(session, anonymous_token, user_id)
+        await session.commit()
+        return True
+    except Exception:  # noqa: BLE001 - 合并是尽力而为，不能影响登录
+        await session.rollback()
+        logger.exception("匿名数据合并失败，已跳过（user_id=%s）", user_id)
+        return False

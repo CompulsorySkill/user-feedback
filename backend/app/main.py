@@ -13,18 +13,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.db import SessionLocal, engine
-from app.core.errors import register_exception_handlers
+from app.core.errors import AppException, register_exception_handlers
 from app.core.logging import install_access_log_redaction
 from app.core.rate_limit import cleanup_rate_limit_counters
+from app.core.security import ACCESS_COOKIE, decode_session_token
 
 install_access_log_redaction()
 
 
 async def security_headers(request: Request, call_next):
+    # access cookie 存在但失效时打标，前端据此 refresh 后重放请求。
+    access_token = request.cookies.get(ACCESS_COOKIE)
+    expired = False
+    if access_token:
+        try:
+            decode_session_token(access_token, expected_type="access")
+        except AppException:
+            expired = True
+
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
+    if expired:
+        response.headers["X-Session-Expired"] = "1"
     return response
 
 
@@ -66,6 +78,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Session-Expired"],
     )
     app.middleware("http")(security_headers)
 

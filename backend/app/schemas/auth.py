@@ -37,3 +37,12 @@ class DevLoginRequest(BaseModel):
 class AuthCapabilities(BaseModel):
     sso: bool = True
     dev_login: bool
+
+
+class SSOLoginRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=4096)
+    return_to: str | None = None
+
+
+class SSOLoginResponse(BaseModel):
+    redirect_to: str

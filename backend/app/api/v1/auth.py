@@ -29,7 +29,10 @@ from app.schemas.auth import (
     MeResponse,
     UserInfo,
 )
-from app.services.sso import login_or_create_user, merge_anonymous_identity
+from app.services.sso import (
+    login_or_create_user,
+    merge_anonymous_identity_safely,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -116,12 +119,16 @@ async def dev_login(
     user = await login_or_create_user(
         session, SSOClaims(email=payload.email, name=payload.name)
     )
-    anonymous = get_anonymous_identity(request)
-    if anonymous is not None:
-        await merge_anonymous_identity(session, anonymous.token, user.id)
     await session.commit()
 
+    anonymous = get_anonymous_identity(request)
+    clear_anonymous = False
     if anonymous is not None:
+        clear_anonymous = await merge_anonymous_identity_safely(
+            session, anonymous.token, user.id
+        )
+
+    if clear_anonymous:
         response.delete_cookie(settings.anonymous_cookie_name, path="/")
     set_session_cookies(
         response,

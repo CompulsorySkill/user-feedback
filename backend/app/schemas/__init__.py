@@ -2,6 +2,8 @@ from app.schemas.auth import (
     AuthCapabilities,
     DevLoginRequest,
     MeResponse,
+    SSOLoginRequest,
+    SSOLoginResponse,
     UserInfo,
 )
 from app.schemas.board import BoardRef, BoardSummary
@@ -50,6 +52,8 @@ __all__ = [
     "PostStatusUpdate",
     "PostSummary",
     "PostUpdateRequest",
+    "SSOLoginRequest",
+    "SSOLoginResponse",
     "UploadPresignRequest",
     "UploadPresignResponse",
     "UploadPurpose",
