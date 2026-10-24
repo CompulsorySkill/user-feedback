@@ -2,35 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-
-import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.db import get_session
 from app.main import app
-from tests.conftest import sqlite_url
-
-
-@pytest.fixture
-async def client(db_path) -> AsyncIterator[AsyncClient]:
-    engine = create_async_engine(sqlite_url(db_path))
-    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_session() -> AsyncIterator[AsyncSession]:
-        async with sessionmaker() as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_get_session
-    try:
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as http:
-            yield http
-    finally:
-        app.dependency_overrides.clear()
-        await engine.dispose()
 
 
 async def test_health_ok(client: AsyncClient) -> None:
