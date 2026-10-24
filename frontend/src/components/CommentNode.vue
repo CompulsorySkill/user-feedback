@@ -10,9 +10,7 @@ const emit = defineEmits<{ reply: [node: CommentNodeData] }>()
 const expanded = ref(props.depth < 2)
 const hasChildren = computed(() => props.node.children.length > 0)
 const author = computed(() =>
-  props.node.is_anonymous
-    ? '匿名用户'
-    : props.node.author_name?.trim() || '用户',
+  props.node.is_anonymous ? '匿名用户' : props.node.author_name?.trim() || '用户',
 )
 </script>
 
@@ -36,7 +34,11 @@ const author = computed(() =>
           class="comment-action"
           @click="expanded = !expanded"
         >
-          <component :is="expanded ? IconChevronUp : IconChevronDown" :size="13" :stroke-width="2" />
+          <component
+            :is="expanded ? IconChevronUp : IconChevronDown"
+            :size="13"
+            :stroke-width="2"
+          />
           {{ expanded ? '收起回复' : `展开 ${node.children.length} 条回复` }}
         </button>
       </div>

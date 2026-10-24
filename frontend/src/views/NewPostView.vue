@@ -4,8 +4,10 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { createPost, getBoard } from '@/api/boards'
-import type { Board } from '@/api/types'
+import { listBuiltinTags } from '@/api/tags'
+import type { Board, TagSummary } from '@/api/types'
 import PostEditor from '@/components/PostEditor.vue'
+import TagPicker from '@/components/TagPicker.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { JSONContent } from '@/types/content'
 
@@ -17,6 +19,8 @@ const board = ref<Board | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 const title = ref('')
+const tags = ref<string[]>([])
+const tagSuggestions = ref<TagSummary[]>([])
 const nickname = ref('')
 const attachEnvironment = ref(true)
 const editorRef = ref<InstanceType<typeof PostEditor> | null>(null)
@@ -31,6 +35,14 @@ function collectEnvironment() {
     language: navigator.language,
     viewport: `${window.innerWidth}×${window.innerHeight}`,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }
+}
+
+async function loadTags(): Promise<void> {
+  try {
+    tagSuggestions.value = await listBuiltinTags()
+  } catch {
+    tagSuggestions.value = []
   }
 }
 
@@ -73,25 +85,25 @@ async function submit(): Promise<void> {
       content: content as JSONContent,
       anonymous_name: nickname.value.trim() || null,
       environment: attachEnvironment.value ? collectEnvironment() : null,
+      tags: tags.value,
     })
     await router.push(`/post/${created.id}`)
   } catch (error) {
-    submitError.value =
-      error instanceof ApiError ? error.message : '发布失败，请稍后重试。'
+    submitError.value = error instanceof ApiError ? error.message : '发布失败，请稍后重试。'
   } finally {
     submitting.value = false
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  void loadTags()
+})
 </script>
 
 <template>
   <div class="container container-narrow">
-    <RouterLink
-      :to="board ? `/b/${board.slug}` : '/'"
-      class="back-link"
-    >
+    <RouterLink :to="board ? `/b/${board.slug}` : '/'" class="back-link">
       <IconArrowLeft :size="15" :stroke-width="2" />
       {{ board ? board.name : '返回' }}
     </RouterLink>
@@ -106,23 +118,14 @@ onMounted(load)
       <header class="page-header">
         <p class="eyebrow">发布到 /{{ board.slug }}</p>
         <h1>发布反馈</h1>
-        <p class="muted">
-          匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。
-        </p>
+        <p class="muted">匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。</p>
       </header>
 
-      <div
-        v-if="!board.allow_guest_posting && !auth.isAuthenticated"
-        class="notice notice-closed"
-      >
+      <div v-if="!board.allow_guest_posting && !auth.isAuthenticated" class="notice notice-closed">
         该看板已关闭匿名发布，请先登录后再发布。
       </div>
 
-      <form
-        v-else
-        class="compose"
-        @submit.prevent="submit"
-      >
+      <form v-else class="compose" @submit.prevent="submit">
         <div class="field">
           <span class="field-label">昵称（可选）</span>
           <input
@@ -146,11 +149,13 @@ onMounted(load)
         </label>
 
         <div class="field">
+          <span class="field-label">标签（可选）</span>
+          <TagPicker v-model="tags" :suggestions="tagSuggestions" />
+        </div>
+
+        <div class="field">
           <span class="field-label">正文</span>
-          <PostEditor
-            ref="editorRef"
-            @update:uploading="uploading = $event"
-          />
+          <PostEditor ref="editorRef" @update:uploading="uploading = $event" />
         </div>
 
         <p v-if="submitError" class="inline-error">{{ submitError }}</p>
@@ -162,11 +167,7 @@ onMounted(load)
           </label>
           <div class="compose-buttons">
             <RouterLink :to="`/b/${board.slug}`" class="button button-ghost">取消</RouterLink>
-            <button
-              class="button button-primary"
-              type="submit"
-              :disabled="submitting || uploading"
-            >
+            <button class="button button-primary" type="submit" :disabled="submitting || uploading">
               <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}

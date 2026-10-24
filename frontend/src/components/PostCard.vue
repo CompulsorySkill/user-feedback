@@ -3,6 +3,7 @@ import { IconMessage } from '@tabler/icons-vue'
 import { RouterLink } from 'vue-router'
 import AuthorTag from '@/components/AuthorTag.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import TagList from '@/components/TagList.vue'
 import VoteButton from '@/components/VoteButton.vue'
 import type { PostSummary } from '@/api/types'
 import { formatRelative } from '@/utils/date'
@@ -32,6 +33,8 @@ withDefaults(defineProps<{ post: PostSummary; showBoard?: boolean }>(), {
     </RouterLink>
 
     <p v-if="post.excerpt" class="post-excerpt">{{ post.excerpt }}</p>
+
+    <TagList v-if="post.tags.length" :tags="post.tags" class="post-card-tags" />
 
     <div class="post-card-foot">
       <AuthorTag :post="post" />

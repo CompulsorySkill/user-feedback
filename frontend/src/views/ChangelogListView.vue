@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import {
-  IconArrowUpRight,
-  IconLoader2,
-  IconPlus,
-  IconRefresh,
-} from '@tabler/icons-vue'
+import { IconArrowUpRight, IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { listChangelogs } from '@/api/changelogs'
 import type { ChangelogSummary } from '@/api/types'
@@ -27,8 +22,7 @@ async function load(): Promise<void> {
     const page = await listChangelogs({ limit: 20, includeDrafts: auth.isAdmin })
     entries.value = page.items
   } catch (error) {
-    errorMessage.value =
-      error instanceof ApiError ? error.message : '加载失败，请稍后重试。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载失败，请稍后重试。'
   } finally {
     loading.value = false
   }

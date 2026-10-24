@@ -10,8 +10,7 @@ import path from 'node:path'
 import puppeteer from 'puppeteer-core'
 
 const EDGE_PATH =
-  process.env.EDGE_PATH ??
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+  process.env.EDGE_PATH ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@example.com'
 const CDP_URL = process.env.CDP_URL
@@ -65,10 +64,9 @@ try {
   await page.waitForSelector('.filter-chip')
   await page.type('.search-input', '标签')
   await page.waitForFunction(() => location.search.includes('q='))
-  await page.waitForFunction(
-    () => document.querySelectorAll('.post-card').length === 1,
-    { timeout: 10000 },
-  )
+  await page.waitForFunction(() => document.querySelectorAll('.post-card').length === 1, {
+    timeout: 10000,
+  })
   log('搜索「标签」生效')
   await page.click('.search-clear')
   await page.waitForFunction(() => !location.search.includes('q='))

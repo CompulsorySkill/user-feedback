@@ -151,7 +151,9 @@ code {
   padding: 6px 12px;
   border-radius: 8px;
   color: var(--text-muted);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .nav-link:hover {
@@ -237,7 +239,10 @@ code {
   border: 1px solid transparent;
   font-weight: 550;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .button:active {
@@ -397,7 +402,10 @@ code {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .board-card:hover {
@@ -544,7 +552,9 @@ code {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .post-card:hover {
@@ -891,7 +901,9 @@ h6.rt-heading {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .changelog-item:hover {
@@ -1054,7 +1066,9 @@ h6.rt-heading {
   padding: 9px 12px;
   border-radius: 8px;
   color: var(--text-muted);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .board-nav-item:hover {
@@ -1105,7 +1119,9 @@ h6.rt-heading {
   color: var(--text);
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .search-input::-webkit-search-cancel-button {
@@ -1215,7 +1231,9 @@ h6.rt-heading {
   font: inherit;
   line-height: 1.6;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .field-textarea:focus {

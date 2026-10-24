@@ -8,8 +8,7 @@ import path from 'node:path'
 import puppeteer from 'puppeteer-core'
 
 const EDGE_PATH =
-  process.env.EDGE_PATH ??
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+  process.env.EDGE_PATH ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
 const CDP_URL = process.env.CDP_URL
 
@@ -76,6 +75,7 @@ try {
     routes.push(
       ['反馈详情（管理员）', `/post/${postId}`],
       ['看板管理', '/admin/boards'],
+      ['标签管理', '/admin/tags'],
       ['新建更新日志', '/changelog/new'],
       ['编辑更新日志', `/changelog/${changelogId}/edit`],
     )
@@ -120,8 +120,8 @@ try {
       ]
       const chipHeights = [
         ...new Set(
-          [...document.querySelectorAll('.filter-chip, .sort-group, .vote-button')].map(
-            (element) => Math.round(element.getBoundingClientRect().height),
+          [...document.querySelectorAll('.filter-chip, .sort-group, .vote-button')].map((element) =>
+            Math.round(element.getBoundingClientRect().height),
           ),
         ),
       ]

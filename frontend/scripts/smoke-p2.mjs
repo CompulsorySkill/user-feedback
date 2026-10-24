@@ -11,8 +11,7 @@ import path from 'node:path'
 import puppeteer from 'puppeteer-core'
 
 const EDGE_PATH =
-  process.env.EDGE_PATH ??
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+  process.env.EDGE_PATH ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
 const COVER = path.resolve('../backend/.dev-storage/uploads/demo-cover.png')
 

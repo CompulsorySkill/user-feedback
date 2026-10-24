@@ -15,9 +15,18 @@ pnpm dev      # http://127.0.0.1:5173
 - 媒体由后端 `scripts/seed_dev.py` 生成并上传 RustFS。
 
 ```bash
-pnpm build    # vue-tsc 类型检查 + 产物构建
-pnpm check:style  # 校验每页字号 ≤3 种、操作按钮高度一致（需本地服务 + Edge）
+pnpm build          # vue-tsc 类型检查 + 产物构建
+pnpm lint           # oxlint（含 Vue 插件，warning 视为失败）
+pnpm format         # oxfmt 格式化 src / scripts / 配置
+pnpm format:check   # 校验格式（CI 使用）
+pnpm check:style    # 校验每页字号 ≤3 种、操作按钮高度一致（需本地服务 + Edge）
 ```
+
+## 代码质量
+
+- 格式化与静态检查统一使用 **OXC**：`oxfmt` + `oxlint`，配置见 [.oxfmtrc.json](.oxfmtrc.json) 与 [.oxlintrc.json](.oxlintrc.json)。
+- `oxfmt` 覆盖 `src/`、`scripts/`、`index.html`、`vite.config.ts`、`package.json`；缩进 2 空格、单引号、无分号、行宽 100。
+- `oxlint` 启用 `vue` 插件、correctness/suspicious 规则；CI 在构建前执行 lint 与 format check。
 
 ## 样式规范
 
@@ -31,10 +40,11 @@ pnpm check:style  # 校验每页字号 ≤3 种、操作按钮高度一致（需
 |---|---|
 | `/` | 全部反馈（根路由）：所有公开看板的反馈聚合列表，左侧看板导航；搜索、状态筛选、最近/最热排序 |
 | `/b/:slug` | 看板页：左侧看板列表（含帖子数/高亮），右侧反馈列表（搜索 + 状态筛选 + 最近/最热排序，均走 keyset 游标） |
-| `/b/:slug/new` | 匿名发帖：Tiptap 编辑器 + 图片 / MP4 直传 |
-| `/post/:id` | 反馈详情：富文本、投票、状态操作（管理员下拉 / 作者关闭）、3 层评论与回复 |
-| `/post/:id/edit` | 编辑反馈（作者非关闭态 / 管理员） |
+| `/b/:slug/new` | 匿名发帖：Tiptap 编辑器 + 图片 / MP4 直传 + 标签选择（内置标签 / 自定义，最多 5 个） |
+| `/post/:id` | 反馈详情：富文本、标签、投票、状态操作（管理员下拉 / 作者关闭）、3 层评论与回复 |
+| `/post/:id/edit` | 编辑反馈（作者非关闭态 / 管理员，可增删标签） |
 | `/admin/boards` | 看板管理：新建、编辑、删除看板（仅管理员，非管理员 404；删除会二次确认并级联清理反馈） |
+| `/admin/tags` | 标签管理：新增 / 删除内置标签（仅管理员；删除会从所有反馈移除） |
 | `/login` | 登录：SSO token 粘贴 + 开发环境快速登录 |
 | `/changelog` | 已发布更新日志；管理员可见草稿与「新建」入口 |
 | `/changelog/:id` | 更新日志详情 |

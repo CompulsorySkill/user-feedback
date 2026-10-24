@@ -65,8 +65,7 @@ async function toggle(): Promise<void> {
   } catch (err) {
     voted.value = wasVoted
     count.value = previousCount
-    error.value =
-      err instanceof ApiError ? err.message : '操作失败，请稍后重试'
+    error.value = err instanceof ApiError ? err.message : '操作失败，请稍后重试'
   } finally {
     pending.value = false
   }

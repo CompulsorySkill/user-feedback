@@ -15,7 +15,9 @@ EXPECTED_TABLES = {
     "changelog_entries",
     "comments",
     "posts",
+    "post_tags",
     "rate_limit_counters",
+    "tags",
     "uploads",
     "users",
     "votes",
@@ -52,7 +54,7 @@ def test_upgrade_creates_all_tables(sqlite_conn: sqlite3.Connection) -> None:
     assert _tables(sqlite_conn) == EXPECTED_TABLES
 
     version = sqlite_conn.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("0002_guest_name_env",)
+    assert version == ("0003_tags",)
 
 
 def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:
@@ -67,9 +69,7 @@ def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:
 def test_vote_duplicate_login_rejected(sqlite_conn: sqlite3.Connection) -> None:
     _insert_board(sqlite_conn)
     post_id = _insert_post(sqlite_conn)
-    sqlite_conn.execute(
-        "INSERT INTO users (email) VALUES ('alice@example.com')"
-    )
+    sqlite_conn.execute("INSERT INTO users (email) VALUES ('alice@example.com')")
     sqlite_conn.execute(
         "INSERT INTO votes (post_id, user_id) VALUES (?, 1)", (post_id,)
     )
@@ -116,9 +116,7 @@ def test_post_status_check_constraint(sqlite_conn: sqlite3.Connection) -> None:
     post_id = _insert_post(sqlite_conn)
 
     with pytest.raises(sqlite3.IntegrityError):
-        sqlite_conn.execute(
-            "UPDATE posts SET status='done' WHERE id=?", (post_id,)
-        )
+        sqlite_conn.execute("UPDATE posts SET status='done' WHERE id=?", (post_id,))
 
 
 def test_downgrade_removes_schema(tmp_path) -> None:

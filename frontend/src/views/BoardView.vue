@@ -17,9 +17,7 @@ const board = ref<Board | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
 
-const totalCount = computed(() =>
-  boards.value.reduce((sum, item) => sum + item.post_count, 0),
-)
+const totalCount = computed(() => boards.value.reduce((sum, item) => sum + item.post_count, 0))
 
 function slug(): string {
   return String(route.params.slug ?? '')
@@ -66,11 +64,7 @@ watch(() => route.params.slug, load)
     </p>
 
     <div v-else-if="board" class="board-layout" :class="{ 'board-layout-single': !boards.length }">
-      <BoardSidebar
-        :boards="boards"
-        :active-slug="board.slug"
-        :total-count="totalCount"
-      />
+      <BoardSidebar :boards="boards" :active-slug="board.slug" :total-count="totalCount" />
 
       <div class="board-main">
         <header class="board-header">

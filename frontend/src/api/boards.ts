@@ -55,10 +55,7 @@ export function listAllPosts(
   return api.get<Page<PostSummary>>(`/v1/posts?${params.toString()}`)
 }
 
-export function createPost(
-  slug: string,
-  input: PostCreateInput,
-): Promise<PostDetail> {
+export function createPost(slug: string, input: PostCreateInput): Promise<PostDetail> {
   return api.post<PostDetail>(`/v1/boards/${encodeURIComponent(slug)}/posts`, input)
 }
 

@@ -6,6 +6,7 @@
 ## 1. 启动前检查清单
 
 - [ ] `deploy/.env` 由 `.env.production.example` 复制并填好；`ENVIRONMENT=production`
+- [ ] `APP_NAME` 已按站点品牌修改（前端头部、页脚与浏览器标题读取此值）
 - [ ] `DATABASE_URL` 指向 Postgres（SQLite 会被启动校验拒绝）
 - [ ] `SSO_SECRETS` 至少一项，64 位 hex；`SESSION_JWT_SECRET` 独立随机值
 - [ ] `ADMIN_EMAILS` 至少保留一名有效管理员

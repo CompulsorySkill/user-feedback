@@ -44,10 +44,7 @@ export interface SSOLoginResponse {
 }
 
 /** POST 提交 SSO token，避免 token 进入 URL / 浏览器历史。 */
-export function ssoLogin(
-  token: string,
-  returnTo?: string | null,
-): Promise<SSOLoginResponse> {
+export function ssoLogin(token: string, returnTo?: string | null): Promise<SSOLoginResponse> {
   return api.post<SSOLoginResponse>('/sso/jwt', {
     token,
     return_to: returnTo ?? null,

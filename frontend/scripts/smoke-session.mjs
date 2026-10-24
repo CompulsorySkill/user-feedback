@@ -9,11 +9,9 @@ import path from 'node:path'
 import puppeteer from 'puppeteer-core'
 
 const EDGE_PATH =
-  process.env.EDGE_PATH ??
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+  process.env.EDGE_PATH ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
-const SSO_SECRET =
-  process.env.SSO_SECRET ?? 'dev-only-sso-secret-0123456789abcdef'
+const SSO_SECRET = process.env.SSO_SECRET ?? 'dev-only-sso-secret-0123456789abcdef'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@example.com'
 const CDP_URL = process.env.CDP_URL
 
@@ -108,10 +106,14 @@ try {
   await page.evaluate(() => fetch('/api/v1/auth/logout', { method: 'POST' }))
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle2' })
   const token = ssoToken(ADMIN_EMAIL)
-  await page.$eval('.login-token', (element, value) => {
-    element.value = value
-    element.dispatchEvent(new Event('input', { bubbles: true }))
-  }, token)
+  await page.$eval(
+    '.login-token',
+    (element, value) => {
+      element.value = value
+      element.dispatchEvent(new Event('input', { bubbles: true }))
+    },
+    token,
+  )
   for (const button of await page.$$('button')) {
     const text = await button.evaluate((element) => element.textContent ?? '')
     if (text.includes('使用 SSO token 登录')) {

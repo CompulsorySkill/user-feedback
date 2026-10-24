@@ -81,7 +81,13 @@ samp {
 .board-admin-desc,
 .board-admin-meta,
 .board-admin-hint,
-.board-admin-empty {
+.board-admin-empty,
+.tag-pill,
+.tag-hint,
+.tag-error,
+.tag-suggestion,
+.tag-admin-count,
+.tag-admin-empty {
   font-size: var(--fs-caption);
 }
 

@@ -26,8 +26,9 @@
 | 发帖 | ❌ | 看板 `allow_guest_posting` | ✅ | ✅ |
 | 投票 / 取消 | ❌ | 看板 `allow_guest_voting` | ✅ | ✅ |
 | 评论 | ❌ | 看板 `allow_guest_commenting` | ✅ | ✅ |
-| 编辑自己的反馈 | ❌ | ❌（匿名无作者身份） | 非 closed 时 ✅ | ✅（含 closed） |
+| 编辑自己的反馈 / 标签 | ❌ | ❌（匿名无作者身份） | 非 closed 时 ✅ | ✅（含 closed） |
 | 变更状态 | ❌ | ❌ | 仅单向关闭自己的反馈 | 任意流转（含重开） |
+| 维护内置标签 | ❌ | ❌ | ❌ | ✅ |
 | 更新日志写 / 发布 | ❌ | ❌ | ❌ | ✅ |
 
 未登录访问管理员前端路由返回 **404**（不暴露入口）；后端返回 403 `ADMIN_REQUIRED`。
@@ -48,14 +49,23 @@
 - `closed` 冻结：不可编辑、不可新投票、不可新评论；已有数据保留，管理员重开后恢复。
 - 状态变化只更新 `status` 与 `updated_at`，不记录历史。
 
-## 4. 更新日志语义
+## 4. 标签
+
+- 发帖与编辑请求都接受 `tags: string[]`（≤5 个，单个 ≤24 字符）；发帖时匿名作者也可直接创建标签。
+- 标签名按 `casefold` 归一化去重，展示保留首次写入的写法；同名标签全局复用。
+- 作者可修改自己反馈的标签（`closed` 除外）；管理员可修改任意反馈的标签。
+- 管理员可在 `/admin/tags` 维护**内置标签**；内置标签会出现在发布/编辑反馈的推荐列表中，普通标签不会。
+- 公开接口 `GET /tags` 只返回内置标签；管理员 `GET /admin/tags` 返回全部标签及使用数。
+- 删除标签会从所有反馈上移除关联，但不会删除反馈本身。
+
+## 5. 更新日志语义
 
 - 创建即为草稿：`is_published=false`、`published_at=null`，仅管理员可见。
 - 发布：`is_published=true`、`published_at=now()`。
 - 撤回：`is_published=false`，**保留 `published_at`** 供审计。
 - 编辑即覆盖，无版本历史。
 
-## 5. 分页
+## 6. 分页
 
 keyset 分页。响应：
 
@@ -77,7 +87,7 @@ keyset 分页。响应：
 
 两种排序各自使用对应的 keyset 游标，切换排序或筛选时必须丢弃旧 `cursor`。搜索与状态筛选、排序可以组合使用，游标同样需要丢弃。
 
-## 6. 限流
+## 7. 限流
 
 固定窗口 + 数据库计数表（无 Redis），多 worker 共享：
 
@@ -89,7 +99,7 @@ keyset 分页。响应：
 
 超限返回 `429 RATE_LIMITED`，事务回滚；每小时清理 1 小时前的窗口。
 
-## 7. 上传与富文本
+## 8. 上传与富文本
 
 ### presign
 
@@ -111,14 +121,19 @@ keyset 分页。响应：
 - `image` / `video` 的 `src` 必须是**当前身份**的 `Upload`，且 purpose / content_type 匹配，否则 `400 INVALID_CONTENT`
 - 编辑时允许保留原内容中已存在的媒体 key（历史数据或他人上传），新增媒体仍必须是编辑者自己的 `Upload`
 
-## 8. 端点一览
+## 9. 端点一览
 
 | 方法 | 路径 | 权限 |
 |---|---|---|
 | GET | `/health` | 公开 |
 | GET | `/v1/boards`、`/v1/boards/{slug}` | 公开 |
 | GET | `/v1/boards/{slug}/posts` | 公开 |
-| POST | `/v1/boards/{slug}/posts` | 匿名 / 登录 |
+| POST | `/v1/boards/{slug}/posts` | 匿名 / 登录；可带 `tags` |
+| GET | `/v1/site` | 公开（`APP_NAME`） |
+| GET | `/v1/tags` | 公开；内置标签 |
+| GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
+| POST | `/v1/admin/tags` | 管理员；新增内置标签 |
+| DELETE | `/v1/admin/tags/{id}` | 管理员；删除标签并解除帖子关联 |
 | GET | `/v1/posts` | 公开；全部公开看板聚合，支持 `board=`、`status=`、`sort=`、`q=` |
 | GET | `/v1/admin/boards` | 管理员 |
 | POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
@@ -140,7 +155,7 @@ keyset 分页。响应：
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。
 
-## 9. 会话续期
+## 10. 会话续期
 
 access token 过期（默认 15 分钟）时，携带旧 access cookie 的响应会附加
 `X-Session-Expired: 1`。前端收到后调用 `POST /v1/auth/refresh` 并重放原请求一次，

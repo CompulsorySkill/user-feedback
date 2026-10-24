@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  IconArrowLeft,
-  IconEdit,
-  IconLoader2,
-  IconMessage,
-  IconRefresh,
-} from '@tabler/icons-vue'
+import { IconArrowLeft, IconEdit, IconLoader2, IconMessage, IconRefresh } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { getPost } from '@/api/posts'
 import type { PostDetail } from '@/api/types'
@@ -16,6 +10,7 @@ import CommentSection from '@/components/CommentSection.vue'
 import PostStatusControl from '@/components/PostStatusControl.vue'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import TagList from '@/components/TagList.vue'
 import VoteButton from '@/components/VoteButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate, formatRelative } from '@/utils/date'
@@ -76,6 +71,7 @@ watch(() => route.params.id, load, { immediate: true })
             <span class="post-time">{{ formatDate(post.created_at) }}</span>
           </div>
           <h1>{{ post.title }}</h1>
+          <TagList v-if="post.tags.length" :tags="post.tags" class="post-detail-tags" />
           <div class="post-detail-meta">
             <AuthorTag :post="post" />
             <span class="meta-item">
@@ -132,11 +128,7 @@ watch(() => route.params.id, load, { immediate: true })
         </details>
 
         <footer class="post-detail-foot">
-          <VoteButton
-            :post-id="post.id"
-            :initial-count="post.vote_count"
-            :disabled="isClosed"
-          />
+          <VoteButton :post-id="post.id" :initial-count="post.vote_count" :disabled="isClosed" />
           <span class="action-hint">
             {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论支持 3 层回复' }}
           </span>

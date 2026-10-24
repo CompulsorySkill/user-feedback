@@ -3,12 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { IconArrowLeft, IconLoader2, IconLogin } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import {
-  devLogin,
-  getAuthCapabilities,
-  ssoLogin,
-  type AuthCapabilities,
-} from '@/api/auth'
+import { devLogin, getAuthCapabilities, ssoLogin, type AuthCapabilities } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -97,9 +92,7 @@ onMounted(load)
     <header class="page-header">
       <p class="eyebrow">Login</p>
       <h1>登录</h1>
-      <p class="hero-lead">
-        本系统通过产品侧 SSO 跳转登录；登录后管理员可管理状态与更新日志。
-      </p>
+      <p class="hero-lead">本系统通过产品侧 SSO 跳转登录；登录后管理员可管理状态与更新日志。</p>
     </header>
 
     <p v-if="loading" class="loading-line">
@@ -146,8 +139,8 @@ onMounted(load)
       <section v-if="caps?.dev_login" class="login-card">
         <h2>开发环境快速登录</h2>
         <p class="muted">
-          仅 `ENVIRONMENT=development` 开启；生产环境该接口返回 404。邮箱命中
-          `ADMIN_EMAILS` 时即为管理员。
+          仅 `ENVIRONMENT=development` 开启；生产环境该接口返回 404。邮箱命中 `ADMIN_EMAILS`
+          时即为管理员。
         </p>
         <label class="field">
           <span class="field-label">邮箱</span>

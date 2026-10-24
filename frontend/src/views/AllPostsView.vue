@@ -11,9 +11,7 @@ const boards = ref<Board[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 
-const totalCount = computed(() =>
-  boards.value.reduce((sum, item) => sum + item.post_count, 0),
-)
+const totalCount = computed(() => boards.value.reduce((sum, item) => sum + item.post_count, 0))
 
 async function load(): Promise<void> {
   loading.value = true

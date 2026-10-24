@@ -2,11 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { IconLoader2, IconRefresh, IconSend, IconX } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import {
-  createComment,
-  listComments,
-  type CommentItem,
-} from '@/api/comments'
+import { createComment, listComments, type CommentItem } from '@/api/comments'
 import CommentNode from '@/components/CommentNode.vue'
 import type { CommentNodeData } from '@/types/comment'
 
@@ -37,9 +33,7 @@ const tree = computed<CommentNodeData[]>(() => {
 
 const replyLabel = computed(() => {
   if (!replyTo.value) return ''
-  return replyTo.value.is_anonymous
-    ? '匿名用户'
-    : replyTo.value.author_name?.trim() || '用户'
+  return replyTo.value.is_anonymous ? '匿名用户' : replyTo.value.author_name?.trim() || '用户'
 })
 
 async function load(): Promise<void> {

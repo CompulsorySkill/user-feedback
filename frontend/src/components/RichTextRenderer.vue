@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storageUrl } from '@/composables/useStorageUrl'
-import {
-  attrNumber,
-  attrString,
-  type JSONContent,
-  type JSONMark,
-} from '@/types/content'
+import { attrNumber, attrString, type JSONContent, type JSONMark } from '@/types/content'
 
 /**
  * 只读富文本渲染：白名单节点逐层渲染，未知节点仅保留子节点。
@@ -31,9 +26,7 @@ const markClasses = computed(() => ({
   'rt-inline-code': markTypes.value.has('code'),
 }))
 
-const headingLevel = computed(() =>
-  Math.min(Math.max(attrNumber(props.node, 'level', 2), 1), 6),
-)
+const headingLevel = computed(() => Math.min(Math.max(attrNumber(props.node, 'level', 2), 1), 6))
 const listStart = computed(() => attrNumber(props.node, 'start', 1))
 const imageSrc = computed(() => attrString(props.node, 'src'))
 const imageAlt = computed(() => attrString(props.node, 'alt') ?? '')
@@ -93,7 +86,10 @@ function collectText(node: JSONContent): string {
     <RichTextRenderer v-for="(child, index) in children" :key="index" :node="child" />
   </blockquote>
 
-  <pre v-else-if="node.type === 'codeBlock'" class="rt-code-block"><code>{{ collectText(node) }}</code></pre>
+  <pre
+    v-else-if="node.type === 'codeBlock'"
+    class="rt-code-block"
+  ><code>{{ collectText(node) }}</code></pre>
 
   <hr v-else-if="node.type === 'horizontalRule'" class="rt-rule" />
 

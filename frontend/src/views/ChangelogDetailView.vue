@@ -1,18 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import {
-  IconArrowLeft,
-  IconEdit,
-  IconLoader2,
-  IconRefresh,
-} from '@tabler/icons-vue'
+import { IconArrowLeft, IconEdit, IconLoader2, IconRefresh } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import {
-  getChangelog,
-  publishChangelog,
-  unpublishChangelog,
-} from '@/api/changelogs'
+import { getChangelog, publishChangelog, unpublishChangelog } from '@/api/changelogs'
 import type { ChangelogDetail } from '@/api/types'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import { useAuthStore } from '@/stores/auth'

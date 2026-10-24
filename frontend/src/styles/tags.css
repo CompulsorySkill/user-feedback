@@ -1,0 +1,157 @@
+/* 标签：展示、选择器与管理员内置标签维护。 */
+
+.tag-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-subtle);
+  cursor: pointer;
+}
+
+.tag-remove:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--text);
+}
+
+.tag-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tag-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tag-picker-selected {
+  gap: 6px;
+}
+
+.tag-picker .field-input:disabled {
+  background: var(--surface-muted);
+  color: var(--text-subtle);
+  cursor: not-allowed;
+}
+
+.tag-suggestions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--control-height-sm);
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tag-suggestion:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tag-suggestion:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.tag-hint {
+  color: var(--text-subtle);
+}
+
+.tag-error {
+  color: var(--error);
+}
+
+.post-card-tags {
+  margin-top: 8px;
+}
+
+.post-detail-tags {
+  margin-top: 12px;
+}
+
+/* 管理员标签维护 */
+
+.tag-admin-form {
+  margin-bottom: 22px;
+}
+
+.tag-admin-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tag-admin-input .field-input {
+  flex: 1;
+}
+
+.tag-admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tag-admin-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tag-admin-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.tag-admin-count {
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+.tag-admin-empty {
+  padding: 28px 0;
+  color: var(--text-subtle);
+}

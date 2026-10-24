@@ -13,11 +13,7 @@ defineProps<{
   <aside v-if="boards.length" class="board-sidebar">
     <p class="sidebar-title">全部看板</p>
     <nav class="board-nav" aria-label="看板列表">
-      <RouterLink
-        to="/"
-        class="board-nav-item"
-        :class="{ 'is-active': !activeSlug }"
-      >
+      <RouterLink to="/" class="board-nav-item" :class="{ 'is-active': !activeSlug }">
         <span class="board-nav-name">全部反馈</span>
         <span class="board-nav-count">{{ totalCount }}</span>
       </RouterLink>

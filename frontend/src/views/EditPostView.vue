@@ -5,8 +5,10 @@ import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { getPost } from '@/api/posts'
 import { updatePost } from '@/api/postActions'
-import type { PostDetail } from '@/api/types'
+import { listBuiltinTags } from '@/api/tags'
+import type { PostDetail, TagSummary } from '@/api/types'
 import PostEditor from '@/components/PostEditor.vue'
+import TagPicker from '@/components/TagPicker.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { JSONContent } from '@/types/content'
 
@@ -18,6 +20,8 @@ const post = ref<PostDetail | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 const title = ref('')
+const tags = ref<string[]>([])
+const tagSuggestions = ref<TagSummary[]>([])
 const editorRef = ref<InstanceType<typeof PostEditor> | null>(null)
 const submitting = ref(false)
 const error = ref('')
@@ -35,10 +39,19 @@ async function load(): Promise<void> {
     if (!auth.me) await auth.hydrate()
     post.value = await getPost(String(route.params.id ?? ''))
     title.value = post.value.title
+    tags.value = post.value.tags.map((tag) => tag.name)
   } catch (err) {
     loadError.value = err instanceof ApiError ? err.message : '加载失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadTags(): Promise<void> {
+  try {
+    tagSuggestions.value = await listBuiltinTags()
+  } catch {
+    tagSuggestions.value = []
   }
 }
 
@@ -58,7 +71,11 @@ async function submit(): Promise<void> {
   submitting.value = true
   error.value = ''
   try {
-    await updatePost(post.value.id, { title: trimmedTitle, content })
+    await updatePost(post.value.id, {
+      title: trimmedTitle,
+      content,
+      tags: tags.value,
+    })
     await router.push(`/post/${post.value.id}`)
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : '保存失败，请重试'
@@ -67,15 +84,15 @@ async function submit(): Promise<void> {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  void loadTags()
+})
 </script>
 
 <template>
   <div class="container container-narrow">
-    <RouterLink
-      :to="post ? `/post/${post.id}` : '/'"
-      class="back-link"
-    >
+    <RouterLink :to="post ? `/post/${post.id}` : '/'" class="back-link">
       <IconArrowLeft :size="15" :stroke-width="2" /> 返回反馈
     </RouterLink>
 
@@ -100,6 +117,11 @@ onMounted(load)
           <span class="field-label">标题</span>
           <input v-model="title" class="field-input" maxlength="200" />
         </label>
+
+        <div class="field">
+          <span class="field-label">标签（最多 5 个）</span>
+          <TagPicker v-model="tags" :suggestions="tagSuggestions" />
+        </div>
 
         <div class="field">
           <span class="field-label">正文</span>

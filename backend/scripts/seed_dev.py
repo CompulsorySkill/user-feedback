@@ -23,7 +23,7 @@ from typing import Any
 from sqlalchemy import delete, select
 
 from app.core.db import SessionLocal, engine
-from app.models import Board, ChangelogEntry, Post, User
+from app.models import Board, ChangelogEntry, Post, PostTag, Tag, User
 from scripts import bootstrap_storage
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -31,6 +31,13 @@ STORAGE_DIR = BACKEND_DIR / ".dev-storage"
 UPLOADS_DIR = STORAGE_DIR / "uploads"
 
 NOW = datetime.now(timezone.utc).replace(tzinfo=None)
+
+BUILTIN_TAGS = ("功能请求", "缺陷", "体验", "文档", "性能")
+POST_TAGS = {
+    "product": ["功能请求"],
+    "bugs": ["缺陷"],
+    "mobile": ["体验", "性能"],
+}
 
 
 # --------------------------------------------------------------------------- #
@@ -234,7 +241,9 @@ POSTS: list[dict[str, Any]] = [
         "lead": "反馈多了以后很难快速定位，希望看板能给每条反馈打标签，并支持组合筛选。",
         "body": [
             heading(2, "使用场景"),
-            paragraph("团队每周整理反馈时，需要在「功能建议」和「体验问题」之间来回切换，如果有标签就能一次筛完。"),
+            paragraph(
+                "团队每周整理反馈时，需要在「功能建议」和「体验问题」之间来回切换，如果有标签就能一次筛完。"
+            ),
             bullet_list(
                 [
                     "标签由管理员维护，普通用户只能选择",
@@ -263,8 +272,12 @@ POSTS: list[dict[str, Any]] = [
                     "等待上传，进度停在 99% 约 30 秒后失败",
                 ]
             ),
-            paragraph("同一张图片在桌面端 Chrome 上传正常，怀疑与移动端内存或超时有关。"),
-            code_block("POST /api/v1/uploads/presign -> 200\nPUT /storage/uploads/... -> net::ERR_CONNECTION_RESET"),
+            paragraph(
+                "同一张图片在桌面端 Chrome 上传正常，怀疑与移动端内存或超时有关。"
+            ),
+            code_block(
+                "POST /api/v1/uploads/presign -> 200\nPUT /storage/uploads/... -> net::ERR_CONNECTION_RESET"
+            ),
         ],
     },
     {
@@ -277,8 +290,12 @@ POSTS: list[dict[str, Any]] = [
         "hours_ago": 26,
         "lead": "希望管理员可以把一个看板的反馈导出，用于季度复盘和归档。",
         "body": [
-            paragraph("导出内容建议包含标题、状态、投票数、评论数与创建时间，Markdown 版本保留富文本结构。"),
-            bullet_list(["CSV：一行一条，便于表哥分析", "Markdown：保留标题层级与列表"]),
+            paragraph(
+                "导出内容建议包含标题、状态、投票数、评论数与创建时间，Markdown 版本保留富文本结构。"
+            ),
+            bullet_list(
+                ["CSV：一行一条，便于表哥分析", "Markdown：保留标题层级与列表"]
+            ),
         ],
     },
     {
@@ -305,7 +322,9 @@ POSTS: list[dict[str, Any]] = [
         "hours_ago": 74,
         "lead": "匿名发的反馈在登录后就找不到了，希望登录时能自动合并。",
         "body": [
-            paragraph("匿名身份通过 HttpOnly cookie 识别，登录时应把历史反馈和投票归到账号下。"),
+            paragraph(
+                "匿名身份通过 HttpOnly cookie 识别，登录时应把历史反馈和投票归到账号下。"
+            ),
             paragraph("注意：匿名 cookie 不作为授权依据，合并只发生在登录瞬间。"),
         ],
     },
@@ -319,7 +338,9 @@ POSTS: list[dict[str, Any]] = [
         "hours_ago": 96,
         "lead": "评论里写代码片段很难看，希望能用反引号包住代码。",
         "body": [
-            paragraph("只需要支持行内代码、代码块、加粗与列表即可，不需要完整 Markdown。"),
+            paragraph(
+                "只需要支持行内代码、代码块、加粗与列表即可，不需要完整 Markdown。"
+            ),
             bullet_list(["`code` 行内代码", "``` 代码块 ```", "**加粗**"]),
         ],
     },
@@ -471,7 +492,9 @@ POSTS: list[dict[str, Any]] = [
 ]
 
 
-def build_rich_post(nodes: list[dict[str, Any]], media: dict[str, str | None]) -> dict[str, Any]:
+def build_rich_post(
+    nodes: list[dict[str, Any]], media: dict[str, str | None]
+) -> dict[str, Any]:
     """给部分反馈追加图片 / 视频节点，验证 P1 静态渲染。"""
     extra: list[dict[str, Any]] = []
     if media["cover"] and len(nodes) >= 2:
@@ -556,6 +579,8 @@ async def seed(reset: bool) -> None:
 
     async with SessionLocal() as session:
         if reset:
+            await session.execute(delete(PostTag))
+            await session.execute(delete(Tag))
             await session.execute(delete(ChangelogEntry))
             await session.execute(delete(Post))
             await session.execute(delete(Board))
@@ -581,6 +606,17 @@ async def seed(reset: bool) -> None:
 
         await session.flush()
 
+        tag_ids: dict[str, int] = {}
+        for name in BUILTIN_TAGS:
+            tag = Tag(
+                name=name,
+                normalized=name.casefold(),
+                is_builtin=True,
+            )
+            session.add(tag)
+            await session.flush()
+            tag_ids[name] = tag.id
+
         for index, item in enumerate(POSTS):
             nodes = [paragraph(item["lead"]), *item["body"]]
             content = build_rich_post(nodes, media)
@@ -604,6 +640,9 @@ async def seed(reset: bool) -> None:
                 updated_at=created_at,
             )
             session.add(post)
+            await session.flush()
+            for tag_name in POST_TAGS.get(item["board"], []):
+                session.add(PostTag(post_id=post.id, tag_id=tag_ids[tag_name]))
 
         for item in CHANGELOGS:
             created_at = NOW - timedelta(hours=item["hours_ago"])
@@ -622,7 +661,9 @@ async def seed(reset: bool) -> None:
 
         await session.commit()
 
-    print(f"种子数据写入完成：{len(BOARDS)} 个看板 / {len(POSTS)} 条反馈 / {len(CHANGELOGS)} 条更新日志")
+    print(
+        f"种子数据写入完成：{len(BOARDS)} 个看板 / {len(POSTS)} 条反馈 / {len(CHANGELOGS)} 条更新日志"
+    )
     if media["cover"]:
         print(f"演示媒体：{STORAGE_DIR}")
 

@@ -22,12 +22,14 @@ from app.repositories.boards import BoardRepository
 from app.repositories.changelogs import ChangelogRepository
 from app.repositories.comments import CommentRepository
 from app.repositories.posts import PostRepository
+from app.repositories.tags import TagRepository
 from app.repositories.uploads import UploadRepository
 from app.repositories.votes import VoteRepository
 from app.services.boards import BoardService
 from app.services.changelogs import ChangelogService
 from app.services.comments import CommentService
 from app.services.posts import PostService
+from app.services.tags import TagService
 from app.services.uploads import UploadService
 from app.services.votes import VoteService
 
@@ -58,12 +60,17 @@ def get_comment_repository(session: SessionDep) -> CommentRepository:
     return CommentRepository(session)
 
 
+def get_tag_repository(session: SessionDep) -> TagRepository:
+    return TagRepository(session)
+
+
 BoardRepoDep = Annotated[BoardRepository, Depends(get_board_repository)]
 PostRepoDep = Annotated[PostRepository, Depends(get_post_repository)]
 ChangelogRepoDep = Annotated[ChangelogRepository, Depends(get_changelog_repository)]
 UploadRepoDep = Annotated[UploadRepository, Depends(get_upload_repository)]
 VoteRepoDep = Annotated[VoteRepository, Depends(get_vote_repository)]
 CommentRepoDep = Annotated[CommentRepository, Depends(get_comment_repository)]
+TagRepoDep = Annotated[TagRepository, Depends(get_tag_repository)]
 
 
 def get_storage_backend() -> S3Storage:
@@ -128,8 +135,13 @@ def get_post_service(
     posts: PostRepoDep,
     boards: BoardRepoDep,
     uploads: UploadRepoDep,
+    tags: TagRepoDep,
 ) -> PostService:
-    return PostService(session, posts, boards, uploads)
+    return PostService(session, posts, boards, uploads, tags)
+
+
+def get_tag_service(session: SessionDep, tags: TagRepoDep) -> TagService:
+    return TagService(session, tags)
 
 
 def get_changelog_service(
@@ -161,6 +173,7 @@ def get_comment_service(
 
 BoardServiceDep = Annotated[BoardService, Depends(get_board_service)]
 PostServiceDep = Annotated[PostService, Depends(get_post_service)]
+TagServiceDep = Annotated[TagService, Depends(get_tag_service)]
 ChangelogServiceDep = Annotated[ChangelogService, Depends(get_changelog_service)]
 UploadServiceDep = Annotated[UploadService, Depends(get_upload_service)]
 VoteServiceDep = Annotated[VoteService, Depends(get_vote_service)]

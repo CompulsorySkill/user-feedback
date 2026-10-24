@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { site } from '@/config/site'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -33,6 +34,12 @@ const router = createRouter({
       path: '/admin/boards',
       name: 'admin-boards',
       component: () => import('@/views/AdminBoardsView.vue'),
+      meta: { requiresAdmin: true },
+    },
+    {
+      path: '/admin/tags',
+      name: 'admin-tags',
+      component: () => import('@/views/AdminTagsView.vue'),
       meta: { requiresAdmin: true },
     },
     {
@@ -84,8 +91,6 @@ router.beforeEach(async (to) => {
   return true
 })
 
-const APP_NAME = 'FeedLog'
-
 router.afterEach((to) => {
   const titles: Record<string, string> = {
     feedback: '全部反馈',
@@ -94,6 +99,7 @@ router.afterEach((to) => {
     post: '反馈详情',
     'post-edit': '编辑反馈',
     'admin-boards': '看板管理',
+    'admin-tags': '标签管理',
     login: '登录',
     changelog: '更新日志',
     'changelog-detail': '更新日志',
@@ -102,7 +108,7 @@ router.afterEach((to) => {
     'not-found': '页面不存在',
   }
   const label = typeof to.name === 'string' ? titles[to.name] : undefined
-  document.title = label ? `${label} · ${APP_NAME}` : APP_NAME
+  document.title = label ? `${label} · ${site.name}` : site.name
 })
 
 export default router

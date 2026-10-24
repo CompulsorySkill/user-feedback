@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Board, Comment, Post, Vote
+from app.models import Board, Comment, Post, PostTag, Vote
 
 
 class BoardRepository:
@@ -53,5 +53,6 @@ class BoardRepository:
         post_ids = select(Post.id).where(Post.board_id == board.id)
         await self.session.execute(delete(Vote).where(Vote.post_id.in_(post_ids)))
         await self.session.execute(delete(Comment).where(Comment.post_id.in_(post_ids)))
+        await self.session.execute(delete(PostTag).where(PostTag.post_id.in_(post_ids)))
         await self.session.execute(delete(Post).where(Post.board_id == board.id))
         await self.session.delete(board)

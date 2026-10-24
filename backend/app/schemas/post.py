@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.board import BoardRef
 from app.schemas.common import UTCModel
+from app.schemas.tag import TagRef
 
 PostStatus = Literal["open", "planned", "in_progress", "completed", "closed"]
 
@@ -40,6 +41,7 @@ class PostSummary(UTCModel):
     is_anonymous: bool
     created_at: datetime
     updated_at: datetime
+    tags: list[TagRef] = Field(default_factory=list)
 
 
 class PostDetail(PostSummary):
@@ -54,6 +56,7 @@ class PostCreateRequest(BaseModel):
     content: dict[str, Any]
     anonymous_name: str | None = Field(default=None, max_length=50)
     environment: ClientEnvironment | None = None
+    tags: list[str] = Field(default_factory=list, max_length=5)
 
     @field_validator("title")
     @classmethod
@@ -79,6 +82,7 @@ class PostStatusUpdate(BaseModel):
 class PostUpdateRequest(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     content: dict[str, Any] | None = None
+    tags: list[str] | None = Field(default=None, max_length=5)
 
     @field_validator("title")
     @classmethod

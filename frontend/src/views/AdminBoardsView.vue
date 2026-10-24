@@ -10,12 +10,7 @@ import {
   IconX,
 } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import {
-  createBoard,
-  deleteBoard,
-  listAdminBoards,
-  updateBoard,
-} from '@/api/boards'
+import { createBoard, deleteBoard, listAdminBoards, updateBoard } from '@/api/boards'
 import type { Board } from '@/api/types'
 
 interface BoardForm {
@@ -59,8 +54,7 @@ async function load(): Promise<void> {
   try {
     boards.value = await listAdminBoards()
   } catch (error) {
-    errorMessage.value =
-      error instanceof ApiError ? error.message : '加载看板失败，请稍后重试。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载看板失败，请稍后重试。'
   } finally {
     loading.value = false
   }
@@ -127,8 +121,7 @@ async function save(): Promise<void> {
     closeForm()
     await load()
   } catch (error) {
-    actionError.value =
-      error instanceof ApiError ? error.message : '保存失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '保存失败，请稍后重试。'
   } finally {
     saving.value = false
   }
@@ -148,8 +141,7 @@ async function remove(board: Board): Promise<void> {
     if (editingId.value === board.id) closeForm()
     await load()
   } catch (error) {
-    actionError.value =
-      error instanceof ApiError ? error.message : '删除失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。'
   } finally {
     deletingId.value = null
   }
@@ -164,9 +156,7 @@ onMounted(load)
       <div>
         <p class="eyebrow">Admin</p>
         <h1>看板管理</h1>
-        <p class="hero-lead">
-          新增、编辑或删除看板；删除看板会连带清理其反馈、评论与投票。
-        </p>
+        <p class="hero-lead">新增、编辑或删除看板；删除看板会连带清理其反馈、评论与投票。</p>
       </div>
       <button class="button button-primary" type="button" @click="openCreate">
         <IconPlus :size="16" :stroke-width="2" />
@@ -181,12 +171,7 @@ onMounted(load)
     <form v-if="formOpen" class="compose board-admin-form" @submit.prevent="save">
       <div class="board-admin-form-head">
         <h2>{{ editingId === null ? '新建看板' : '编辑看板' }}</h2>
-        <button
-          type="button"
-          class="form-close"
-          aria-label="关闭表单"
-          @click="closeForm"
-        >
+        <button type="button" class="form-close" aria-label="关闭表单" @click="closeForm">
           <IconX :size="15" :stroke-width="2" />
         </button>
       </div>
@@ -206,12 +191,7 @@ onMounted(load)
 
         <label class="field">
           <span class="field-label">名称</span>
-          <input
-            v-model="form.name"
-            class="field-input"
-            maxlength="128"
-            placeholder="功能建议"
-          />
+          <input v-model="form.name" class="field-input" maxlength="128" placeholder="功能建议" />
         </label>
       </div>
 
@@ -248,9 +228,7 @@ onMounted(load)
       <div class="compose-actions">
         <span class="board-admin-hint">未公开看板不会出现在前台列表，但管理员仍可直接访问。</span>
         <div class="compose-buttons">
-          <button class="button button-ghost" type="button" @click="closeForm">
-            取消
-          </button>
+          <button class="button button-ghost" type="button" @click="closeForm">取消</button>
           <button class="button button-primary" type="submit" :disabled="saving">
             <IconLoader2 v-if="saving" class="spin" :size="16" :stroke-width="2" />
             <IconDeviceFloppy v-else :size="16" :stroke-width="2" />
@@ -288,30 +266,17 @@ onMounted(load)
           </div>
         </div>
         <div class="board-admin-actions">
-          <button
-            class="button button-ghost button-small"
-            type="button"
-            @click="openEdit(board)"
-          >
+          <button class="button button-ghost button-small" type="button" @click="openEdit(board)">
             <IconPencil :size="14" :stroke-width="2" /> 编辑
           </button>
           <button
             class="button button-ghost button-small button-danger"
             type="button"
             :disabled="deletingId !== null"
-            :title="
-              board.post_count > 0
-                ? '删除看板并级联清理其反馈'
-                : '删除看板'
-            "
+            :title="board.post_count > 0 ? '删除看板并级联清理其反馈' : '删除看板'"
             @click="remove(board)"
           >
-            <IconLoader2
-              v-if="deletingId === board.id"
-              class="spin"
-              :size="14"
-              :stroke-width="2"
-            />
+            <IconLoader2 v-if="deletingId === board.id" class="spin" :size="14" :stroke-width="2" />
             <IconTrash v-else :size="14" :stroke-width="2" />
             删除
           </button>

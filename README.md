@@ -25,6 +25,7 @@ cp deploy/.env.example deploy/.env
 `deploy/.env` 是唯一配置来源（不存在 `backend/.env`）。本地默认 SQLite，并需要填写：
 
 ```dotenv
+APP_NAME=FeedLog
 PUBLIC_ORIGIN=http://127.0.0.1:5173
 RUSTFS_ENDPOINT_INTERNAL=http://127.0.0.1:9000
 RUSTFS_ENDPOINT_PUBLIC=http://127.0.0.1:5173
@@ -32,6 +33,7 @@ RUSTFS_ACCESS_KEY=...
 RUSTFS_SECRET_KEY=...
 ```
 
+`APP_NAME` 会同步到前端头部、页脚与浏览器标题，修改后重启后端并刷新页面即可。
 `RUSTFS_ENDPOINT_PUBLIC` 必须与浏览器实际访问的站点同源，否则 SigV4 签名对不上。
 
 ### 2. 后端
@@ -65,6 +67,8 @@ pnpm dev
 
 ```bash
 cd backend && uv run pytest
+cd frontend && pnpm lint           # oxlint（Vue 插件）
+cd frontend && pnpm format:check   # oxfmt
 cd frontend && pnpm build
 cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（需本地服务与 Edge）
 cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + 评论 + 更新日志发布
@@ -91,12 +95,17 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | GET | `/api/v1/boards` | 公开看板列表（含反馈数） |
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
 | GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索 |
-| POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称与浏览器环境信息 |
+| POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称、浏览器环境信息与标签（≤5 个） |
+| GET | `/api/v1/site` | 站点配置（当前为 `APP_NAME`） |
+| GET | `/api/v1/tags` | 内置标签列表（含使用数） |
+| GET | `/api/v1/admin/tags` | 全部标签（管理员） |
+| POST | `/api/v1/admin/tags` | 新增内置标签（管理员） |
+| DELETE | `/api/v1/admin/tags/{id}` | 删除标签并从所有反馈移除（管理员） |
 | GET | `/api/v1/posts?limit=&cursor=` | 全部公开看板的反馈聚合列表；支持 `board=`、`status=`、`sort=`、`q=` |
 | GET | `/api/v1/admin/boards` | 看板列表（管理员，含未公开） |
 | POST / PATCH / DELETE | `/api/v1/admin/boards[/{id}]` | 新建 / 修改 / 删除看板（管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除） |
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |
-| PATCH | `/api/v1/posts/{id}` | 编辑反馈（作者非关闭态 / 管理员） |
+| PATCH | `/api/v1/posts/{id}` | 编辑反馈 / 标签（作者非关闭态 / 管理员） |
 | PATCH | `/api/v1/posts/{id}/status` | 状态流转（管理员任意，作者仅单向关闭） |
 | POST | `/api/v1/posts/{id}/vote` | 投票（幂等，关闭后拒绝） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |

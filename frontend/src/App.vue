@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { IconMessageCircle, IconSpeakerphone } from '@tabler/icons-vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { site } from '@/config/site'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -29,7 +30,7 @@ onUnmounted(() => {
       <div class="container header-inner">
         <RouterLink class="brand" to="/">
           <span class="brand-mark"><IconMessageCircle :size="20" :stroke-width="2" /></span>
-          <span class="brand-name">FeedLog</span>
+          <span class="brand-name">{{ site.name }}</span>
         </RouterLink>
 
         <nav class="site-nav" aria-label="主导航">
@@ -38,6 +39,7 @@ onUnmounted(() => {
           <RouterLink v-if="auth.isAdmin" to="/admin/boards" class="nav-link">
             看板管理
           </RouterLink>
+          <RouterLink v-if="auth.isAdmin" to="/admin/tags" class="nav-link"> 标签管理 </RouterLink>
         </nav>
 
         <div class="header-meta">
@@ -66,7 +68,7 @@ onUnmounted(() => {
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <span>FeedLog · 用户意见反馈系统</span>
+        <span>{{ site.name }} · 用户意见反馈系统</span>
         <span class="footer-stack">FastAPI · Vue 3.5 · Vite 8</span>
         <span class="footer-note">
           <IconSpeakerphone :size="14" :stroke-width="2" />

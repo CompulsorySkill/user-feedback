@@ -3,12 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IconLoader2, IconRefresh, IconSearch, IconX } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import {
-  listAllPosts,
-  listBoardPosts,
-  type ListPostsOptions,
-  type PostSort,
-} from '@/api/boards'
+import { listAllPosts, listBoardPosts, type ListPostsOptions, type PostSort } from '@/api/boards'
 import type { PostStatus, PostSummary } from '@/api/types'
 import EmptyState from '@/components/EmptyState.vue'
 import PostCard from '@/components/PostCard.vue'
@@ -27,9 +22,7 @@ const SORT_OPTIONS: Array<{ value: PostSort; label: string }> = [
   { value: 'recent', label: '最近' },
   { value: 'top', label: '最热' },
 ]
-const VALID_STATUSES = new Set<string>(
-  STATUS_FILTERS.map((item) => item.value).filter(Boolean),
-)
+const VALID_STATUSES = new Set<string>(STATUS_FILTERS.map((item) => item.value).filter(Boolean))
 
 const props = defineProps<{
   boardSlug?: string | null
@@ -69,9 +62,7 @@ const hasFilter = computed(
 )
 
 function normalizeStatus(value: unknown): PostStatus | '' {
-  return typeof value === 'string' && VALID_STATUSES.has(value)
-    ? (value as PostStatus)
-    : ''
+  return typeof value === 'string' && VALID_STATUSES.has(value) ? (value as PostStatus) : ''
 }
 
 function normalizeQuery(value: unknown): string {
@@ -89,7 +80,9 @@ function options(cursor?: string | null): ListPostsOptions & { board?: string | 
   }
 }
 
-function fetchPage(cursor?: string | null): Promise<{ items: PostSummary[]; next_cursor: string | null }> {
+function fetchPage(
+  cursor?: string | null,
+): Promise<{ items: PostSummary[]; next_cursor: string | null }> {
   return props.boardSlug
     ? listBoardPosts(props.boardSlug, options(cursor))
     : listAllPosts(options(cursor))
@@ -126,8 +119,7 @@ async function loadMore(): Promise<void> {
     posts.value = [...posts.value, ...page.items.filter((post) => !seen.has(post.id))]
     nextCursor.value = page.next_cursor
   } catch (error) {
-    loadMoreError.value =
-      error instanceof ApiError ? error.message : '加载更多失败，请重试。'
+    loadMoreError.value = error instanceof ApiError ? error.message : '加载更多失败，请重试。'
   } finally {
     loadingMore.value = false
   }
@@ -291,12 +283,7 @@ watch(
     </div>
 
     <div v-else class="post-list">
-      <PostCard
-        v-for="post in posts"
-        :key="post.id"
-        :post="post"
-        :show-board="showBoard"
-      />
+      <PostCard v-for="post in posts" :key="post.id" :post="post" :show-board="showBoard" />
 
       <div class="load-more">
         <button

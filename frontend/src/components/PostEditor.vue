@@ -38,8 +38,7 @@ const emit = defineEmits<{
 const { uploading, error: uploadError, upload } = useUpload()
 
 const editor = useEditor({
-  content:
-    props.initialContent ?? { type: 'doc', content: [{ type: 'paragraph' }] },
+  content: props.initialContent ?? { type: 'doc', content: [{ type: 'paragraph' }] },
   extensions: [
     StarterKit.configure({ heading: { levels: [2, 3] } }),
     StorageImage.configure({ inline: false, allowBase64: false }),

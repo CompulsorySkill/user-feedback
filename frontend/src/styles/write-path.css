@@ -38,7 +38,10 @@
   color: var(--text-muted);
   font-weight: 550;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .vote-button:hover:not(:disabled) {
@@ -99,7 +102,9 @@
   color: var(--text);
   font: inherit;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .field-input:focus {
@@ -233,7 +238,9 @@
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .tool-button:hover:not(:disabled) {
@@ -640,7 +647,10 @@
   color: var(--text-muted);
   font: inherit;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .filter-chip:hover {

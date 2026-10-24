@@ -29,6 +29,16 @@ export interface BoardRef {
 
 export type PostStatus = 'open' | 'planned' | 'in_progress' | 'completed' | 'closed'
 
+export interface TagRef {
+  id: number
+  name: string
+  is_builtin: boolean
+}
+
+export interface TagSummary extends TagRef {
+  post_count: number
+}
+
 export interface PostSummary {
   id: string
   board_slug: string
@@ -43,6 +53,7 @@ export interface PostSummary {
   is_anonymous: boolean
   created_at: string
   updated_at: string
+  tags: TagRef[]
 }
 
 export interface ClientEnvironment {
@@ -79,11 +90,7 @@ export interface Page<T> {
   next_cursor: string | null
 }
 
-export type UploadPurpose =
-  | 'post_image'
-  | 'post_video'
-  | 'changelog_image'
-  | 'changelog_video'
+export type UploadPurpose = 'post_image' | 'post_video' | 'changelog_image' | 'changelog_video'
 
 export interface UploadTicket {
   object_key: string
@@ -103,4 +110,5 @@ export interface PostCreateInput {
   content: import('@/types/content').JSONContent
   anonymous_name?: string | null
   environment?: ClientEnvironment | null
+  tags?: string[]
 }

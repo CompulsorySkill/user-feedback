@@ -19,9 +19,10 @@ from app.core.pagination import (
     encode_top_cursor,
 )
 from app.core.rate_limit import enforce_rate_limit
-from app.models import Post
+from app.models import Post, Tag
 from app.repositories.boards import BoardRepository
 from app.repositories.posts import PostRepository
+from app.repositories.tags import TagRepository
 from app.repositories.uploads import UploadRepository
 from app.schemas.board import BoardRef
 from app.schemas.common import Page
@@ -33,6 +34,7 @@ from app.schemas.post import (
     PostUpdateRequest,
 )
 from app.services.rich_text import collect_media_keys, validate_rich_text
+from app.services.tags import TagService, to_ref
 
 # 反馈中允许的媒体节点 -> Upload purpose
 POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
@@ -42,7 +44,11 @@ POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
 
 
 def _summary(
-    post, board_slug: str, board_name: str, author_name: str | None
+    post,
+    board_slug: str,
+    board_name: str,
+    author_name: str | None,
+    tags: list[Tag] | None = None,
 ) -> PostSummary:
     return PostSummary(
         id=post.id,
@@ -58,6 +64,7 @@ def _summary(
         is_anonymous=post.author_id is None,
         created_at=post.created_at,
         updated_at=post.updated_at,
+        tags=[to_ref(tag) for tag in tags or []],
     )
 
 
@@ -68,11 +75,14 @@ class PostService:
         posts: PostRepository,
         boards: BoardRepository,
         uploads: UploadRepository,
+        tags: TagRepository,
     ) -> None:
         self.session = session
         self.posts = posts
         self.boards = boards
         self.uploads = uploads
+        self.tags = tags
+        self.tag_service = TagService(session, tags)
 
     async def _paginate(
         self,
@@ -103,8 +113,15 @@ class PostService:
                 else None
             )
 
+        tag_map = await self.tags.for_posts([row[0].id for row in rows])
         items = [
-            _summary(post, board_slug, board_name, name)
+            _summary(
+                post,
+                board_slug,
+                board_name,
+                name,
+                tag_map.get(post.id, []),
+            )
             for post, board_slug, board_name, name in rows
         ]
         return Page(items=items, next_cursor=next_cursor)
@@ -176,8 +193,15 @@ class PostService:
         is_author = (
             isinstance(viewer, AuthenticatedUser) and post.author_id == viewer.user.id
         )
+        tag_map = await self.tags.for_posts([post.id])
         return PostDetail(
-            **_summary(post, board.slug, board.name, author_name).model_dump(),
+            **_summary(
+                post,
+                board.slug,
+                board.name,
+                author_name,
+                tag_map.get(post.id, []),
+            ).model_dump(),
             board=BoardRef(id=board.id, slug=board.slug, name=board.name),
             content=post.content,
             environment=(
@@ -213,6 +237,7 @@ class PostService:
             allowed_purposes=POST_MEDIA_PURPOSES,
             uploads=self.uploads,
         )
+        tag_ids = await self.tag_service.resolve_tag_ids(payload.tags, identity)
 
         post = Post(
             board_id=board.id,
@@ -232,6 +257,9 @@ class PostService:
             ),
         )
         self.session.add(post)
+        await self.session.flush()
+        if tag_ids:
+            await self.tags.replace_for_post(post.id, tag_ids)
         await self.session.commit()
 
         return await self.get(post.id, identity)
@@ -298,5 +326,8 @@ class PostService:
                 allowed_purposes=POST_MEDIA_PURPOSES,
                 uploads=self.uploads,
             )
+        if payload.tags is not None:
+            tag_ids = await self.tag_service.resolve_tag_ids(payload.tags, identity)
+            await self.tags.replace_for_post(post.id, tag_ids)
         await self.session.commit()
         return await self.get(post_id, identity)

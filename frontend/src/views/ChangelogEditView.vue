@@ -68,11 +68,7 @@ async function save(publishAfter = false): Promise<void> {
     await router.push(`/changelog/${entry.id}`)
   } catch (err) {
     error.value =
-      err instanceof ApiError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : '保存失败'
+      err instanceof ApiError ? err.message : err instanceof Error ? err.message : '保存失败'
   } finally {
     submitting.value = false
   }
@@ -124,9 +120,7 @@ onMounted(load)
       <header class="page-header">
         <p class="eyebrow">{{ editingId ? '编辑更新日志' : '新建更新日志' }}</p>
         <h1>{{ editingId ? '编辑更新日志' : '撰写更新日志' }}</h1>
-        <p class="muted">
-          保存为草稿后仅管理员可见；发布后匿名访客即可浏览。
-        </p>
+        <p class="muted">保存为草稿后仅管理员可见；发布后匿名访客即可浏览。</p>
       </header>
 
       <form class="compose" @submit.prevent="save(false)">
