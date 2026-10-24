@@ -128,10 +128,10 @@ watch(() => route.params.id, load, { immediate: true })
         </details>
 
         <footer class="post-detail-foot">
-          <VoteButton :post-id="post.id" :initial-count="post.vote_count" :disabled="isClosed" />
           <span class="action-hint">
             {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论支持 3 层回复' }}
           </span>
+          <VoteButton :post-id="post.id" :initial-count="post.vote_count" :disabled="isClosed" />
         </footer>
       </article>
 

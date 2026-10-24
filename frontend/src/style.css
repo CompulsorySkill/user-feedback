@@ -610,10 +610,19 @@ code {
 .post-card-foot {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 14px;
   color: var(--text-subtle);
+}
+
+.post-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .meta-item {
@@ -857,6 +866,11 @@ h6.rt-heading {
 }
 
 .post-detail-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   margin-top: 28px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
@@ -1347,4 +1361,9 @@ h6.rt-heading {
 
 .board-layout-single {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.post-card-foot > .vote-button,
+.post-detail-foot > .vote-button {
+  margin-left: auto;
 }

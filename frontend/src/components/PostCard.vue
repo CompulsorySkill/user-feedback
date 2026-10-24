@@ -37,12 +37,14 @@ withDefaults(defineProps<{ post: PostSummary; showBoard?: boolean }>(), {
     <TagList v-if="post.tags.length" :tags="post.tags" class="post-card-tags" />
 
     <div class="post-card-foot">
-      <AuthorTag :post="post" />
+      <div class="post-card-meta">
+        <AuthorTag :post="post" />
+        <span class="meta-item">
+          <IconMessage :size="14" :stroke-width="1.8" />
+          {{ post.comment_count }} 条评论
+        </span>
+      </div>
       <VoteButton :post-id="post.id" :initial-count="post.vote_count" compact />
-      <span class="meta-item">
-        <IconMessage :size="14" :stroke-width="1.8" />
-        {{ post.comment_count }} 条评论
-      </span>
     </div>
   </article>
 </template>
