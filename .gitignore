@@ -23,6 +23,9 @@ deploy/.env
 *.db-shm
 data/
 
+# 本地开发媒体（由 scripts/seed_dev.py 生成，生产走 RustFS）
+.dev-storage/
+
 # 编辑器 / 系统
 .idea/
 .vscode/*
