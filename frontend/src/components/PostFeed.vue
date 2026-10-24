@@ -260,17 +260,20 @@ watch(
     </div>
 
     <div class="list-toolbar">
-      <div class="filter-group" role="group" aria-label="状态筛选">
-        <button
-          v-for="item in STATUS_FILTERS"
-          :key="item.label"
-          type="button"
-          class="filter-chip"
-          :class="{ 'is-active': statusFilter === item.value }"
-          @click="setStatus(item.value)"
-        >
-          {{ item.label }}
-        </button>
+      <div class="filter-with-label">
+        <span class="filter-label">状态</span>
+        <div class="filter-group" role="group" aria-label="状态筛选">
+          <button
+            v-for="item in STATUS_FILTERS"
+            :key="item.label"
+            type="button"
+            class="filter-chip"
+            :class="{ 'is-active': statusFilter === item.value }"
+            @click="setStatus(item.value)"
+          >
+            {{ item.label }}
+          </button>
+        </div>
       </div>
       <div class="sort-group" role="group" aria-label="排序">
         <button
@@ -287,7 +290,7 @@ watch(
     </div>
 
     <div v-if="availableTags.length" class="tag-filter" role="group" aria-label="标签筛选">
-      <span class="tag-filter-label">标签</span>
+      <span class="filter-label">标签</span>
       <div class="filter-group">
         <button
           v-for="tag in availableTags"

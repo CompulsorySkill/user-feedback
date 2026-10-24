@@ -633,6 +633,20 @@
   margin-bottom: 18px;
 }
 
+.filter-with-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  flex: none;
+  line-height: var(--control-height-sm);
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
 .filter-group {
   display: flex;
   gap: 6px;
@@ -696,12 +710,6 @@
   gap: 10px;
   flex-wrap: wrap;
   margin: -4px 0 18px;
-}
-
-.tag-filter-label {
-  flex: none;
-  line-height: var(--control-height-sm);
-  color: var(--text-subtle);
 }
 
 .tag-filter .filter-group {
