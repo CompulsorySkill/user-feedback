@@ -28,13 +28,24 @@ export interface PostSummary {
   vote_count: number
   comment_count: number
   author_name: string | null
+  anonymous_name: string | null
+  is_anonymous: boolean
   created_at: string
   updated_at: string
+}
+
+export interface ClientEnvironment {
+  user_agent?: string | null
+  platform?: string | null
+  language?: string | null
+  viewport?: string | null
+  timezone?: string | null
 }
 
 export interface PostDetail extends PostSummary {
   board: BoardRef
   content: import('@/types/content').JSONContent
+  environment: ClientEnvironment | null
 }
 
 export interface ChangelogSummary {
@@ -76,4 +87,6 @@ export interface VoteResult {
 export interface PostCreateInput {
   title: string
   content: import('@/types/content').JSONContent
+  anonymous_name?: string | null
+  environment?: ClientEnvironment | null
 }

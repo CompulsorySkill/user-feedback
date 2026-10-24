@@ -113,10 +113,99 @@
 
 .compose-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding-top: 6px;
   border-top: 1px solid var(--border);
+}
+
+.compose-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.env-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.env-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---------- 匿名标识与环境信息 ---------- */
+
+.author-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.author-name {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.anon-badge {
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-subtle);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+}
+
+.post-detail-meta .author-tag {
+  font-size: 0.8125rem;
+}
+
+.env-panel {
+  margin-top: 26px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  font-size: 0.8125rem;
+}
+
+.env-panel summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 550;
+}
+
+.env-grid {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.env-grid > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.env-grid dt {
+  color: var(--text-subtle);
+}
+
+.env-grid dd {
+  margin: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 /* ---------- 编辑器 ---------- */

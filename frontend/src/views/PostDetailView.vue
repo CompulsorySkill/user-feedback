@@ -6,11 +6,11 @@ import {
   IconLoader2,
   IconMessage,
   IconRefresh,
-  IconUser,
 } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { getPost } from '@/api/posts'
 import type { PostDetail } from '@/api/types'
+import AuthorTag from '@/components/AuthorTag.vue'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import VoteButton from '@/components/VoteButton.vue'
@@ -63,10 +63,7 @@ watch(() => route.params.id, load, { immediate: true })
           </div>
           <h1>{{ post.title }}</h1>
           <div class="post-detail-meta">
-            <span class="meta-item">
-              <IconUser :size="15" :stroke-width="1.8" />
-              {{ post.author_name ?? '匿名用户' }}
-            </span>
+            <AuthorTag :post="post" />
             <span class="meta-item">
               <IconMessage :size="15" :stroke-width="1.8" />
               {{ post.comment_count }} 条评论
@@ -82,6 +79,32 @@ watch(() => route.params.id, load, { immediate: true })
         <section class="rich-text">
           <RichTextRenderer :node="post.content" />
         </section>
+
+        <details v-if="post.environment" class="env-panel">
+          <summary>发布者附带的浏览器 / 操作系统信息</summary>
+          <dl class="env-grid">
+            <div v-if="post.environment.user_agent">
+              <dt>User Agent</dt>
+              <dd>{{ post.environment.user_agent }}</dd>
+            </div>
+            <div v-if="post.environment.platform">
+              <dt>平台</dt>
+              <dd>{{ post.environment.platform }}</dd>
+            </div>
+            <div v-if="post.environment.language">
+              <dt>语言</dt>
+              <dd>{{ post.environment.language }}</dd>
+            </div>
+            <div v-if="post.environment.viewport">
+              <dt>视口</dt>
+              <dd>{{ post.environment.viewport }}</dd>
+            </div>
+            <div v-if="post.environment.timezone">
+              <dt>时区</dt>
+              <dd>{{ post.environment.timezone }}</dd>
+            </div>
+          </dl>
+        </details>
 
         <footer class="post-detail-foot">
           <VoteButton

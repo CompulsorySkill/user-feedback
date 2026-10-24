@@ -15,10 +15,22 @@ const board = ref<Board | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 const title = ref('')
+const nickname = ref('')
+const attachEnvironment = ref(true)
 const editorRef = ref<InstanceType<typeof PostEditor> | null>(null)
 const uploading = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+
+function collectEnvironment() {
+  return {
+    user_agent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    viewport: `${window.innerWidth}×${window.innerHeight}`,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }
+}
 
 async function load(): Promise<void> {
   loading.value = true
@@ -57,6 +69,8 @@ async function submit(): Promise<void> {
     const created = await createPost(board.value.slug, {
       title: trimmedTitle,
       content: content as JSONContent,
+      anonymous_name: nickname.value.trim() || null,
+      environment: attachEnvironment.value ? collectEnvironment() : null,
     })
     await router.push(`/post/${created.id}`)
   } catch (error) {
@@ -91,7 +105,7 @@ onMounted(load)
         <p class="eyebrow">发布到 /{{ board.slug }}</p>
         <h1>发布反馈</h1>
         <p class="muted">
-          匿名发布，无需登录；同一浏览器通过 HttpOnly cookie 识别身份。
+          匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。
         </p>
       </header>
 
@@ -100,6 +114,17 @@ onMounted(load)
       </div>
 
       <form v-else class="compose" @submit.prevent="submit">
+        <div class="field">
+          <span class="field-label">昵称（可选）</span>
+          <input
+            v-model="nickname"
+            class="field-input"
+            type="text"
+            maxlength="50"
+            placeholder="例如：路过的产品经理（展示为「昵称 · 匿名」）"
+          />
+        </div>
+
         <label class="field">
           <span class="field-label">标题</span>
           <input
@@ -122,16 +147,22 @@ onMounted(load)
         <p v-if="submitError" class="inline-error">{{ submitError }}</p>
 
         <div class="compose-actions">
-          <RouterLink :to="`/b/${board.slug}`" class="button button-ghost">取消</RouterLink>
-          <button
-            class="button button-primary"
-            type="submit"
-            :disabled="submitting || uploading"
-          >
-            <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
-            <IconSend v-else :size="16" :stroke-width="2" />
-            {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}
-          </button>
+          <label class="env-toggle">
+            <input v-model="attachEnvironment" type="checkbox" />
+            附带浏览器 / 操作系统信息
+          </label>
+          <div class="compose-buttons">
+            <RouterLink :to="`/b/${board.slug}`" class="button button-ghost">取消</RouterLink>
+            <button
+              class="button button-primary"
+              type="submit"
+              :disabled="submitting || uploading"
+            >
+              <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
+              <IconSend v-else :size="16" :stroke-width="2" />
+              {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}
+            </button>
+          </div>
         </div>
       </form>
     </template>

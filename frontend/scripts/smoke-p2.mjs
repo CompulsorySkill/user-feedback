@@ -59,9 +59,14 @@ try {
 
   // 2. 填标题与正文
   const title = `浏览器直传验收 ${Date.now()}`
-  await page.type('.field-input', title)
+  const nickname = '冒烟测试用户'
+  await page.type('input[placeholder*="路过的产品经理"]', nickname)
+  await page.type('input[placeholder*="一句话"]', title)
   await page.click('.tiptap')
   await page.type('.tiptap', '这是浏览器经 presigned PUT 直传图片后发布的验收反馈。')
+
+  const envChecked = await page.$eval('.env-toggle input', (element) => element.checked)
+  if (!envChecked) throw new Error('环境信息勾选框应默认勾选')
 
   // 3. 通过编辑器文件输入上传图片（触发与工具栏相同的 onChange 流程）
   const fileInput = await page.$('input[type=file]')
@@ -99,6 +104,18 @@ try {
   if (!renderedImage.src?.startsWith('/storage/') || renderedImage.width === 0) {
     throw new Error(`详情页图片未渲染: ${JSON.stringify(renderedImage)}`)
   }
+
+  // 5.1 昵称标注「匿名」+ 环境信息面板
+  const authorText = await page.$eval('.author-tag', (element) => element.textContent ?? '')
+  if (!authorText.includes(nickname) || !authorText.includes('匿名')) {
+    throw new Error(`匿名昵称展示不正确: ${authorText}`)
+  }
+  const envSummary = await page.$eval('.env-panel summary', (element) => element.textContent ?? '')
+  if (!envSummary.includes('浏览器')) throw new Error('缺少环境信息面板')
+  await page.click('.env-panel summary')
+  const uaText = await page.$eval('.env-grid', (element) => element.textContent ?? '')
+  if (!uaText.includes('Mozilla')) throw new Error('环境信息未展示 User Agent')
+  log('匿名昵称与浏览器环境信息展示正常')
   log(`发布成功，详情页图片渲染正常 (${renderedImage.width}px)`)
 
   // 6. 投票（乐观更新 -> 服务端确认）与取消

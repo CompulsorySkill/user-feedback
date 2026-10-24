@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { IconMessage, IconUser } from '@tabler/icons-vue'
+import { IconMessage } from '@tabler/icons-vue'
 import { RouterLink } from 'vue-router'
+import AuthorTag from '@/components/AuthorTag.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import VoteButton from '@/components/VoteButton.vue'
 import type { PostSummary } from '@/api/types'
@@ -23,10 +24,7 @@ defineProps<{ post: PostSummary }>()
     <p v-if="post.excerpt" class="post-excerpt">{{ post.excerpt }}</p>
 
     <div class="post-card-foot">
-      <span class="meta-item">
-        <IconUser :size="14" :stroke-width="1.8" />
-        {{ post.author_name ?? '匿名用户' }}
-      </span>
+      <AuthorTag :post="post" />
       <VoteButton :post-id="post.id" :initial-count="post.vote_count" compact />
       <span class="meta-item">
         <IconMessage :size="14" :stroke-width="1.8" />
