@@ -92,6 +92,9 @@ cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + �
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
 | GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索 |
 | POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称与浏览器环境信息 |
+| GET | `/api/v1/posts?limit=&cursor=` | 全部公开看板的反馈聚合列表；支持 `board=`、`status=`、`sort=`、`q=` |
+| GET | `/api/v1/admin/boards` | 看板列表（管理员，含未公开） |
+| POST / PATCH / DELETE | `/api/v1/admin/boards[/{id}]` | 新建 / 修改 / 删除看板（管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除） |
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |
 | PATCH | `/api/v1/posts/{id}` | 编辑反馈（作者非关闭态 / 管理员） |
 | PATCH | `/api/v1/posts/{id}/status` | 状态流转（管理员任意，作者仅单向关闭） |

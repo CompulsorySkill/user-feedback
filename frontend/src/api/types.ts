@@ -11,6 +11,16 @@ export interface Board {
   created_at: string
 }
 
+export interface BoardInput {
+  slug: string
+  name: string
+  description: string | null
+  is_public: boolean
+  allow_guest_posting: boolean
+  allow_guest_voting: boolean
+  allow_guest_commenting: boolean
+}
+
 export interface BoardRef {
   id: number
   slug: string
@@ -22,6 +32,7 @@ export type PostStatus = 'open' | 'planned' | 'in_progress' | 'completed' | 'clo
 export interface PostSummary {
   id: string
   board_slug: string
+  board_name: string
   title: string
   excerpt: string
   status: PostStatus

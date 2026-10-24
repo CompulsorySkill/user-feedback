@@ -119,8 +119,8 @@ def resolve_write_identity(
 # --------------------------------------------------------------------------- #
 
 
-def get_board_service(boards: BoardRepoDep) -> BoardService:
-    return BoardService(boards)
+def get_board_service(session: SessionDep, boards: BoardRepoDep) -> BoardService:
+    return BoardService(session, boards)
 
 
 def get_post_service(

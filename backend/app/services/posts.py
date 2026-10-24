@@ -41,10 +41,13 @@ POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
 }
 
 
-def _summary(post, board_slug: str, author_name: str | None) -> PostSummary:
+def _summary(
+    post, board_slug: str, board_name: str, author_name: str | None
+) -> PostSummary:
     return PostSummary(
         id=post.id,
         board_slug=board_slug,
+        board_name=board_name,
         title=post.title,
         excerpt=post.excerpt,
         status=post.status,
@@ -71,6 +74,41 @@ class PostService:
         self.boards = boards
         self.uploads = uploads
 
+    async def _paginate(
+        self,
+        fetch,
+        *,
+        limit: int,
+        cursor_raw: str | None,
+        sort: str,
+    ) -> Page[PostSummary]:
+        if sort == "top":
+            top_cursor = decode_top_cursor(cursor_raw)
+            rows = await fetch(limit + 1, "top", top_cursor=top_cursor)
+            has_more = len(rows) > limit
+            rows = rows[:limit]
+            next_cursor = (
+                encode_top_cursor(rows[-1][0].vote_count, rows[-1][0].id)
+                if has_more and rows
+                else None
+            )
+        else:
+            cursor = decode_cursor(cursor_raw)
+            rows = await fetch(limit + 1, "recent", cursor=cursor)
+            has_more = len(rows) > limit
+            rows = rows[:limit]
+            next_cursor = (
+                encode_cursor(rows[-1][0].created_at, rows[-1][0].id)
+                if has_more and rows
+                else None
+            )
+
+        items = [
+            _summary(post, board_slug, board_name, name)
+            for post, board_slug, board_name, name in rows
+        ]
+        return Page(items=items, next_cursor=next_cursor)
+
     async def list_for_board(
         self,
         slug: str,
@@ -85,63 +123,66 @@ class PostService:
         if board is None:
             raise AppException(404, code="BOARD_NOT_FOUND", detail="看板不存在")
 
-        if sort == "top":
-            top_cursor = decode_top_cursor(cursor_raw)
-            rows = await self.posts.list_by_board(
+        async def fetch(size: int, order: str, **kwargs):
+            return await self.posts.list_by_board(
                 board.id,
-                limit=limit + 1,
-                sort="top",
+                limit=size,
+                sort=order,
                 status=status,
                 query=query,
-                top_cursor=top_cursor,
+                **kwargs,
             )
-            has_more = len(rows) > limit
-            rows = rows[:limit]
-            next_cursor = (
-                encode_top_cursor(rows[-1][0].vote_count, rows[-1][0].id)
-                if has_more and rows
-                else None
-            )
-        else:
-            cursor = decode_cursor(cursor_raw)
-            rows = await self.posts.list_by_board(
-                board.id,
-                limit=limit + 1,
-                sort="recent",
+
+        return await self._paginate(
+            fetch, limit=limit, cursor_raw=cursor_raw, sort=sort
+        )
+
+    async def list_all(
+        self,
+        *,
+        limit: int,
+        cursor_raw: str | None,
+        status: str | None = None,
+        sort: str = "recent",
+        query: str | None = None,
+        board_slug: str | None = None,
+    ) -> Page[PostSummary]:
+        """全部公开看板的反馈汇总，供根页面使用。"""
+        if board_slug:
+            board = await self.boards.get_public_by_slug(board_slug)
+            if board is None:
+                raise AppException(404, code="BOARD_NOT_FOUND", detail="看板不存在")
+
+        async def fetch(size: int, order: str, **kwargs):
+            return await self.posts.list_all(
+                limit=size,
+                sort=order,
                 status=status,
                 query=query,
-                cursor=cursor,
-            )
-            has_more = len(rows) > limit
-            rows = rows[:limit]
-            next_cursor = (
-                encode_cursor(rows[-1][0].created_at, rows[-1][0].id)
-                if has_more and rows
-                else None
+                board_slug=board_slug,
+                **kwargs,
             )
 
-        items = [_summary(post, board.slug, name) for post, name in rows]
-        return Page(items=items, next_cursor=next_cursor)
+        return await self._paginate(
+            fetch, limit=limit, cursor_raw=cursor_raw, sort=sort
+        )
 
-    async def get(
-        self, post_id: uuid.UUID, viewer: Identity = None
-    ) -> PostDetail:
+    async def get(self, post_id: uuid.UUID, viewer: Identity = None) -> PostDetail:
         row = await self.posts.get_with_board(post_id)
         if row is None:
             raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
 
         post, board, author_name = row
         is_author = (
-            isinstance(viewer, AuthenticatedUser)
-            and post.author_id == viewer.user.id
+            isinstance(viewer, AuthenticatedUser) and post.author_id == viewer.user.id
         )
         return PostDetail(
-            **_summary(post, board.slug, author_name).model_dump(),
+            **_summary(post, board.slug, board.name, author_name).model_dump(),
             board=BoardRef(id=board.id, slug=board.slug, name=board.name),
             content=post.content,
-            environment=ClientEnvironment(**post.client_env)
-            if post.client_env
-            else None,
+            environment=(
+                ClientEnvironment(**post.client_env) if post.client_env else None
+            ),
             is_author=is_author,
         )
 
@@ -165,9 +206,7 @@ class PostService:
                 detail="该看板仅允许登录用户发布",
             )
 
-        await enforce_rate_limit(
-            self.session, identity_key=identity.key, action="post"
-        )
+        await enforce_rate_limit(self.session, identity_key=identity.key, action="post")
         excerpt = await validate_rich_text(
             payload.content,
             identity_keys=[identity.key],
@@ -182,13 +221,15 @@ class PostService:
             excerpt=excerpt,
             status="open",
             author_id=identity.user.id if authenticated else None,
-            anonymous_token=identity.token
-            if isinstance(identity, AnonymousIdentity)
-            else None,
+            anonymous_token=(
+                identity.token if isinstance(identity, AnonymousIdentity) else None
+            ),
             anonymous_name=None if authenticated else payload.anonymous_name,
-            client_env=payload.environment.model_dump(exclude_none=True)
-            if payload.environment is not None
-            else None,
+            client_env=(
+                payload.environment.model_dump(exclude_none=True)
+                if payload.environment is not None
+                else None
+            ),
         )
         self.session.add(post)
         await self.session.commit()
@@ -241,13 +282,9 @@ class PostService:
             and post.author_id == identity.user.id
         )
         if not (is_admin or is_author):
-            raise AppException(
-                403, code="POST_EDIT_FORBIDDEN", detail="无权编辑该反馈"
-            )
+            raise AppException(403, code="POST_EDIT_FORBIDDEN", detail="无权编辑该反馈")
         if post.status == "closed" and not is_admin:
-            raise AppException(
-                403, code="POST_CLOSED", detail="已关闭的反馈不能编辑"
-            )
+            raise AppException(403, code="POST_CLOSED", detail="已关闭的反馈不能编辑")
 
         if payload.title is not None:
             post.title = payload.title

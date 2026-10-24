@@ -29,6 +29,7 @@ class ClientEnvironment(BaseModel):
 class PostSummary(UTCModel):
     id: uuid.UUID
     board_slug: str
+    board_name: str
     title: str
     excerpt: str
     status: PostStatus

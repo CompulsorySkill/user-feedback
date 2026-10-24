@@ -29,7 +29,7 @@ const changelogId = changelogs.items[0]?.id
 if (!postId || !changelogId) throw new Error('缺少用于检查的种子数据')
 
 const routes = [
-  ['全部看板', '/'],
+  ['全部反馈', '/'],
   ['看板', `/b/${boards[0].slug}`],
   ['反馈详情', `/post/${postId}`],
   ['发布反馈', `/b/${boards[0].slug}/new`],
@@ -75,6 +75,7 @@ try {
   if (isAdmin) {
     routes.push(
       ['反馈详情（管理员）', `/post/${postId}`],
+      ['看板管理', '/admin/boards'],
       ['新建更新日志', '/changelog/new'],
       ['编辑更新日志', `/changelog/${changelogId}/edit`],
     )

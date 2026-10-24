@@ -6,8 +6,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'boards',
-      component: () => import('@/views/AllBoardsView.vue'),
+      name: 'feedback',
+      component: () => import('@/views/AllPostsView.vue'),
     },
     {
       path: '/b/:slug',
@@ -28,6 +28,12 @@ const router = createRouter({
       path: '/post/:id/edit',
       name: 'post-edit',
       component: () => import('@/views/EditPostView.vue'),
+    },
+    {
+      path: '/admin/boards',
+      name: 'admin-boards',
+      component: () => import('@/views/AdminBoardsView.vue'),
+      meta: { requiresAdmin: true },
     },
     {
       path: '/login',
@@ -82,11 +88,12 @@ const APP_NAME = 'FeedLog'
 
 router.afterEach((to) => {
   const titles: Record<string, string> = {
-    boards: '全部看板',
+    feedback: '全部反馈',
     board: '看板',
     'new-post': '发布反馈',
     post: '反馈详情',
     'post-edit': '编辑反馈',
+    'admin-boards': '看板管理',
     login: '登录',
     changelog: '更新日志',
     'changelog-detail': '更新日志',

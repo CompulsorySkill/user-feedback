@@ -13,28 +13,38 @@ from app.models import Board, Post, User
 
 PostSort = Literal["recent", "top"]
 
+PostRow = tuple[Post, str, str, str | None]
+
 
 class PostRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    def _base(self) -> Select[tuple[Post, User.display_name]]:
-        return select(Post, User.display_name).outerjoin(
-            User, User.id == Post.author_id
+    def _base(self) -> Select[tuple[Post, str, str, str | None]]:
+        return (
+            select(Post, Board.slug, Board.name, User.display_name)
+            .join(Board, Board.id == Post.board_id)
+            .outerjoin(User, User.id == Post.author_id)
+            .where(Board.is_public.is_(True))
         )
 
-    async def list_by_board(
+    async def _list(
         self,
-        board_id: int,
         *,
+        board_id: int | None = None,
+        board_slug: str | None = None,
         limit: int,
         sort: PostSort = "recent",
         status: str | None = None,
         query: str | None = None,
         cursor: Cursor | None = None,
         top_cursor: TopCursor | None = None,
-    ) -> list[tuple[Post, str | None]]:
-        stmt = self._base().where(Post.board_id == board_id)
+    ) -> list[PostRow]:
+        stmt = self._base()
+        if board_id is not None:
+            stmt = stmt.where(Post.board_id == board_id)
+        if board_slug is not None:
+            stmt = stmt.where(Board.slug == board_slug)
         if status is not None:
             stmt = stmt.where(Post.status == status)
         if query:
@@ -71,7 +81,53 @@ class PostRepository:
 
         stmt = stmt.limit(limit)
         rows = await self.session.execute(stmt)
-        return [(post, author_name) for post, author_name in rows.all()]
+        return [
+            (post, slug, name, author_name)
+            for post, slug, name, author_name in rows.all()
+        ]
+
+    async def list_by_board(
+        self,
+        board_id: int,
+        *,
+        limit: int,
+        sort: PostSort = "recent",
+        status: str | None = None,
+        query: str | None = None,
+        cursor: Cursor | None = None,
+        top_cursor: TopCursor | None = None,
+    ) -> list[PostRow]:
+        return await self._list(
+            board_id=board_id,
+            limit=limit,
+            sort=sort,
+            status=status,
+            query=query,
+            cursor=cursor,
+            top_cursor=top_cursor,
+        )
+
+    async def list_all(
+        self,
+        *,
+        limit: int,
+        sort: PostSort = "recent",
+        status: str | None = None,
+        query: str | None = None,
+        board_slug: str | None = None,
+        cursor: Cursor | None = None,
+        top_cursor: TopCursor | None = None,
+    ) -> list[PostRow]:
+        """全部公开看板的反馈汇总；可按看板筛选。"""
+        return await self._list(
+            board_slug=board_slug,
+            limit=limit,
+            sort=sort,
+            status=status,
+            query=query,
+            cursor=cursor,
+            top_cursor=top_cursor,
+        )
 
     async def get_with_board(
         self, post_id: uuid.UUID

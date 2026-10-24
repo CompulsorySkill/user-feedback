@@ -7,13 +7,23 @@ import VoteButton from '@/components/VoteButton.vue'
 import type { PostSummary } from '@/api/types'
 import { formatRelative } from '@/utils/date'
 
-defineProps<{ post: PostSummary }>()
+withDefaults(defineProps<{ post: PostSummary; showBoard?: boolean }>(), {
+  showBoard: false,
+})
 </script>
 
 <template>
   <article class="post-card">
     <div class="post-card-head">
       <StatusBadge :status="post.status" />
+      <RouterLink
+        v-if="showBoard"
+        :to="`/b/${post.board_slug}`"
+        class="post-board-chip"
+        :title="`前往看板：${post.board_name}`"
+      >
+        {{ post.board_name }}
+      </RouterLink>
       <span class="post-time">{{ formatRelative(post.created_at) }}</span>
     </div>
 

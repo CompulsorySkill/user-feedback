@@ -33,15 +33,18 @@ onUnmounted(() => {
         </RouterLink>
 
         <nav class="site-nav" aria-label="主导航">
-          <RouterLink to="/" class="nav-link">看板</RouterLink>
+          <RouterLink to="/" class="nav-link">反馈</RouterLink>
           <RouterLink to="/changelog" class="nav-link">更新日志</RouterLink>
+          <RouterLink v-if="auth.isAdmin" to="/admin/boards" class="nav-link">
+            看板管理
+          </RouterLink>
         </nav>
 
         <div class="header-meta">
           <span class="env-pill">本地开发</span>
           <template v-if="auth.isAuthenticated">
             <span class="identity">{{ auth.displayName }}</span>
-            <span v-if="auth.isAdmin" class="admin-badge">管理员</span>
+            <span v-if="auth.isAdmin" class="admin-badge">ADMIN</span>
             <button type="button" class="link-button" @click="auth.logout()">退出</button>
           </template>
           <template v-else>

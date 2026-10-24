@@ -119,6 +119,9 @@ keyset 分页。响应：
 | GET | `/v1/boards`、`/v1/boards/{slug}` | 公开 |
 | GET | `/v1/boards/{slug}/posts` | 公开 |
 | POST | `/v1/boards/{slug}/posts` | 匿名 / 登录 |
+| GET | `/v1/posts` | 公开；全部公开看板聚合，支持 `board=`、`status=`、`sort=`、`q=` |
+| GET | `/v1/admin/boards` | 管理员 |
+| POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
 | GET | `/v1/posts/{id}` | 公开（返回 `is_author`） |
 | PATCH | `/v1/posts/{id}` | 作者 / 管理员 |
 | PATCH | `/v1/posts/{id}/status` | 作者（仅关闭）/ 管理员 |

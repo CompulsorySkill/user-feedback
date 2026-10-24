@@ -48,6 +48,9 @@ uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 | GET | `/api/v1/boards/{slug}` | 看板详情（私有/不存在 → 404 `BOARD_NOT_FOUND`） |
 | GET | `/api/v1/boards/{slug}/posts` | keyset 分页；`status=` 状态筛选、`sort=recent\|top`、`q=` 标题/摘要搜索 |
 | POST | `/api/v1/boards/{slug}/posts` | 匿名发帖；校验富文本结构与媒体归属，`201` |
+| GET | `/api/v1/posts` | 全部公开看板聚合列表；`board=` / `status=` / `sort=` / `q=`，keyset 分页 |
+| GET | `/api/v1/admin/boards` | 管理员看板列表（含未公开） |
+| POST / PATCH / DELETE | `/api/v1/admin/boards[/{id}]` | 管理员增改删；slug 冲突 409 `BOARD_SLUG_TAKEN`；非空看板默认 409 `BOARD_NOT_EMPTY`，`?force=true` 级联删除反馈/评论/投票 |
 | GET | `/api/v1/posts/{id}` | 反馈详情，私有看板内反馈同样 404 |
 | POST | `/api/v1/posts/{id}/vote` | 匿名投票（幂等；`closed` → 403 `POST_CLOSED`） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |

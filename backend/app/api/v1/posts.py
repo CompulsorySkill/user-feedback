@@ -1,10 +1,11 @@
-"""反馈详情、编辑、状态流转、投票与评论。"""
+"""反馈汇总、详情、编辑、状态流转、投票与评论。"""
 
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Query, Request, Response
 from fastapi import status as http_status
 
 from app.api.deps import (
@@ -14,15 +15,59 @@ from app.api.deps import (
     VoteServiceDep,
     resolve_write_identity,
 )
+from app.schemas.common import Page
 from app.schemas.comment import CommentCreateRequest, CommentItem, CommentList
 from app.schemas.post import (
     PostDetail,
     PostStatusUpdate,
+    PostSummary,
     PostUpdateRequest,
 )
 from app.schemas.vote import VoteResponse
 
 router = APIRouter(prefix="/posts", tags=["posts"])
+
+LimitQuery = Annotated[int, Query(ge=1, le=100, description="每页条数")]
+CursorQuery = Annotated[str | None, Query(description="上一页返回的 next_cursor")]
+StatusQuery = Annotated[
+    str | None,
+    Query(
+        pattern="^(open|planned|in_progress|completed|closed)$",
+        description="按状态筛选",
+    ),
+]
+SortQuery = Annotated[
+    str,
+    Query(pattern="^(recent|top)$", description="recent=最近，top=最热（投票最多）"),
+]
+SearchQuery = Annotated[
+    str | None,
+    Query(min_length=1, max_length=100, description="按标题与摘要模糊搜索"),
+]
+BoardQuery = Annotated[
+    str | None,
+    Query(min_length=1, max_length=64, description="限定某个公开看板的 slug"),
+]
+
+
+@router.get("", response_model=Page[PostSummary], summary="全部看板反馈汇总")
+async def list_posts(
+    service: PostServiceDep,
+    limit: LimitQuery = 20,
+    cursor: CursorQuery = None,
+    status: StatusQuery = None,
+    sort: SortQuery = "recent",
+    q: SearchQuery = None,
+    board: BoardQuery = None,
+) -> Page[PostSummary]:
+    return await service.list_all(
+        limit=limit,
+        cursor_raw=cursor,
+        status=status,
+        sort=sort,
+        query=q,
+        board_slug=board,
+    )
 
 
 @router.get("/{post_id}", response_model=PostDetail, summary="反馈详情")
@@ -42,9 +87,7 @@ async def update_post(
     return await service.update(post_id, payload, identity)
 
 
-@router.patch(
-    "/{post_id}/status", response_model=PostDetail, summary="变更反馈状态"
-)
+@router.patch("/{post_id}/status", response_model=PostDetail, summary="变更反馈状态")
 async def change_status(
     post_id: uuid.UUID,
     payload: PostStatusUpdate,
@@ -81,9 +124,7 @@ async def unvote_post(
 @router.get(
     "/{post_id}/comments", response_model=CommentList, summary="评论列表（扁平）"
 )
-async def list_comments(
-    post_id: uuid.UUID, service: CommentServiceDep
-) -> CommentList:
+async def list_comments(post_id: uuid.UUID, service: CommentServiceDep) -> CommentList:
     return await service.list(post_id)
 
 

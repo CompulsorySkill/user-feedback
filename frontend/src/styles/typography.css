@@ -76,7 +76,12 @@ samp {
 .empty-description,
 .empty-title,
 .sidebar-title,
-.board-nav-count {
+.board-nav-count,
+.post-board-chip,
+.board-admin-desc,
+.board-admin-meta,
+.board-admin-hint,
+.board-admin-empty {
   font-size: var(--fs-caption);
 }
 
