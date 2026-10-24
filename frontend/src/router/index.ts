@@ -6,8 +6,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      name: 'boards',
+      component: () => import('@/views/AllBoardsView.vue'),
     },
     {
       path: '/b/:slug',
@@ -82,7 +82,7 @@ const APP_NAME = 'FeedLog'
 
 router.afterEach((to) => {
   const titles: Record<string, string> = {
-    home: '反馈',
+    boards: '全部看板',
     board: '看板',
     'new-post': '发布反馈',
     post: '反馈详情',

@@ -33,7 +33,7 @@ onUnmounted(() => {
         </RouterLink>
 
         <nav class="site-nav" aria-label="主导航">
-          <RouterLink to="/" class="nav-link">反馈</RouterLink>
+          <RouterLink to="/" class="nav-link">看板</RouterLink>
           <RouterLink to="/changelog" class="nav-link">更新日志</RouterLink>
         </nav>
 

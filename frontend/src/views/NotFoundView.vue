@@ -8,7 +8,7 @@ import { IconRouteOff } from '@tabler/icons-vue'
       <span class="placeholder-icon"><IconRouteOff :size="28" :stroke-width="1.6" /></span>
       <h1>页面不存在</h1>
       <p>你访问的页面不存在，或没有访问权限。</p>
-      <RouterLink class="button button-ghost" to="/">回到首页</RouterLink>
+      <RouterLink class="button button-ghost" to="/">浏览全部看板</RouterLink>
     </section>
   </div>
 </template>

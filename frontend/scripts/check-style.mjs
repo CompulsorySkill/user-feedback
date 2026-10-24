@@ -29,7 +29,7 @@ const changelogId = changelogs.items[0]?.id
 if (!postId || !changelogId) throw new Error('缺少用于检查的种子数据')
 
 const routes = [
-  ['首页', '/'],
+  ['全部看板', '/'],
   ['看板', `/b/${boards[0].slug}`],
   ['反馈详情', `/post/${postId}`],
   ['发布反馈', `/b/${boards[0].slug}/new`],

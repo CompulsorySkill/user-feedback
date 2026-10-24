@@ -91,7 +91,7 @@ onMounted(load)
 <template>
   <div class="container container-narrow">
     <RouterLink to="/" class="back-link">
-      <IconArrowLeft :size="15" :stroke-width="2" /> 返回首页
+      <IconArrowLeft :size="15" :stroke-width="2" /> 返回全部看板
     </RouterLink>
 
     <header class="page-header">
