@@ -13,7 +13,9 @@ from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.api.deps import get_storage_backend
 from app.core.db import get_session
+from app.core.storage import PresignedUpload
 from app.main import app
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -63,6 +65,7 @@ async def client(db_path: Path) -> AsyncIterator[AsyncClient]:
             yield session
 
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_storage_backend] = lambda: FakeStorage()
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as http:
@@ -70,6 +73,18 @@ async def client(db_path: Path) -> AsyncIterator[AsyncClient]:
     finally:
         app.dependency_overrides.clear()
         await engine.dispose()
+
+
+class FakeStorage:
+    """测试用存储：不访问 RustFS，只返回可断言的假 URL。"""
+
+    def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload:
+        return PresignedUpload(
+            object_key=object_key,
+            upload_url=f"http://storage.test/{object_key}?signature=fake",
+            expires_in=600,
+            headers={"Content-Type": content_type},
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -83,10 +98,21 @@ def insert_board(
     slug: str = "product",
     name: str = "功能建议",
     is_public: bool = True,
+    allow_guest_posting: bool = True,
+    allow_guest_voting: bool = True,
 ) -> int:
     cursor = conn.execute(
-        "INSERT INTO boards (slug, name, description, is_public) VALUES (?, ?, ?, ?)",
-        (slug, name, None, 1 if is_public else 0),
+        "INSERT INTO boards (slug, name, description, is_public,"
+        " allow_guest_posting, allow_guest_voting)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            slug,
+            name,
+            None,
+            1 if is_public else 0,
+            1 if allow_guest_posting else 0,
+            1 if allow_guest_voting else 0,
+        ),
     )
     conn.commit()
     return int(cursor.lastrowid)
