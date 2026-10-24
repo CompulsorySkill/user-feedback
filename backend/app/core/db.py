@@ -25,6 +25,9 @@ def build_engine(database_url: str, *, echo: bool = False) -> AsyncEngine:
     if database_url.startswith("sqlite"):
         # aiosqlite 在单线程事件循环中运行，仍需关闭线程校验。
         kwargs["connect_args"] = {"check_same_thread": False}
+    elif database_url.startswith("postgresql"):
+        # 业务层统一使用 naive UTC；固定会话时区，避免按服务器本地时区解释。
+        kwargs["connect_args"] = {"server_settings": {"timezone": "UTC"}}
 
     engine = create_async_engine(database_url, **kwargs)
 
