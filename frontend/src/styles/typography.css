@@ -74,7 +74,9 @@ samp {
 .service-meta,
 .status-error,
 .empty-description,
-.empty-title {
+.empty-title,
+.sidebar-title,
+.board-nav-count {
   font-size: var(--fs-caption);
 }
 
@@ -97,12 +99,14 @@ samp {
 
 .field-input,
 .login-token,
-.comment-form textarea {
+.comment-form textarea,
+.search-input {
   font-size: var(--fs-body);
 }
 
 .field-input,
-.login-token {
+.login-token,
+.search-input {
   height: 44px;
 }
 

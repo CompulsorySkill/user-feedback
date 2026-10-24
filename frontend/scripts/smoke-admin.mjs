@@ -60,9 +60,21 @@ try {
   await page.waitForSelector('.admin-badge', { timeout: 15000 })
   log('开发快速登录成功，头部显示管理员')
 
-  // 2. 状态筛选
+  // 2. 搜索
   await page.goto(`${BASE_URL}/b/product`, { waitUntil: 'networkidle2' })
   await page.waitForSelector('.filter-chip')
+  await page.type('.search-input', '标签')
+  await page.waitForFunction(() => location.search.includes('q='))
+  await page.waitForFunction(
+    () => document.querySelectorAll('.post-card').length === 1,
+    { timeout: 10000 },
+  )
+  log('搜索「标签」生效')
+  await page.click('.search-clear')
+  await page.waitForFunction(() => !location.search.includes('q='))
+  await page.waitForFunction(() => document.querySelectorAll('.post-card').length > 1)
+
+  // 3. 状态筛选
   for (const chip of await page.$$('.filter-chip')) {
     const text = await chip.evaluate((element) => element.textContent ?? '')
     if (text.trim() === '已关闭') {
@@ -77,7 +89,7 @@ try {
   })
   log('状态筛选「已关闭」生效')
 
-  // 3. 最热排序
+  // 4. 最热排序
   for (const button of await page.$$('.sort-button')) {
     const text = await button.evaluate((element) => element.textContent ?? '')
     if (text.trim() === '最热') {

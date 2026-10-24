@@ -23,6 +23,7 @@ export interface ListPostsOptions {
   cursor?: string | null
   status?: PostStatus | null
   sort?: PostSort
+  q?: string | null
 }
 
 export function listBoardPosts(
@@ -34,6 +35,7 @@ export function listBoardPosts(
   if (options.cursor) params.set('cursor', options.cursor)
   if (options.status) params.set('status', options.status)
   params.set('sort', options.sort ?? 'recent')
+  if (options.q) params.set('q', options.q)
   return api.get<Page<PostSummary>>(
     `/v1/boards/${encodeURIComponent(slug)}/posts?${params.toString()}`,
   )
