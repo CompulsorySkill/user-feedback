@@ -57,12 +57,17 @@ pnpm dev
 
 访问 <http://127.0.0.1:5173>（`/api` 代理后端，`/storage` 代理 RustFS 并透传 Range）。
 
+本地联调 SSO：用 `deploy/.env` 里的密钥签发 5 分钟 token，再打开
+`/api/sso/jwt?token=<token>&return_to=/b/product`，登录成功后头部会显示用户名与管理员徽标。
+`ADMIN_EMAILS` 中的邮箱登录即为管理员。
+
 ### 4. 测试
 
 ```bash
 cd backend && uv run pytest
 cd frontend && pnpm build
 cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（需本地服务与 Edge）
+cd frontend && pnpm smoke:p3   # 浏览器冒烟：SSO 登录 + 状态流转 + 评论 + 更新日志发布
 ```
 
 ## 分阶段进度
@@ -72,7 +77,7 @@ cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（�
 | P0 骨架 | ✅ 本地 | Alembic 初始迁移（SQLite 已验证 / Postgres 方言离线渲染）、API 骨架与 `/api/health`、Vite + Vue 骨架；Docker Compose 与 Nginx 反代按计划延后 |
 | P1 读路径 | ✅ 本地 | 看板 / 反馈 / 更新日志列表与详情、keyset 分页、Tiptap JSON 白名单渲染（含图片与 MP4）、匿名可读全部公开内容 |
 | P2 写路径 + 匿名 + 视频 | ✅ 本地 | 匿名签名 cookie、RustFS presign 直传（图片 / MP4）、匿名发帖、投票与取消、数据库限流、富文本媒体归属校验；Docker / Nginx 仍延后 |
-| P3 SSO + 角色 + 状态机 + 评论 | ⬜ | |
+| P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写、3 层楼中楼评论 |
 | P4 加固 + CI | ⬜ | |
 
 ## 已实现接口
@@ -83,13 +88,20 @@ cd frontend && pnpm smoke:p2   # 浏览器冒烟：直传 + 发帖 + 投票（�
 | GET | `/api/v1/boards` | 公开看板列表（含反馈数） |
 | GET | `/api/v1/boards/{slug}` | 看板详情 |
 | GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页 |
-| POST | `/api/v1/boards/{slug}/posts` | 匿名发布反馈（`201`，签发匿名 cookie）；可带自定义昵称与浏览器环境信息 |
-| GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON 与看板信息） |
+| POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称与浏览器环境信息 |
+| GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |
+| PATCH | `/api/v1/posts/{id}` | 编辑反馈（作者非关闭态 / 管理员） |
+| PATCH | `/api/v1/posts/{id}/status` | 状态流转（管理员任意，作者仅单向关闭） |
 | POST | `/api/v1/posts/{id}/vote` | 投票（幂等，关闭后拒绝） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
+| GET | `/api/v1/posts/{id}/comments` | 评论扁平列表（含 `parent_id`） |
+| POST | `/api/v1/posts/{id}/comments` | 发表评论（≤3 层，超出挂根并「回复 @xxx」） |
 | POST | `/api/v1/uploads/presign` | 获取 presigned PUT（图片 / MP4，≤100MB） |
-| GET | `/api/v1/changelogs?limit=&cursor=` | 已发布更新日志列表（草稿对匿名不可见） |
-| GET | `/api/v1/changelogs/{id}` | 更新日志详情 |
+| GET | `/api/v1/changelogs?limit=&cursor=` | 已发布更新日志列表；管理员可用 `include_drafts=true` |
+| POST/PATCH/DELETE | `/api/v1/changelogs[/{id}]` | 更新日志写（仅管理员） |
+| POST | `/api/v1/changelogs/{id}/publish`、`/unpublish` | 发布 / 撤回（仅管理员） |
+| GET | `/api/sso/jwt?token=&return_to=` | SSO 跳转登录（失败降级匿名） |
+| GET/POST | `/api/v1/auth/me`、`/refresh`、`/logout` | 当前身份、刷新、登出 |
 
 错误统一为 `{ "detail": ..., "code": ... }`；分页游标无效返回 400 `INVALID_CURSOR`，
 限流返回 429 `RATE_LIMITED`，伪造媒体引用返回 400 `INVALID_CONTENT`。

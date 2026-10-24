@@ -57,13 +57,20 @@ uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 
 游标编码见 `app/core/pagination.py`：`base64url({"t": 创建时间, "i": UUID})`，按 `(created_at, id) DESC` 做 keyset，无效游标返回 400 `INVALID_CURSOR`。
 
-## 匿名身份与写路径（P2）
-
-- **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
+## 匿名身份与写路径（P2）- **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
 - **上传**：`POST /uploads/presign` 校验 purpose / content-type / size 后，用公网同域 endpoint（`RUSTFS_ENDPOINT_PUBLIC`）+ path-style + `s3v4` 生成 URL，并写入 `Uploads` 归属；key 由服务端生成（`uploads/{uuid}.<ext>`）。
 - **富文本校验**：`doc` 顶层、深度 ≤ 8、节点 ≤ 2000；`image` / `video` 的 `src` 必须是当前身份的 `Upload` 记录且 purpose/类型匹配，否则 400 `INVALID_CONTENT`。
 - **限流**：`rate_limit_counters` 固定窗口 UPSERT，vote 20/min、post 5/10min、comment 10/min；每小时清理 1 小时前的窗口。
 - **投票**：匿名唯一索引去重，计数与投票同事务维护；`closed` 与关闭访客投票的看板直接拒绝。
+
+## SSO / 会话 / 权限（P3）
+
+- `GET /api/sso/jwt`：HS256 多密钥（`SSO_SECRETS`），要求 `exp` + `email`；`return_to` 仅站内相对路径，非法值回退默认；校验失败不阻断，降级匿名并记 warning。
+- JIT 用户 + `ADMIN_EMAILS` 同步 role；登录时在同一事务内合并匿名反馈与匿名票，并清除匿名 cookie。
+- access（15 分钟）/ refresh（7 天）均为 HttpOnly cookie；`/api/v1/auth/me`、`/refresh`（轮换）、`/logout`。
+- Post 状态机：管理员任意流转、作者仅单向关闭；`closed` 冻结编辑 / 投票 / 评论，管理员可重开。
+- 更新日志写端点全部 `require_admin`；草稿仅管理员可见，撤回保留 `published_at`。
+- 评论：扁平返回 `parent_id`，深度 ≤3，超出挂到根评论并前缀「回复 @xxx」；关闭与访客开关校验、计数同事务、10/min 限流。
 
 ## 数据库
 
