@@ -191,24 +191,6 @@ code {
   padding: 48px 0 72px;
 }
 
-.site-footer {
-  border-top: 1px solid var(--border);
-  padding: 22px 0;
-  color: var(--text-subtle);
-}
-
-.footer-inner {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-
-.footer-stack {
-  margin-left: auto;
-  color: var(--text-muted);
-}
-
 /* ---------- 通用 ---------- */
 
 .eyebrow {

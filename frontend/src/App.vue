@@ -65,12 +65,5 @@ onUnmounted(() => {
     <main class="site-main">
       <RouterView />
     </main>
-
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <span>{{ site.name }} · 用户意见反馈系统</span>
-        <span class="footer-stack">FastAPI · Vue 3.5 · Vite 8</span>
-      </div>
-    </footer>
   </div>
 </template>

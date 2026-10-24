@@ -215,6 +215,12 @@ BOARDS = [
         "is_public": True,
     },
     {
+        "slug": "improvements",
+        "name": "改进建议",
+        "description": "产品、流程与协作方式的改进想法。",
+        "is_public": True,
+    },
+    {
         "slug": "internal",
         "name": "内部看板",
         "description": "非公开看板，用于验证公开性过滤。",

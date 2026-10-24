@@ -109,7 +109,6 @@ function onKeydown(event: KeyboardEvent): void {
     />
 
     <div v-if="available.length" class="tag-suggestions">
-      <span class="tag-hint">内置标签：</span>
       <button
         v-for="tag in available"
         :key="tag.id"
@@ -123,10 +122,5 @@ function onKeydown(event: KeyboardEvent): void {
         {{ tag.name }}
       </button>
     </div>
-
-    <p class="tag-hint">
-      已选 {{ modelValue.length }}/{{ max }}；作者与管理员可修改，管理员维护内置标签。
-    </p>
-    <p v-if="error" class="tag-error">{{ error }}</p>
   </div>
 </template>
