@@ -6,6 +6,7 @@ import { ApiError } from '@/api/client'
 import {
   devLogin,
   getAuthCapabilities,
+  ssoLogin,
   type AuthCapabilities,
 } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
@@ -44,10 +45,24 @@ async function loginWithSso(): Promise<void> {
     error.value = '请粘贴 SSO token'
     return
   }
-  // 走同域接口：成功后由后端下发 HttpOnly 会话 cookie 并 302 回目标页。
-  window.location.assign(
-    `/api/sso/jwt?token=${encodeURIComponent(token.value.trim())}&return_to=${encodeURIComponent(redirectTo.value)}`,
-  )
+  if (submitting.value) return
+  submitting.value = true
+  error.value = ''
+  try {
+    // POST 提交 token，由后端下发 HttpOnly 会话；token 不进入 URL / 历史记录。
+    const result = await ssoLogin(token.value.trim(), redirectTo.value)
+    await auth.hydrate()
+    await router.replace(result.redirect_to)
+  } catch (err) {
+    error.value =
+      err instanceof ApiError
+        ? err.status === 401
+          ? 'SSO token 无效或已过期'
+          : err.message
+        : 'SSO 登录失败'
+  } finally {
+    submitting.value = false
+  }
 }
 
 async function loginAsDev(): Promise<void> {
@@ -106,8 +121,9 @@ onMounted(load)
       <section class="login-card">
         <h2>SSO 跳转</h2>
         <p class="muted">
-          由产品侧签发 HS256 JWT 后跳转
-          <code>/api/sso/jwt?token=…&amp;return_to=…</code>。也可以直接粘贴 token 完成登录。
+          由产品侧签发 HS256 JWT。粘贴后经 POST 换取 HttpOnly 会话，token 不会出现在 URL
+          或浏览器历史中；也兼容产品侧直接跳转
+          <code>/api/sso/jwt?token=…&amp;return_to=…</code>。
         </p>
         <textarea
           v-model="token"
@@ -115,8 +131,14 @@ onMounted(load)
           rows="4"
           placeholder="粘贴 SSO 签发的 JWT"
         ></textarea>
-        <button class="button button-primary" type="button" @click="loginWithSso">
-          <IconLogin :size="16" :stroke-width="2" />
+        <button
+          class="button button-primary"
+          type="button"
+          :disabled="submitting"
+          @click="loginWithSso"
+        >
+          <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
+          <IconLogin v-else :size="16" :stroke-width="2" />
           使用 SSO token 登录
         </button>
       </section>

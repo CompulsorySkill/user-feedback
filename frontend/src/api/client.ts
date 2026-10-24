@@ -1,4 +1,10 @@
-/** 统一 API 客户端：错误响应固定为 { detail, code }。 */
+/** 统一 API 客户端：错误响应固定为 { detail, code }。
+ *
+ * 会话续期：
+ * - 后端发现 access cookie 失效时会在响应头返回 `X-Session-Expired: 1`；
+ * - 这里尝试一次 `/auth/refresh`（并发请求共享同一个 Promise），成功后重放原请求；
+ * - 刷新失败则广播 `feedlog:auth-expired`，由 App 重新水合为匿名状态。
+ */
 
 const API_BASE = '/api'
 
@@ -19,6 +25,24 @@ export class ApiError extends Error {
   }
 }
 
+let refreshPromise: Promise<boolean> | null = null
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE}/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
 async function parseError(response: Response): Promise<ApiError> {
   let payload: ApiErrorPayload | null = null
   try {
@@ -34,15 +58,30 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, code, message)
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  retried = false,
+): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
+    credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...init.headers,
     },
   })
+
+  const sessionExpired = response.headers.get('X-Session-Expired') === '1'
+  if (!retried && sessionExpired && !path.startsWith('/v1/auth/refresh')) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      window.dispatchEvent(new Event('feedlog:auth-refreshed'))
+      return request<T>(path, init, true)
+    }
+    window.dispatchEvent(new Event('feedlog:auth-expired'))
+  }
 
   if (!response.ok) {
     throw await parseError(response)

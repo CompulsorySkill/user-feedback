@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { IconMessageCircle, IconSpeakerphone } from '@tabler/icons-vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -7,8 +7,19 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 const route = useRoute()
 
-onMounted(() => {
+function onSessionChanged(): void {
   void auth.hydrate()
+}
+
+onMounted(() => {
+  window.addEventListener('feedlog:auth-refreshed', onSessionChanged)
+  window.addEventListener('feedlog:auth-expired', onSessionChanged)
+  void auth.hydrate()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('feedlog:auth-refreshed', onSessionChanged)
+  window.removeEventListener('feedlog:auth-expired', onSessionChanged)
 })
 </script>
 
