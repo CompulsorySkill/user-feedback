@@ -14,11 +14,28 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.api.deps import get_storage_backend
+from app.core.config import settings
 from app.core.db import get_session
 from app.core.storage import PresignedUpload
 from app.main import app
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+# CI 中没有 deploy/.env；测试必须自带可用的密钥与默认值，
+# 不能依赖开发机的本地配置。
+TEST_SSO_SECRET = "test-sso-secret-0123456789abcdef012345"
+TEST_SESSION_SECRET = "test-session-secret-0123456789abcdef012345"
+
+
+@pytest.fixture(autouse=True)
+def isolated_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "environment", "development")
+    monkeypatch.setattr(settings, "app_name", "FeedLog")
+    monkeypatch.setattr(settings, "sso_secrets", [TEST_SSO_SECRET])
+    monkeypatch.setattr(settings, "session_jwt_secret", TEST_SESSION_SECRET)
+    monkeypatch.setattr(settings, "admin_emails", "")
+    monkeypatch.setattr(settings, "sso_return_to_default", "/")
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
 
 
 def alembic_config(db_url: str) -> Config:
