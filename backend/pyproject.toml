@@ -1,0 +1,30 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "FeedLog-like feedback system backend"
+readme = "README.md"
+requires-python = ">=3.12, <3.13"
+dependencies = [
+    "aiosqlite>=0.21",
+    "alembic>=1.16",
+    "asyncpg>=0.30",
+    "fastapi[standard]>=0.162.0",
+    "sqlalchemy[asyncio]>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=26.10.1",
+    "httpx>=0.28",
+    "pytest>=8",
+    "pytest-asyncio>=1",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
