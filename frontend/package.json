@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "smoke:p2": "node scripts/smoke-p2.mjs",
     "smoke:p3": "node scripts/smoke-p3.mjs",
-    "smoke:admin": "node scripts/smoke-admin.mjs"
+    "smoke:admin": "node scripts/smoke-admin.mjs",
+    "check:style": "node scripts/check-style.mjs"
   },
   "dependencies": {
     "@tabler/icons-vue": "^3.49.0",

@@ -1,0 +1,156 @@
+/* 统一排版与控件尺寸：全站只允许 3 个字号（32 / 16 / 13）。 */
+
+body {
+  font-size: var(--fs-body);
+}
+
+h1 {
+  font-size: var(--fs-display);
+}
+
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--fs-body);
+}
+
+/* 代码与等宽文本归入次要字号，避免产生第 4 种字号。 */
+code,
+pre,
+kbd,
+samp {
+  font-size: var(--fs-caption);
+}
+
+/* 次要信息统一 13px */
+.muted,
+.eyebrow,
+.field-label,
+.post-time,
+.meta-item,
+.author-tag,
+.anon-badge,
+.admin-badge,
+.env-pill,
+.identity,
+.service-strip,
+.site-footer,
+.footer-inner,
+.footer-stack,
+.footer-note,
+.changelog-date,
+.status-badge,
+.filter-chip,
+.sort-button,
+.vote-button,
+.status-select,
+.status-select-label,
+.status-select-wrap,
+.comment-time,
+.comment-action,
+.comment-form-foot,
+.env-panel,
+.env-grid,
+.board-meta > span,
+.board-card-foot,
+.board-policy,
+.post-card-foot,
+.post-excerpt,
+.board-card p,
+.changelog-body p,
+.rt-figure figcaption,
+.login-title,
+.login-card .muted,
+.placeholder p,
+.notice,
+.inline-error,
+.loading-line,
+.list-end,
+.reply-chip,
+.editor-uploading,
+.editor-error,
+.service-meta,
+.status-error,
+.empty-description,
+.empty-title {
+  font-size: var(--fs-caption);
+}
+
+/* 控件统一尺寸 */
+
+.button,
+.button-small {
+  height: var(--control-height);
+  min-width: 88px;
+  padding: 0 18px;
+  font-size: var(--fs-body);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.button-small {
+  min-width: 88px;
+  padding: 0 14px;
+}
+
+.field-input,
+.login-token,
+.comment-form textarea {
+  font-size: var(--fs-body);
+}
+
+.field-input,
+.login-token {
+  height: 44px;
+}
+
+.comment-form textarea {
+  line-height: 1.6;
+}
+
+.tool-button {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  padding: 0;
+}
+
+.filter-chip {
+  height: var(--control-height-sm);
+  padding: 0 14px;
+  line-height: 1;
+}
+
+.sort-group {
+  height: var(--control-height-sm);
+  padding: 2px;
+  align-items: center;
+}
+
+.sort-button {
+  height: 100%;
+  padding: 0 12px;
+}
+
+.vote-button {
+  height: var(--control-height-sm);
+  padding: 0 12px;
+}
+
+.vote-button.is-compact {
+  padding: 0 10px;
+}
+
+.status-select-wrap {
+  height: var(--control-height);
+  padding: 0 10px 0 12px;
+}
+
+.login-link {
+  height: var(--control-height-sm);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  line-height: 1;
+}

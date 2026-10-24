@@ -16,7 +16,14 @@ pnpm dev      # http://127.0.0.1:5173
 
 ```bash
 pnpm build    # vue-tsc 类型检查 + 产物构建
+pnpm check:style  # 校验每页字号 ≤3 种、操作按钮高度一致（需本地服务 + Edge）
 ```
+
+## 样式规范
+
+- **字号只允许 3 档**：`--fs-display` 32px（页面 h1）、`--fs-body` 16px（正文 / 按钮 / 输入）、`--fs-caption` 13px（次要信息 / 徽章 / 代码）；不要在组件里直接写 `font-size`，统一在 [typography.css](src/styles/typography.css) 中归类。
+- **控件高度统一**：`.button` / `.button-small` 高度 40px、最小宽度 88px；图标工具按钮、筛选 chips、排序器、投票按钮 32px；输入框 44px。
+- `pnpm check:style` 会遍历首页、看板、详情、发帖、编辑、登录、更新日志（管理员页面会自动登录）检查每个页面实际渲染的字号种类与按钮高度，防止回归。
 
 ## 页面
 
