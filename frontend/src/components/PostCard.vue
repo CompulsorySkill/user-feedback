@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { IconMessage, IconThumbUp, IconUser } from '@tabler/icons-vue'
+import { IconMessage, IconUser } from '@tabler/icons-vue'
 import { RouterLink } from 'vue-router'
 import StatusBadge from '@/components/StatusBadge.vue'
+import VoteButton from '@/components/VoteButton.vue'
 import type { PostSummary } from '@/api/types'
 import { formatRelative } from '@/utils/date'
 
@@ -26,10 +27,7 @@ defineProps<{ post: PostSummary }>()
         <IconUser :size="14" :stroke-width="1.8" />
         {{ post.author_name ?? '匿名用户' }}
       </span>
-      <span class="meta-item">
-        <IconThumbUp :size="14" :stroke-width="1.8" />
-        {{ post.vote_count }} 票
-      </span>
+      <VoteButton :post-id="post.id" :initial-count="post.vote_count" compact />
       <span class="meta-item">
         <IconMessage :size="14" :stroke-width="1.8" />
         {{ post.comment_count }} 条评论

@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Board, Page, PostSummary } from './types'
+import type { Board, Page, PostCreateInput, PostDetail, PostSummary } from './types'
 
 export function listBoards(): Promise<Board[]> {
   return api.get<Board[]>('/v1/boards')
@@ -24,4 +24,11 @@ export function listBoardPosts(
   return api.get<Page<PostSummary>>(
     `/v1/boards/${encodeURIComponent(slug)}/posts?${params.toString()}`,
   )
+}
+
+export function createPost(
+  slug: string,
+  input: PostCreateInput,
+): Promise<PostDetail> {
+  return api.post<PostDetail>(`/v1/boards/${encodeURIComponent(slug)}/posts`, input)
 }

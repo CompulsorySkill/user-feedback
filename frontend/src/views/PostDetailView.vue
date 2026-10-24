@@ -6,7 +6,6 @@ import {
   IconLoader2,
   IconMessage,
   IconRefresh,
-  IconThumbUp,
   IconUser,
 } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
@@ -14,6 +13,7 @@ import { getPost } from '@/api/posts'
 import type { PostDetail } from '@/api/types'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import VoteButton from '@/components/VoteButton.vue'
 import { formatDate, formatRelative } from '@/utils/date'
 
 const route = useRoute()
@@ -68,10 +68,6 @@ watch(() => route.params.id, load, { immediate: true })
               {{ post.author_name ?? '匿名用户' }}
             </span>
             <span class="meta-item">
-              <IconThumbUp :size="15" :stroke-width="1.8" />
-              {{ post.vote_count }} 票
-            </span>
-            <span class="meta-item">
               <IconMessage :size="15" :stroke-width="1.8" />
               {{ post.comment_count }} 条评论
             </span>
@@ -88,10 +84,14 @@ watch(() => route.params.id, load, { immediate: true })
         </section>
 
         <footer class="post-detail-foot">
-          <div class="action-hint">
-            <IconThumbUp :size="16" :stroke-width="1.8" />
-            投票与评论将在 P2 / P3 开放
-          </div>
+          <VoteButton
+            :post-id="post.id"
+            :initial-count="post.vote_count"
+            :disabled="isClosed"
+          />
+          <span class="action-hint">
+            {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论将在 P3 开放' }}
+          </span>
         </footer>
       </article>
 

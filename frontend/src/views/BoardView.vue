@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { IconArrowLeft, IconLoader2, IconRefresh } from '@tabler/icons-vue'
+import { IconArrowLeft, IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { getBoard, listBoardPosts } from '@/api/boards'
 import type { Board, PostSummary } from '@/api/types'
@@ -83,15 +83,25 @@ watch(() => route.params.slug, load)
 
     <template v-else-if="board">
       <header class="board-header">
-        <span class="board-slug">/{{ board.slug }}</span>
-        <h1>{{ board.name }}</h1>
-        <p class="board-description">{{ board.description ?? '暂无描述' }}</p>
-        <div class="board-meta">
-          <span>{{ board.post_count }} 条反馈</span>
-          <span v-if="board.allow_guest_voting">匿名可投票</span>
-          <span v-if="board.allow_guest_commenting">匿名可评论</span>
-          <span v-if="!board.allow_guest_posting">发布需登录</span>
+        <div class="board-header-main">
+          <span class="board-slug">/{{ board.slug }}</span>
+          <h1>{{ board.name }}</h1>
+          <p class="board-description">{{ board.description ?? '暂无描述' }}</p>
+          <div class="board-meta">
+            <span>{{ board.post_count }} 条反馈</span>
+            <span v-if="board.allow_guest_voting">匿名可投票</span>
+            <span v-if="board.allow_guest_commenting">匿名可评论</span>
+            <span v-if="!board.allow_guest_posting">发布需登录</span>
+          </div>
         </div>
+        <RouterLink
+          v-if="board.allow_guest_posting"
+          :to="`/b/${board.slug}/new`"
+          class="button button-primary"
+        >
+          <IconPlus :size="16" :stroke-width="2" />
+          发布反馈
+        </RouterLink>
       </header>
 
       <div v-if="posts.length === 0" class="empty-wrap">

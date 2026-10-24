@@ -53,3 +53,27 @@ export interface Page<T> {
   items: T[]
   next_cursor: string | null
 }
+
+export type UploadPurpose =
+  | 'post_image'
+  | 'post_video'
+  | 'changelog_image'
+  | 'changelog_video'
+
+export interface UploadTicket {
+  object_key: string
+  upload_url: string
+  method: 'PUT'
+  expires_in: number
+  headers: Record<string, string>
+}
+
+export interface VoteResult {
+  voted: boolean
+  vote_count: number
+}
+
+export interface PostCreateInput {
+  title: string
+  content: import('@/types/content').JSONContent
+}

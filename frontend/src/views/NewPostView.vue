@@ -1,0 +1,139 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
+import { ApiError } from '@/api/client'
+import { createPost, getBoard } from '@/api/boards'
+import type { Board } from '@/api/types'
+import PostEditor from '@/components/PostEditor.vue'
+import type { JSONContent } from '@/types/content'
+
+const route = useRoute()
+const router = useRouter()
+
+const board = ref<Board | null>(null)
+const loading = ref(true)
+const loadError = ref('')
+const title = ref('')
+const editorRef = ref<InstanceType<typeof PostEditor> | null>(null)
+const uploading = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
+
+async function load(): Promise<void> {
+  loading.value = true
+  loadError.value = ''
+  try {
+    board.value = await getBoard(String(route.params.slug ?? ''))
+  } catch (error) {
+    loadError.value =
+      error instanceof ApiError
+        ? error.status === 404
+          ? '看板不存在或未公开。'
+          : error.message
+        : '加载失败，请稍后重试。'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function submit(): Promise<void> {
+  if (submitting.value || uploading.value || !board.value) return
+
+  const trimmedTitle = title.value.trim()
+  if (!trimmedTitle) {
+    submitError.value = '请填写标题'
+    return
+  }
+  const content = editorRef.value?.getJSON()
+  if (!content || editorRef.value?.isEmpty()) {
+    submitError.value = '请填写正文'
+    return
+  }
+
+  submitting.value = true
+  submitError.value = ''
+  try {
+    const created = await createPost(board.value.slug, {
+      title: trimmedTitle,
+      content: content as JSONContent,
+    })
+    await router.push(`/post/${created.id}`)
+  } catch (error) {
+    submitError.value =
+      error instanceof ApiError ? error.message : '发布失败，请稍后重试。'
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(load)
+</script>
+
+<template>
+  <div class="container container-narrow">
+    <RouterLink
+      :to="board ? `/b/${board.slug}` : '/'"
+      class="back-link"
+    >
+      <IconArrowLeft :size="15" :stroke-width="2" />
+      {{ board ? board.name : '返回' }}
+    </RouterLink>
+
+    <p v-if="loading" class="loading-line">
+      <IconLoader2 class="spin" :size="16" :stroke-width="2" /> 正在加载…
+    </p>
+
+    <div v-else-if="loadError" class="inline-error">{{ loadError }}</div>
+
+    <template v-else-if="board">
+      <header class="page-header">
+        <p class="eyebrow">发布到 /{{ board.slug }}</p>
+        <h1>发布反馈</h1>
+        <p class="muted">
+          匿名发布，无需登录；同一浏览器通过 HttpOnly cookie 识别身份。
+        </p>
+      </header>
+
+      <div v-if="!board.allow_guest_posting" class="notice notice-closed">
+        该看板已关闭匿名发布，登录能力将在 P3 开放。
+      </div>
+
+      <form v-else class="compose" @submit.prevent="submit">
+        <label class="field">
+          <span class="field-label">标题</span>
+          <input
+            v-model="title"
+            class="field-input"
+            type="text"
+            maxlength="200"
+            placeholder="一句话说明你的建议或问题"
+          />
+        </label>
+
+        <div class="field">
+          <span class="field-label">正文</span>
+          <PostEditor
+            ref="editorRef"
+            @update:uploading="uploading = $event"
+          />
+        </div>
+
+        <p v-if="submitError" class="inline-error">{{ submitError }}</p>
+
+        <div class="compose-actions">
+          <RouterLink :to="`/b/${board.slug}`" class="button button-ghost">取消</RouterLink>
+          <button
+            class="button button-primary"
+            type="submit"
+            :disabled="submitting || uploading"
+          >
+            <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
+            <IconSend v-else :size="16" :stroke-width="2" />
+            {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}
+          </button>
+        </div>
+      </form>
+    </template>
+  </div>
+</template>

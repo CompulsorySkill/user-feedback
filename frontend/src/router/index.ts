@@ -15,6 +15,11 @@ const router = createRouter({
       component: () => import('@/views/BoardView.vue'),
     },
     {
+      path: '/b/:slug/new',
+      name: 'new-post',
+      component: () => import('@/views/NewPostView.vue'),
+    },
+    {
       path: '/post/:id',
       name: 'post',
       component: () => import('@/views/PostDetailView.vue'),
@@ -55,6 +60,7 @@ router.afterEach((to) => {
   const titles: Record<string, string> = {
     home: '反馈',
     board: '看板',
+    'new-post': '发布反馈',
     post: '反馈详情',
     changelog: '更新日志',
     'changelog-detail': '更新日志',
