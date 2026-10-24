@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { IconArrowUpRight, IconLoader2, IconRefresh } from '@tabler/icons-vue'
+import {
+  IconArrowUpRight,
+  IconLoader2,
+  IconPlus,
+  IconRefresh,
+} from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { listChangelogs } from '@/api/changelogs'
 import type { ChangelogSummary } from '@/api/types'
 import EmptyState from '@/components/EmptyState.vue'
+import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/date'
 
+const auth = useAuthStore()
 const entries = ref<ChangelogSummary[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
@@ -16,7 +23,8 @@ async function load(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
   try {
-    const page = await listChangelogs({ limit: 20 })
+    if (!auth.me) await auth.hydrate()
+    const page = await listChangelogs({ limit: 20, includeDrafts: auth.isAdmin })
     entries.value = page.items
   } catch (error) {
     errorMessage.value =
@@ -31,10 +39,16 @@ onMounted(load)
 
 <template>
   <div class="container container-narrow">
-    <header class="page-header">
-      <p class="eyebrow">Changelog</p>
-      <h1>更新日志</h1>
-      <p class="hero-lead">每个版本做了什么，都在这里。仅展示已发布内容。</p>
+    <header class="page-header page-header-row">
+      <div>
+        <p class="eyebrow">Changelog</p>
+        <h1>更新日志</h1>
+        <p class="hero-lead">每个版本做了什么，都在这里。仅展示已发布内容。</p>
+      </div>
+      <RouterLink v-if="auth.isAdmin" to="/changelog/new" class="button button-primary">
+        <IconPlus :size="16" :stroke-width="2" />
+        新建更新日志
+      </RouterLink>
     </header>
 
     <p v-if="loading" class="loading-line">
@@ -61,9 +75,14 @@ onMounted(load)
         :to="`/changelog/${entry.id}`"
         class="changelog-item"
       >
-        <div class="changelog-date">{{ formatDate(entry.published_at) }}</div>
+        <div class="changelog-date">
+          {{ entry.is_published ? formatDate(entry.published_at ?? entry.created_at) : '草稿' }}
+        </div>
         <div class="changelog-body">
-          <h2>{{ entry.title }}</h2>
+          <h2>
+            {{ entry.title }}
+            <span v-if="!entry.is_published" class="anon-badge">草稿</span>
+          </h2>
           <p>{{ entry.excerpt }}</p>
         </div>
         <IconArrowUpRight class="changelog-arrow" :size="18" :stroke-width="1.8" />

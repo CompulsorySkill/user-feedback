@@ -11,6 +11,8 @@ import { ApiError } from '@/api/client'
 import { getPost } from '@/api/posts'
 import type { PostDetail } from '@/api/types'
 import AuthorTag from '@/components/AuthorTag.vue'
+import CommentSection from '@/components/CommentSection.vue'
+import PostStatusControl from '@/components/PostStatusControl.vue'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import VoteButton from '@/components/VoteButton.vue'
@@ -22,6 +24,10 @@ const loading = ref(true)
 const errorMessage = ref('')
 
 const isClosed = computed(() => post.value?.status === 'closed')
+
+function onPostUpdated(updated: PostDetail): void {
+  post.value = updated
+}
 
 async function load(): Promise<void> {
   loading.value = true
@@ -70,6 +76,7 @@ watch(() => route.params.id, load, { immediate: true })
             </span>
             <span class="meta-item subtle">更新于 {{ formatRelative(post.updated_at) }}</span>
           </div>
+          <PostStatusControl :post="post" @updated="onPostUpdated" />
         </header>
 
         <div v-if="isClosed" class="notice notice-closed">
@@ -113,15 +120,12 @@ watch(() => route.params.id, load, { immediate: true })
             :disabled="isClosed"
           />
           <span class="action-hint">
-            {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论将在 P3 开放' }}
+            {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论支持 3 层回复' }}
           </span>
         </footer>
       </article>
 
-      <section class="comments-placeholder">
-        <h2>评论（{{ post.comment_count }}）</h2>
-        <p class="muted">楼中楼评论将在 P3 上线，当前仅展示计数。</p>
-      </section>
+      <CommentSection :post-id="post.id" :closed="isClosed" />
     </template>
 
     <div v-else class="inline-error">

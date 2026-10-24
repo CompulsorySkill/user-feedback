@@ -1,31 +1,63 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import {
+  getMe,
+  logoutSession,
+  refreshSession,
+  type AuthMe,
+  type AuthUser,
+} from '@/api/auth'
 
-export type UserRole = 'user' | 'admin'
-
-export interface CurrentUser {
-  id: number
-  email: string
-  displayName: string | null
-  role: UserRole
-}
-
-/**
- * 鉴权状态：P0 仅提供骨架，P3 接入 SSO 后由 /api/v1/auth/me 填充。
- */
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<CurrentUser | null>(null)
+  const me = ref<AuthMe | null>(null)
+  const loading = ref(false)
 
-  const isAuthenticated = computed(() => user.value !== null)
-  const isAdmin = computed(() => user.value?.role === 'admin')
+  const user = computed<AuthUser | null>(() => me.value?.user ?? null)
+  const isAuthenticated = computed(() => Boolean(me.value?.authenticated))
+  const isAdmin = computed(() => Boolean(me.value?.is_admin))
+  const isAnonymous = computed(() => Boolean(me.value?.is_anonymous))
+  const displayName = computed(
+    () => user.value?.display_name?.trim() || user.value?.email || '用户',
+  )
 
-  function setUser(next: CurrentUser | null): void {
-    user.value = next
+  async function hydrate(): Promise<void> {
+    loading.value = true
+    try {
+      me.value = await getMe()
+    } catch {
+      me.value = null
+    } finally {
+      loading.value = false
+    }
   }
 
-  function clear(): void {
-    user.value = null
+  async function refresh(): Promise<boolean> {
+    try {
+      me.value = await refreshSession()
+      return Boolean(me.value.authenticated)
+    } catch {
+      return false
+    }
   }
 
-  return { user, isAuthenticated, isAdmin, setUser, clear }
+  async function logout(): Promise<void> {
+    try {
+      await logoutSession()
+    } finally {
+      me.value = null
+    }
+  }
+
+  return {
+    me,
+    loading,
+    user,
+    isAuthenticated,
+    isAdmin,
+    isAnonymous,
+    displayName,
+    hydrate,
+    refresh,
+    logout,
+  }
 })

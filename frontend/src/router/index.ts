@@ -35,6 +35,18 @@ const router = createRouter({
       component: () => import('@/views/ChangelogDetailView.vue'),
     },
     {
+      path: '/changelog/new',
+      name: 'changelog-new',
+      component: () => import('@/views/ChangelogEditView.vue'),
+      meta: { requiresAdmin: true },
+    },
+    {
+      path: '/changelog/:id/edit',
+      name: 'changelog-edit',
+      component: () => import('@/views/ChangelogEditView.vue'),
+      meta: { requiresAdmin: true },
+    },
+    {
       path: '/404',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),
@@ -48,10 +60,12 @@ const router = createRouter({
 })
 
 // 管理员入口对非管理员返回 404，避免暴露管理功能存在。
-router.beforeEach((to) => {
-  if (to.meta.requiresAdmin && !useAuthStore().isAdmin) {
-    return { name: 'not-found' }
-  }
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAdmin) return true
+  const auth = useAuthStore()
+  if (!auth.me) await auth.hydrate()
+  if (!auth.isAdmin) return { name: 'not-found' }
+  return true
 })
 
 const APP_NAME = 'FeedLog'
@@ -64,6 +78,8 @@ router.afterEach((to) => {
     post: '反馈详情',
     changelog: '更新日志',
     'changelog-detail': '更新日志',
+    'changelog-new': '新建更新日志',
+    'changelog-edit': '编辑更新日志',
     'not-found': '页面不存在',
   }
   const label = typeof to.name === 'string' ? titles[to.name] : undefined

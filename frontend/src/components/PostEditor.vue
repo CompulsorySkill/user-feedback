@@ -22,6 +22,14 @@ import { StorageImage, VideoNode } from '@/editor/extensions'
 import { useUpload } from '@/composables/useUpload'
 import type { JSONContent } from '@/types/content'
 
+const props = withDefaults(
+  defineProps<{
+    scope?: 'post' | 'changelog'
+    initialContent?: JSONContent | null
+  }>(),
+  { scope: 'post', initialContent: null },
+)
+
 const emit = defineEmits<{
   'update:json': [value: JSONContent]
   'update:uploading': [value: boolean]
@@ -30,7 +38,8 @@ const emit = defineEmits<{
 const { uploading, error: uploadError, upload } = useUpload()
 
 const editor = useEditor({
-  content: { type: 'doc', content: [{ type: 'paragraph' }] },
+  content:
+    props.initialContent ?? { type: 'doc', content: [{ type: 'paragraph' }] },
   extensions: [
     StarterKit.configure({ heading: { levels: [2, 3] } }),
     StorageImage.configure({ inline: false, allowBase64: false }),
@@ -52,13 +61,13 @@ const editor = useEditor({
 watch(uploading, (value) => emit('update:uploading', value))
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const pendingPurpose = ref<'post_image' | 'post_video'>('post_image')
+const pendingPurpose = ref<'image' | 'video'>('image')
 
 const uploadingLabel = computed(() =>
-  pendingPurpose.value === 'post_image' ? '图片上传中…' : '视频上传中…',
+  pendingPurpose.value === 'image' ? '图片上传中…' : '视频上传中…',
 )
 
-function pickFile(purpose: 'post_image' | 'post_video'): void {
+function pickFile(purpose: 'image' | 'video'): void {
   pendingPurpose.value = purpose
   fileInput.value?.click()
 }
@@ -69,10 +78,15 @@ async function onFileChange(event: Event): Promise<void> {
   input.value = ''
   if (!file || !editor.value) return
 
-  const key = await upload(file, pendingPurpose.value)
+  const purpose = `${props.scope}_${pendingPurpose.value}` as
+    | 'post_image'
+    | 'post_video'
+    | 'changelog_image'
+    | 'changelog_video'
+  const key = await upload(file, purpose)
   if (!key) return
 
-  if (pendingPurpose.value === 'post_image') {
+  if (pendingPurpose.value === 'image') {
     editor.value.chain().focus().setImage({ src: key, alt: file.name }).run()
   } else {
     editor.value
@@ -175,7 +189,7 @@ defineExpose({
         class="tool-button"
         title="插入图片（PNG / JPEG / WebP / GIF）"
         :disabled="uploading"
-        @click="pickFile('post_image')"
+        @click="pickFile('image')"
       >
         <IconPhoto :size="16" :stroke-width="2" />
       </button>
@@ -184,7 +198,7 @@ defineExpose({
         class="tool-button"
         title="插入视频（MP4，≤100MB）"
         :disabled="uploading"
-        @click="pickFile('post_video')"
+        @click="pickFile('video')"
       >
         <IconVideo :size="16" :stroke-width="2" />
       </button>

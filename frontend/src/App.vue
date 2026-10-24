@@ -1,6 +1,14 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { IconMessageCircle, IconSpeakerphone } from '@tabler/icons-vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+
+onMounted(() => {
+  void auth.hydrate()
+})
 </script>
 
 <template>
@@ -19,7 +27,12 @@ import { RouterLink, RouterView } from 'vue-router'
 
         <div class="header-meta">
           <span class="env-pill">本地开发</span>
-          <span class="identity">匿名访问</span>
+          <template v-if="auth.isAuthenticated">
+            <span class="identity">{{ auth.displayName }}</span>
+            <span v-if="auth.isAdmin" class="admin-badge">管理员</span>
+            <button type="button" class="link-button" @click="auth.logout()">退出</button>
+          </template>
+          <span v-else class="identity">匿名访问</span>
         </div>
       </div>
     </header>

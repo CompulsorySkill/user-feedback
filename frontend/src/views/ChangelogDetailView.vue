@@ -1,23 +1,36 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { IconArrowLeft, IconLoader2, IconRefresh } from '@tabler/icons-vue'
+import { RouterLink, useRoute } from 'vue-router'
+import {
+  IconArrowLeft,
+  IconEdit,
+  IconLoader2,
+  IconRefresh,
+} from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import { getChangelog } from '@/api/changelogs'
+import {
+  getChangelog,
+  publishChangelog,
+  unpublishChangelog,
+} from '@/api/changelogs'
 import type { ChangelogDetail } from '@/api/types'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
+import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/date'
 
 const route = useRoute()
+const auth = useAuthStore()
 const entry = ref<ChangelogDetail | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
+const pending = ref(false)
 
 async function load(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
   entry.value = null
   try {
+    if (!auth.me) await auth.hydrate()
     entry.value = await getChangelog(String(route.params.id ?? ''))
   } catch (error) {
     errorMessage.value =
@@ -28,6 +41,20 @@ async function load(): Promise<void> {
         : '加载失败，请稍后重试。'
   } finally {
     loading.value = false
+  }
+}
+
+async function togglePublish(): Promise<void> {
+  if (!entry.value || pending.value) return
+  pending.value = true
+  try {
+    entry.value = entry.value.is_published
+      ? await unpublishChangelog(entry.value.id)
+      : await publishChangelog(entry.value.id)
+  } catch (error) {
+    errorMessage.value = error instanceof ApiError ? error.message : '操作失败'
+  } finally {
+    pending.value = false
   }
 }
 
@@ -45,9 +72,31 @@ watch(() => route.params.id, load, { immediate: true })
         <IconArrowLeft :size="15" :stroke-width="2" /> 全部更新日志
       </RouterLink>
 
+      <div v-if="auth.isAdmin" class="detail-admin-bar">
+        <span v-if="!entry.is_published" class="anon-badge">草稿（仅管理员可见）</span>
+        <span v-else class="muted">已发布</span>
+        <div class="detail-admin-actions">
+          <RouterLink :to="`/changelog/${entry.id}/edit`" class="button button-ghost button-small">
+            <IconEdit :size="14" :stroke-width="2" />
+            编辑
+          </RouterLink>
+          <button
+            type="button"
+            class="button button-ghost button-small"
+            :disabled="pending"
+            @click="togglePublish"
+          >
+            <IconLoader2 v-if="pending" class="spin" :size="14" :stroke-width="2" />
+            {{ entry.is_published ? '撤回发布' : '发布' }}
+          </button>
+        </div>
+      </div>
+
       <article class="changelog-detail">
         <header class="post-detail-head">
-          <span class="changelog-date">{{ formatDate(entry.published_at) }}</span>
+          <span class="changelog-date">
+            {{ entry.published_at ? formatDate(entry.published_at) : '尚未发布' }}
+          </span>
           <h1>{{ entry.title }}</h1>
         </header>
         <section class="rich-text">

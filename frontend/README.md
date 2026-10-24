@@ -25,38 +25,38 @@ pnpm build    # vue-tsc 类型检查 + 产物构建
 | `/` | 公开看板列表 + 服务状态 |
 | `/b/:slug` | 看板详情与反馈列表（每页 10 条，加载更多走 keyset 游标） |
 | `/b/:slug/new` | 匿名发帖：Tiptap 编辑器 + 图片 / MP4 直传 |
-| `/post/:id` | 反馈详情，富文本渲染与投票（乐观更新、失败回滚） |
-| `/changelog` | 已发布更新日志 |
+| `/post/:id` | 反馈详情：富文本、投票、状态操作（管理员下拉 / 作者关闭）、3 层评论与回复 |
+| `/changelog` | 已发布更新日志；管理员可见草稿与「新建」入口 |
 | `/changelog/:id` | 更新日志详情 |
+| `/changelog/new`、`/changelog/:id/edit` | 管理更新日志（仅管理员，非管理员 404） |
 
 ## 浏览器冒烟测试
 
-覆盖「编辑器插入图片 → presign 直传 → 发布 → 详情渲染 → 投票 / 取消」全链路：
+- `pnpm smoke:p2`：编辑器插入图片 → presign 直传 → 发布 → 详情渲染 → 投票 / 取消
+- `pnpm smoke:p3`：SSO 登录 → 管理员状态流转 → 评论与楼中楼回复 → 更新日志草稿发布
 
-```bash
-pnpm smoke:p2
-```
-
-默认使用本机 Edge（`EDGE_PATH` 覆盖）。若当前环境不允许由 Node 直接拉起浏览器，
+两项都默认使用本机 Edge（`EDGE_PATH` 覆盖）。若当前环境不允许由 Node 直接拉起浏览器，
 可先手动启动带调试端口的 Edge，再通过 `CDP_URL` 复用：
 
 ```powershell
 msedge.exe --headless=new --remote-debugging-port=9333 --user-data-dir=<临时目录> about:blank
-$env:CDP_URL="http://127.0.0.1:9333"; pnpm smoke:p2
+$env:CDP_URL="http://127.0.0.1:9333"; pnpm smoke:p3
 ```
+
+SSO 冒烟使用 `SSO_SECRET`（默认取本地开发密钥）与 `ADMIN_EMAIL`（默认 admin@example.com）签发临时 token。
 
 ## 目录
 
 ```
 src/
   api/          fetch 封装（统一 { detail, code } 错误）与接口模块
-  components/   RichTextRenderer、PostEditor、VoteButton、PostCard、StatusBadge、EmptyState
+  components/   RichTextRenderer、PostEditor、VoteButton、AuthorTag、CommentSection、PostStatusControl
   composables/  useStorageUrl（object key → /storage/）、useUpload（presign + PUT）
   editor/       Tiptap 扩展：StorageImage、VideoNode
   router/       路由表与 meta.requiresAdmin 守卫（非管理员 → 404）
-  stores/       Pinia：auth（P3 接入 SSO 后填充）
-  types/        Tiptap JSON 类型
-  utils/        日期格式化
+  stores/       Pinia：auth（/auth/me 会话与水合）
+  types/        Tiptap JSON、评论树类型
+  utils/        日期格式化、作者展示
   views/        页面级组件
   styles/       P2 写路径样式（编辑器、表单、投票）
 ```

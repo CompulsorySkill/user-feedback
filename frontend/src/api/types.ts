@@ -46,14 +46,17 @@ export interface PostDetail extends PostSummary {
   board: BoardRef
   content: import('@/types/content').JSONContent
   environment: ClientEnvironment | null
+  is_author: boolean
 }
 
 export interface ChangelogSummary {
   id: string
   title: string
   excerpt: string
+  is_published: boolean
   published_at: string | null
   created_at: string
+  updated_at: string
 }
 
 export interface ChangelogDetail extends ChangelogSummary {
