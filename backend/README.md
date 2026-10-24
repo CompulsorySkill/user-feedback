@@ -7,49 +7,63 @@ FastAPI + SQLAlchemy 2.x（async）+ Alembic。schema 唯一权威是 Alembic，
 ```
 app/
   api/          路由层（/api/health、/api/v1/*）
-  core/         config / db / errors / pagination
+  core/         config / db / errors / pagination / identity / rate_limit / storage
   models/       SQLAlchemy 模型（8 张表）
-  schemas/      Pydantic v2 响应模式
-  services/     业务规则（公开性、分页、草稿可见性）
+  schemas/      Pydantic v2 请求 / 响应模式
+  services/     业务规则（公开性、分页、匿名写、富文本校验、投票）
   repositories/ 数据访问（SQLAlchemy 查询）
-  main.py       应用入口
+  main.py       应用入口（lifespan 内启停限流清理任务）
 alembic/        迁移环境与版本
-scripts/        开发种子数据
+scripts/        RustFS 初始化与开发种子数据
 tests/          pytest（独立 SQLite 库 + 完整迁移链）
 ```
 
 ## 本地运行
 
 配置来自仓库根的 `deploy/.env`（由 `pydantic-settings` 的 `env_file` 指向，不存在 `backend/.env`）。
+本地需要先启动 RustFS（默认 `http://127.0.0.1:9000`）并填好凭证。
 
 ```bash
 uv sync
 uv run alembic upgrade head
+uv run python -m scripts.bootstrap_storage  # bucket=storage + 匿名只读策略
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
 - 健康检查：<http://127.0.0.1:8000/api/health>
 - OpenAPI：<http://127.0.0.1:8000/api/docs>
 
-种子数据（看板 / 18 条反馈 / 更新日志，含本地演示图片与 MP4）：
+种子数据（看板 / 18 条反馈 / 更新日志，含演示图片与 MP4，会一并上传 RustFS）：
 
 ```bash
 uv run python -m scripts.seed_dev          # 已有数据则跳过
 uv run python -m scripts.seed_dev --reset  # 清空业务表后重建
 ```
 
-## 读路径接口（P1）
+## 接口
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/v1/boards` | 公开看板 + 反馈数 |
 | GET | `/api/v1/boards/{slug}` | 看板详情（私有/不存在 → 404 `BOARD_NOT_FOUND`） |
 | GET | `/api/v1/boards/{slug}/posts` | keyset 分页，`limit` ≤ 100，`cursor` 为上一页 `next_cursor` |
+| POST | `/api/v1/boards/{slug}/posts` | 匿名发帖；校验富文本结构与媒体归属，`201` |
 | GET | `/api/v1/posts/{id}` | 反馈详情，私有看板内反馈同样 404 |
+| POST | `/api/v1/posts/{id}/vote` | 匿名投票（幂等；`closed` → 403 `POST_CLOSED`） |
+| DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
+| POST | `/api/v1/uploads/presign` | presigned PUT（图片 4 种类型 / `video/mp4`，≤100MB） |
 | GET | `/api/v1/changelogs` | 仅已发布；P1 无鉴权，`include_drafts` 不生效 |
 | GET | `/api/v1/changelogs/{id}` | 草稿 → 404 `CHANGELOG_NOT_FOUND` |
 
 游标编码见 `app/core/pagination.py`：`base64url({"t": 创建时间, "i": UUID})`，按 `(created_at, id) DESC` 做 keyset，无效游标返回 400 `INVALID_CURSOR`。
+
+## 匿名身份与写路径（P2）
+
+- **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
+- **上传**：`POST /uploads/presign` 校验 purpose / content-type / size 后，用公网同域 endpoint（`RUSTFS_ENDPOINT_PUBLIC`）+ path-style + `s3v4` 生成 URL，并写入 `Uploads` 归属；key 由服务端生成（`uploads/{uuid}.<ext>`）。
+- **富文本校验**：`doc` 顶层、深度 ≤ 8、节点 ≤ 2000；`image` / `video` 的 `src` 必须是当前身份的 `Upload` 记录且 purpose/类型匹配，否则 400 `INVALID_CONTENT`。
+- **限流**：`rate_limit_counters` 固定窗口 UPSERT，vote 20/min、post 5/10min、comment 10/min；每小时清理 1 小时前的窗口。
+- **投票**：匿名唯一索引去重，计数与投票同事务维护；`closed` 与关闭访客投票的看板直接拒绝。
 
 ## 数据库
 
@@ -79,4 +93,4 @@ uv run alembic upgrade head --sql
 uv run pytest -q
 ```
 
-用例覆盖：`/api/health` 正常与数据库不可用（503 契约）、初始迁移全表与降级、Vote 部分唯一索引去重、Post 状态 CheckConstraint、`created_at` 服务端默认值，以及 P1 读路径的公开性过滤、keyset 分页无重复无遗漏、游标错误、草稿隐藏、富文本 JSON 原样返回。
+用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化），以及 P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）。
