@@ -61,12 +61,32 @@ def _validate_marks(marks: Any) -> None:
                 raise _invalid("链接只允许 http(s)")
 
 
+def collect_media_keys(content: Any) -> set[str]:
+    """取出内容中已有的媒体 key，编辑时允许保留历史媒体。"""
+    keys: set[str] = set()
+    stack = [content]
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") in {"image", "video"}:
+            attrs = node.get("attrs")
+            src = attrs.get("src") if isinstance(attrs, dict) else None
+            if isinstance(src, str):
+                keys.add(src)
+        children = node.get("content")
+        if isinstance(children, list):
+            stack.extend(children)
+    return keys
+
+
 async def validate_rich_text(
     content: Any,
     *,
-    identity_key: str,
+    identity_keys: list[str] | tuple[str, ...],
     allowed_purposes: dict[str, tuple[str, ...]],
     uploads: UploadRepository,
+    allowed_object_keys: set[str] | None = None,
 ) -> str:
     """校验并返回 excerpt（纯文本前 200 字）。"""
     if not isinstance(content, dict) or content.get("type") != "doc":
@@ -127,12 +147,16 @@ async def validate_rich_text(
     walk(content, 0)
 
     if media:
-        rows = await uploads.list_for_identity(
-            identity_key, [src for src, _ in media]
+        preapproved = allowed_object_keys or set()
+        rows = await uploads.list_for_identities(
+            list(identity_keys), [src for src, _ in media]
         )
         uploads_by_key = {row.object_key: row for row in rows}
 
         for src, node_type in media:
+            # 编辑时允许保留原内容里已存在的媒体（历史数据/其他作者上传）。
+            if src in preapproved:
+                continue
             upload = uploads_by_key.get(src)
             if upload is None:
                 raise _invalid("富文本引用了不属于当前身份的媒体")

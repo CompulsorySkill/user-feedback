@@ -19,7 +19,7 @@ from app.schemas.changelog import (
     ChangelogUpdateRequest,
 )
 from app.schemas.common import Page
-from app.services.rich_text import validate_rich_text
+from app.services.rich_text import collect_media_keys, validate_rich_text
 
 CHANGELOG_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
     "image": ("changelog_image",),
@@ -86,10 +86,13 @@ class ChangelogService:
 
         return ChangelogDetail(**_summary(entry).model_dump(), content=entry.content)
 
-    async def _validate(self, content: dict, actor: User) -> str:
+    async def _validate(
+        self, content: dict, actor: User, *, allowed_object_keys: set[str] | None = None
+    ) -> str:
         return await validate_rich_text(
             content,
-            identity_key=f"user:{actor.id}",
+            identity_keys=[f"user:{actor.id}"],
+            allowed_object_keys=allowed_object_keys,
             allowed_purposes=CHANGELOG_MEDIA_PURPOSES,
             uploads=self.uploads,
         )
@@ -122,8 +125,11 @@ class ChangelogService:
         if payload.title is not None:
             entry.title = payload.title
         if payload.content is not None:
+            previous_media = collect_media_keys(entry.content)
             entry.content = payload.content
-            entry.excerpt = await self._validate(payload.content, actor)
+            entry.excerpt = await self._validate(
+                payload.content, actor, allowed_object_keys=previous_media
+            )
         await self.session.commit()
         return await self.get(changelog_id, viewer_is_admin=True)
 

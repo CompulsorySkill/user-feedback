@@ -1,10 +1,10 @@
-"""登录会话相关响应模式。"""
+"""登录会话相关请求 / 响应模式。"""
 
 from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class UserInfo(BaseModel):
@@ -19,3 +19,21 @@ class MeResponse(BaseModel):
     is_admin: bool
     is_anonymous: bool
     user: UserInfo | None = None
+
+
+class DevLoginRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    name: str | None = Field(default=None, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if "@" not in email or email.startswith("@") or email.endswith("@"):
+            raise ValueError("邮箱格式不正确")
+        return email
+
+
+class AuthCapabilities(BaseModel):
+    sso: bool = True
+    dev_login: bool

@@ -21,6 +21,17 @@ router = APIRouter(prefix="/boards", tags=["boards"])
 
 LimitQuery = Annotated[int, Query(ge=1, le=100, description="每页条数")]
 CursorQuery = Annotated[str | None, Query(description="上一页返回的 next_cursor")]
+StatusQuery = Annotated[
+    str | None,
+    Query(
+        pattern="^(open|planned|in_progress|completed|closed)$",
+        description="按状态筛选",
+    ),
+]
+SortQuery = Annotated[
+    str,
+    Query(pattern="^(recent|top)$", description="recent=最近，top=最热（投票最多）"),
+]
 
 
 @router.get("", response_model=list[BoardSummary], summary="公开看板列表")
@@ -43,8 +54,12 @@ async def list_board_posts(
     service: PostServiceDep,
     limit: LimitQuery = 20,
     cursor: CursorQuery = None,
+    status: StatusQuery = None,
+    sort: SortQuery = "recent",
 ) -> Page[PostSummary]:
-    return await service.list_for_board(slug, limit=limit, cursor_raw=cursor)
+    return await service.list_for_board(
+        slug, limit=limit, cursor_raw=cursor, status=status, sort=sort
+    )
 
 
 @router.post(

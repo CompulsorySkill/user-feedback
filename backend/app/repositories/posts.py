@@ -1,14 +1,17 @@
-"""反馈帖数据访问（keyset 分页）。"""
+"""反馈帖数据访问（keyset 分页：最近 / 最热）。"""
 
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
-from sqlalchemy import Select, select, tuple_
+from sqlalchemy import Select, and_, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.pagination import Cursor
+from app.core.pagination import Cursor, TopCursor
 from app.models import Board, Post, User
+
+PostSort = Literal["recent", "top"]
 
 
 class PostRepository:
@@ -16,9 +19,8 @@ class PostRepository:
         self.session = session
 
     def _base(self) -> Select[tuple[Post, User.display_name]]:
-        return (
-            select(Post, User.display_name)
-            .outerjoin(User, User.id == Post.author_id)
+        return select(Post, User.display_name).outerjoin(
+            User, User.id == Post.author_id
         )
 
     async def list_by_board(
@@ -26,15 +28,36 @@ class PostRepository:
         board_id: int,
         *,
         limit: int,
+        sort: PostSort = "recent",
+        status: str | None = None,
         cursor: Cursor | None = None,
+        top_cursor: TopCursor | None = None,
     ) -> list[tuple[Post, str | None]]:
         stmt = self._base().where(Post.board_id == board_id)
-        if cursor is not None:
-            stmt = stmt.where(
-                tuple_(Post.created_at, Post.id)
-                < tuple_(cursor.created_at, cursor.id)
-            )
-        stmt = stmt.order_by(Post.created_at.desc(), Post.id.desc()).limit(limit)
+        if status is not None:
+            stmt = stmt.where(Post.status == status)
+
+        if sort == "top":
+            if top_cursor is not None:
+                stmt = stmt.where(
+                    or_(
+                        Post.vote_count < top_cursor.vote_count,
+                        and_(
+                            Post.vote_count == top_cursor.vote_count,
+                            Post.id < top_cursor.id,
+                        ),
+                    )
+                )
+            stmt = stmt.order_by(Post.vote_count.desc(), Post.id.desc())
+        else:
+            if cursor is not None:
+                stmt = stmt.where(
+                    tuple_(Post.created_at, Post.id)
+                    < tuple_(cursor.created_at, cursor.id)
+                )
+            stmt = stmt.order_by(Post.created_at.desc(), Post.id.desc())
+
+        stmt = stmt.limit(limit)
         rows = await self.session.execute(stmt)
         return [(post, author_name) for post, author_name in rows.all()]
 

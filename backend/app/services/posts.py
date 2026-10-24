@@ -12,7 +12,12 @@ from app.core.identity import (
     AuthenticatedUser,
     Identity,
 )
-from app.core.pagination import decode_cursor, encode_cursor
+from app.core.pagination import (
+    decode_cursor,
+    decode_top_cursor,
+    encode_cursor,
+    encode_top_cursor,
+)
 from app.core.rate_limit import enforce_rate_limit
 from app.models import Post
 from app.repositories.boards import BoardRepository
@@ -27,7 +32,7 @@ from app.schemas.post import (
     PostSummary,
     PostUpdateRequest,
 )
-from app.services.rich_text import validate_rich_text
+from app.services.rich_text import collect_media_keys, validate_rich_text
 
 # 反馈中允许的媒体节点 -> Upload purpose
 POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
@@ -72,24 +77,47 @@ class PostService:
         *,
         limit: int,
         cursor_raw: str | None,
+        status: str | None = None,
+        sort: str = "recent",
     ) -> Page[PostSummary]:
         board = await self.boards.get_public_by_slug(slug)
         if board is None:
             raise AppException(404, code="BOARD_NOT_FOUND", detail="看板不存在")
 
-        cursor = decode_cursor(cursor_raw)
-        rows = await self.posts.list_by_board(
-            board.id, limit=limit + 1, cursor=cursor
-        )
-        has_more = len(rows) > limit
-        rows = rows[:limit]
+        if sort == "top":
+            top_cursor = decode_top_cursor(cursor_raw)
+            rows = await self.posts.list_by_board(
+                board.id,
+                limit=limit + 1,
+                sort="top",
+                status=status,
+                top_cursor=top_cursor,
+            )
+            has_more = len(rows) > limit
+            rows = rows[:limit]
+            next_cursor = (
+                encode_top_cursor(rows[-1][0].vote_count, rows[-1][0].id)
+                if has_more and rows
+                else None
+            )
+        else:
+            cursor = decode_cursor(cursor_raw)
+            rows = await self.posts.list_by_board(
+                board.id,
+                limit=limit + 1,
+                sort="recent",
+                status=status,
+                cursor=cursor,
+            )
+            has_more = len(rows) > limit
+            rows = rows[:limit]
+            next_cursor = (
+                encode_cursor(rows[-1][0].created_at, rows[-1][0].id)
+                if has_more and rows
+                else None
+            )
 
         items = [_summary(post, board.slug, name) for post, name in rows]
-        next_cursor = (
-            encode_cursor(rows[-1][0].created_at, rows[-1][0].id)
-            if has_more and rows
-            else None
-        )
         return Page(items=items, next_cursor=next_cursor)
 
     async def get(
@@ -139,7 +167,7 @@ class PostService:
         )
         excerpt = await validate_rich_text(
             payload.content,
-            identity_key=identity.key,
+            identity_keys=[identity.key],
             allowed_purposes=POST_MEDIA_PURPOSES,
             uploads=self.uploads,
         )
@@ -221,10 +249,12 @@ class PostService:
         if payload.title is not None:
             post.title = payload.title
         if payload.content is not None:
+            previous_media = collect_media_keys(post.content)
             post.content = payload.content
             post.excerpt = await validate_rich_text(
                 payload.content,
-                identity_key=identity.key,
+                identity_keys=[identity.key],
+                allowed_object_keys=previous_media,
                 allowed_purposes=POST_MEDIA_PURPOSES,
                 uploads=self.uploads,
             )

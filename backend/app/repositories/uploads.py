@@ -20,10 +20,15 @@ class UploadRepository:
     async def list_for_identity(
         self, identity_key: str, object_keys: Sequence[str]
     ) -> list[Upload]:
-        if not object_keys:
+        return await self.list_for_identities([identity_key], object_keys)
+
+    async def list_for_identities(
+        self, identity_keys: Sequence[str], object_keys: Sequence[str]
+    ) -> list[Upload]:
+        if not object_keys or not identity_keys:
             return []
         stmt = select(Upload).where(
-            Upload.identity == identity_key,
+            Upload.identity.in_(list(identity_keys)),
             Upload.object_key.in_(list(object_keys)),
         )
         rows = await self.session.execute(stmt)

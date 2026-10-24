@@ -1,4 +1,9 @@
-from app.schemas.auth import MeResponse, UserInfo
+from app.schemas.auth import (
+    AuthCapabilities,
+    DevLoginRequest,
+    MeResponse,
+    UserInfo,
+)
 from app.schemas.board import BoardRef, BoardSummary
 from app.schemas.changelog import (
     ChangelogCreateRequest,
@@ -25,6 +30,7 @@ from app.schemas.upload import (
 from app.schemas.vote import VoteResponse
 
 __all__ = [
+    "AuthCapabilities",
     "BoardRef",
     "BoardSummary",
     "ChangelogCreateRequest",
@@ -35,6 +41,7 @@ __all__ = [
     "CommentCreateRequest",
     "CommentItem",
     "CommentList",
+    "DevLoginRequest",
     "HealthResponse",
     "MeResponse",
     "Page",
