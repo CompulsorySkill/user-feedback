@@ -69,6 +69,8 @@ jobs:
         id: meta
         with:
           images: ${{ env.IMAGE_NAME }}
+          # 关闭 semver 自动附加 latest；latest 只由 main 的 raw tag 产生。
+          flavor: latest=false
           tags: |
             type=sha,format=long
             type=semver,pattern={{version}}
