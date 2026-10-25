@@ -30,7 +30,9 @@ async function load(): Promise<void> {
   entry.value = null
   try {
     if (!auth.me) await auth.hydrate()
-    entry.value = await getChangelog(String(route.params.id ?? ''))
+    const data = await getChangelog(String(route.params.id ?? ''))
+    // 兼容尚未升级的后端：旧版本详情没有 attachments 字段。
+    entry.value = { ...data, attachments: data.attachments ?? [] }
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError

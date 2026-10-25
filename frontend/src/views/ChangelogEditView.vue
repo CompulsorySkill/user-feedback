@@ -59,7 +59,7 @@ async function load(): Promise<void> {
     title.value = entry.title
     initialContent.value = entry.content
     published.value = entry.is_published
-    attachments.value = entry.attachments.flatMap((attachment) =>
+    attachments.value = (entry.attachments ?? []).flatMap((attachment) =>
       attachment.object_key
         ? [
             {
