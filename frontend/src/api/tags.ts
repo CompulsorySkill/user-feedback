@@ -5,9 +5,10 @@ export function listBuiltinTags(): Promise<TagSummary[]> {
   return api.get<TagSummary[]>('/v1/tags')
 }
 
-/** 筛选器使用：内置标签 + 用户创建的标签。 */
-export function listFilterTags(): Promise<TagSummary[]> {
-  return api.get<TagSummary[]>('/v1/tags?include_custom=true')
+/** 筛选器使用：内置标签 + 用户创建的标签；传 boardSlug 时计数只统计该看板。 */
+export function listFilterTags(boardSlug?: string | null): Promise<TagSummary[]> {
+  const query = boardSlug ? `&board=${encodeURIComponent(boardSlug)}` : ''
+  return api.get<TagSummary[]>(`/v1/tags?include_custom=true${query}`)
 }
 
 export function listAdminTags(): Promise<TagSummary[]> {

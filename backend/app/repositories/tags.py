@@ -7,29 +7,59 @@ import uuid
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import PostTag, Tag
+from app.models import Board, Post, PostTag, Tag
 
 
 class TagRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    def _with_counts(self):
-        return (
-            select(Tag, func.count(PostTag.post_id))
-            .outerjoin(PostTag, PostTag.tag_id == Tag.id)
-            .group_by(Tag.id)
+    def _with_counts(
+        self,
+        *,
+        board_slug: str | None = None,
+        public_only: bool = True,
+        builtin_only: bool = False,
+    ):
+        """返回标签及其帖子数；计数可按看板限定，并默认只统计公开看板。"""
+        counts = (
+            select(PostTag.tag_id, func.count(PostTag.post_id).label("count"))
+            .join(Post, Post.id == PostTag.post_id)
+            .join(Board, Board.id == Post.board_id)
+            .group_by(PostTag.tag_id)
+        )
+        if board_slug is not None:
+            counts = counts.where(Board.slug == board_slug)
+        if public_only:
+            counts = counts.where(Board.is_public.is_(True))
+        counted = counts.subquery()
+
+        stmt = (
+            select(Tag, func.coalesce(counted.c.count, 0))
+            .outerjoin(counted, counted.c.tag_id == Tag.id)
             .order_by(Tag.name.asc(), Tag.id.asc())
         )
+        if builtin_only:
+            stmt = stmt.where(Tag.is_builtin.is_(True))
+        return stmt
 
-    async def list_builtin(self) -> list[tuple[Tag, int]]:
+    async def list_builtin(
+        self, *, board_slug: str | None = None
+    ) -> list[tuple[Tag, int]]:
         rows = await self.session.execute(
-            self._with_counts().where(Tag.is_builtin.is_(True))
+            self._with_counts(board_slug=board_slug, builtin_only=True)
         )
         return [(tag, count) for tag, count in rows.all()]
 
-    async def list_all(self) -> list[tuple[Tag, int]]:
-        rows = await self.session.execute(self._with_counts())
+    async def list_all(
+        self,
+        *,
+        board_slug: str | None = None,
+        public_only: bool = True,
+    ) -> list[tuple[Tag, int]]:
+        rows = await self.session.execute(
+            self._with_counts(board_slug=board_slug, public_only=public_only)
+        )
         return [(tag, count) for tag, count in rows.all()]
 
     async def get_by_normalized(self, normalized: str) -> Tag | None:

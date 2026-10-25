@@ -10,11 +10,12 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import settings
-from tests.conftest import insert_board, insert_post
+from tests.conftest import insert_board, insert_post, sqlite_timestamp
 
 SSO_SECRET = "test-sso-secret-0123456789abcdef012345"
 TEST_SESSION_SECRET = "test-session-secret-0123456789abcdef012345"
 ADMIN_EMAIL = "admin@example.com"
+BASE = datetime(2026, 4, 1, 12, 0, 0)
 
 
 @pytest.fixture(autouse=True)
@@ -225,6 +226,48 @@ async def test_public_tag_list_can_include_custom(
     assert [(tag["name"], tag["post_count"]) for tag in all_tags.json()] == [
         ("性能", 1)
     ]
+
+
+async def test_public_tag_counts_are_scoped_by_board(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+    insert_board(sqlite_conn, slug="mobile", name="移动端")
+    await create_post(client, slug="product", title="产品 Bug", tags=["Bug", "UI"])
+    await create_post(client, slug="mobile", title="移动端 Bug", tags=["Bug"])
+
+    async def counts(**params: str) -> dict[str, int]:
+        response = await client.get(
+            "/api/v1/tags", params={"include_custom": "true", **params}
+        )
+        assert response.status_code == 200
+        return {tag["name"]: tag["post_count"] for tag in response.json()}
+
+    assert await counts() == {"Bug": 2, "UI": 1}
+    assert await counts(board="product") == {"Bug": 1, "UI": 1}
+    assert await counts(board="mobile") == {"Bug": 1, "UI": 0}
+
+    # 未公开看板的使用不计入公开计数（也不应泄露其帖子量）。
+    private_board = insert_board(
+        sqlite_conn, slug="internal", name="内部", is_public=False
+    )
+    private_post = insert_post(
+        sqlite_conn, board_id=private_board, title="内部帖", created_at=BASE
+    )
+    sqlite_conn.execute(
+        "INSERT INTO tags (name, normalized, is_builtin) VALUES ('内部', '内部', 0)"
+    )
+    tag_id = sqlite_conn.execute(
+        "SELECT id FROM tags WHERE normalized='内部'"
+    ).fetchone()[0]
+    sqlite_conn.execute(
+        "INSERT INTO post_tags (post_id, tag_id, created_at) VALUES (?, ?, ?)",
+        (private_post, tag_id, sqlite_timestamp(BASE)),
+    )
+    sqlite_conn.commit()
+
+    assert (await counts())["内部"] == 0
+    assert (await counts(board="product"))["内部"] == 0
 
 
 # --------------------------------------------------------------------------- #

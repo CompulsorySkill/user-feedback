@@ -79,4 +79,18 @@ describe('PostFeed tag filter', () => {
     )
     wrapper.unmount()
   })
+
+  it('scopes tag counts to the current board and reloads when it changes', async () => {
+    const wrapper = mount(PostFeed, { props: { boardSlug: 'product' } })
+    await flushPromises()
+
+    expect(mocks.listFilterTags).toHaveBeenCalledWith('product')
+
+    mocks.listFilterTags.mockClear()
+    await wrapper.setProps({ boardSlug: 'other' })
+    await flushPromises()
+
+    expect(mocks.listFilterTags).toHaveBeenCalledWith('other')
+    wrapper.unmount()
+  })
 })

@@ -81,16 +81,19 @@ class TagService:
         self.session = session
         self.tags = tags
 
-    async def list_public(self, *, include_custom: bool = False) -> list[TagSummary]:
+    async def list_public(
+        self, *, include_custom: bool = False, board_slug: str | None = None
+    ) -> list[TagSummary]:
+        """公开标签；传入看板 slug 时计数只统计该看板的反馈。"""
         rows = (
-            await self.tags.list_all()
+            await self.tags.list_all(board_slug=board_slug)
             if include_custom
-            else await self.tags.list_builtin()
+            else await self.tags.list_builtin(board_slug=board_slug)
         )
         return [_summary(tag, count) for tag, count in rows]
 
     async def list_admin(self) -> list[TagSummary]:
-        rows = await self.tags.list_all()
+        rows = await self.tags.list_all(public_only=False)
         return [_summary(tag, count) for tag, count in rows]
 
     async def create_builtin(

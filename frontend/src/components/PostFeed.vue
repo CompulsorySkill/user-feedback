@@ -197,8 +197,8 @@ function clearFilters(): void {
 
 async function loadTags(): Promise<void> {
   try {
-    const tags = await listFilterTags()
-    // 只有被使用中的标签才值得出现在筛选器里。
+    const tags = await listFilterTags(props.boardSlug)
+    // 只有被使用中的标签才值得出现在筛选器里（计数已限定在当前看板）。
     availableTags.value = tags.filter((tag) => tag.post_count > 0)
   } catch {
     // 标签筛选是增强功能，失败不影响反馈列表。
@@ -217,6 +217,7 @@ onUnmounted(() => {
 watch(
   () => props.boardSlug,
   () => {
+    void loadTags()
     scheduleLoad()
   },
 )
