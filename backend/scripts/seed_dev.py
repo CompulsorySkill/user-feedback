@@ -32,11 +32,11 @@ UPLOADS_DIR = STORAGE_DIR / "uploads"
 
 NOW = datetime.now(timezone.utc).replace(tzinfo=None)
 
-BUILTIN_TAGS = ("功能请求", "缺陷", "体验", "文档", "性能")
+BUILTIN_TAGS = ("体验", "性能", "A模块", "B模块", "C模块")
 POST_TAGS = {
-    "product": ["功能请求"],
-    "bugs": ["缺陷"],
-    "mobile": ["体验", "性能"],
+    "product": ["体验", "A模块"],
+    "bugs": ["性能", "B模块"],
+    "improvements": ["体验", "C模块"],
 }
 
 
@@ -198,7 +198,7 @@ def ensure_demo_media() -> dict[str, str | None]:
 BOARDS = [
     {
         "slug": "product",
-        "name": "功能建议",
+        "name": "功能需求",
         "description": "希望新增或改进的能力。公开投票、公开跟进，管理员会同步状态。",
         "is_public": True,
     },
@@ -206,12 +206,6 @@ BOARDS = [
         "slug": "bugs",
         "name": "问题反馈",
         "description": "使用中遇到的异常与缺陷，修复进展会在这里更新。",
-        "is_public": True,
-    },
-    {
-        "slug": "mobile",
-        "name": "移动端",
-        "description": "iOS、Android 与移动 Web 的体验问题。",
         "is_public": True,
     },
     {
@@ -248,7 +242,7 @@ POSTS: list[dict[str, Any]] = [
         "body": [
             heading(2, "使用场景"),
             paragraph(
-                "团队每周整理反馈时，需要在「功能建议」和「体验问题」之间来回切换，如果有标签就能一次筛完。"
+                "团队每周整理反馈时，需要在「功能需求」和「体验问题」之间来回切换，如果有标签就能一次筛完。"
             ),
             bullet_list(
                 [
@@ -452,26 +446,26 @@ POSTS: list[dict[str, Any]] = [
         ],
     },
     {
-        "board": "mobile",
-        "title": "移动端键盘遮挡评论输入框",
+        "board": "improvements",
+        "title": "希望支持批量归档已完成的反馈",
         "status": "in_progress",
         "author": 2,
         "votes": 18,
         "comments": 3,
         "hours_ago": 60,
-        "lead": "在评论区输入时，软键盘弹出会盖住输入框，需要手动上滑。",
-        "body": [paragraph("希望聚焦时自动滚动到可视区域。")],
+        "lead": "已完成的反馈长期堆在列表里，希望管理员能一次批量归档。",
+        "body": [paragraph("归档后不计入看板计数，但仍可从链接访问。")],
     },
     {
-        "board": "mobile",
-        "title": "增加 PWA 支持",
+        "board": "improvements",
+        "title": "希望增加键盘快捷键",
         "status": "open",
         "author": None,
         "votes": 7,
         "comments": 1,
         "hours_ago": 150,
-        "lead": "希望能把反馈系统添加到主屏幕，像 App 一样打开。",
-        "body": [paragraph("只需要 manifest 与一个简单的 service worker。")],
+        "lead": "整理反馈时希望能用快捷键切换状态和排序。",
+        "body": [paragraph("例如 J/K 移动到下一条、S 切换状态。")],
     },
     {
         "board": "bugs",
