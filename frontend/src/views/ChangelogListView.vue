@@ -32,7 +32,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <header class="page-header page-header-row">
       <div>
         <p class="eyebrow">Changelog</p>

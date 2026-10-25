@@ -84,7 +84,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <RouterLink to="/" class="back-link">
       <IconArrowLeft :size="15" :stroke-width="2" /> 返回全部反馈
     </RouterLink>

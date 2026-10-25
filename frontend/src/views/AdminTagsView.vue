@@ -68,7 +68,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <header class="page-header">
       <p class="eyebrow">Admin</p>
       <h1>标签管理</h1>

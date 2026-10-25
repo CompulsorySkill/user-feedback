@@ -102,7 +102,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <RouterLink :to="board ? `/b/${board.slug}` : '/'" class="back-link">
       <IconArrowLeft :size="15" :stroke-width="2" />
       {{ board ? board.name : '返回' }}

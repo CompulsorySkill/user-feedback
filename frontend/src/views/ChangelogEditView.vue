@@ -171,7 +171,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <RouterLink to="/changelog" class="back-link">
       <IconArrowLeft :size="15" :stroke-width="2" /> 全部更新日志
     </RouterLink>

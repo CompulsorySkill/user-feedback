@@ -63,7 +63,7 @@ watch(() => route.params.id, load, { immediate: true })
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <p v-if="loading" class="loading-line">
       <IconLoader2 class="spin" :size="16" :stroke-width="2" /> 正在加载…
     </p>

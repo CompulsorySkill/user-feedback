@@ -91,7 +91,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container container-narrow">
+  <div class="container">
     <RouterLink :to="post ? `/post/${post.id}` : '/'" class="back-link">
       <IconArrowLeft :size="15" :stroke-width="2" /> 返回反馈
     </RouterLink>
