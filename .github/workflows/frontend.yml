@@ -115,15 +115,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # 只拉取目标架构，不运行，因此无需 QEMU；sha-* tag 一定存在，避免 semver 解析差异。
-      - name: Pull ${{ matrix.arch }} image
-        run: |
-          docker pull --platform linux/${{ matrix.arch }} "$IMAGE_NAME:sha-$GITHUB_SHA"
-          docker tag "$IMAGE_NAME:sha-$GITHUB_SHA" "$IMAGE_NAME:$VERSION"
+      # skopeo 直接从 registry 取目标架构并写成 docker-archive 格式（旧版 docker load 也能读，
+      # docker save 在新版 Docker 上输出的是 OCI 布局）。sha-* tag 一定存在，不依赖 semver 解析。
       - name: Export tar.gz
         run: |
-          docker save "$IMAGE_NAME:$VERSION" \
-            | gzip -9 > "frontend-$VERSION-linux-${{ matrix.arch }}.tar.gz"
+          tar="frontend-$VERSION-linux-${{ matrix.arch }}.tar"
+          skopeo copy \
+            --override-os linux --override-arch "${{ matrix.arch }}" \
+            --authfile "$HOME/.docker/config.json" \
+            "docker://$IMAGE_NAME:sha-$GITHUB_SHA" \
+            "docker-archive:$tar:ref=$IMAGE_NAME:$VERSION"
+          gzip -9 "$tar"
       # 同一个 Release 由两个 workflow 共同追加文件；已存在时直接追加。
       - name: Attach to GitHub Release
         env:
