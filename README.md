@@ -95,7 +95,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 
 - Caddy 自动申请/续期 HTTPS 证书；本地无域名时可把 `SITE_ADDRESS` 设为 `:80`（同时把 `PUBLIC_ORIGIN`、`RUSTFS_ENDPOINT_PUBLIC` 改成对应的 `http://` 地址）。
 - `docker compose up -d --build` 在目标机构建 `backend` / `frontend` 镜像；也可在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 后，先 `docker login ghcr.io` 再 `docker compose pull && docker compose up -d`。
-- GHCR 镜像 tag 由 Git ref 生成：`main` → `latest` + `sha-<commit>`；`v*` tag → `1.0.0`、`1.0` + `sha-<commit>`，且不会覆盖 `latest`。生产建议固定 `1.0.0`。
+- 只有推送 `v*` Git tag 才触发 Actions 构建：生成 `1.0.0`、`1.0`、`sha-<commit>` 和 `latest`（预发布 tag 不更新 `latest`）。**普通 push 到 `main` 不触发构建**，生产建议固定 `1.0.0`。
 - 迁移在 backend 启动命令中执行；多副本时应拆成独立的一次性任务。
 - 数据卷：`postgres-data`、`rustfs-data`、`caddy-data`（证书）、`caddy-config`。
 - 当前开发机没有 Docker Engine，Compose/Caddyfile 已做静态校验，首次部署请按 [docs/ops.md](docs/ops.md) 的验收清单在目标机执行。

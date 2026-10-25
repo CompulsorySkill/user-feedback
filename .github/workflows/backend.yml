@@ -1,8 +1,8 @@
 name: backend
 
 on:
+  # 只有发布 v* tag 才构建 / 推送镜像；普通 push 到 main 不触发。
   push:
-    branches: [main]
     tags: ["v*"]
     paths:
       - "backend/**"
@@ -80,6 +80,7 @@ jobs:
   # Docker 生产交付：构建并推送 GHCR；目标机通过 deploy/docker-compose.yml 拉取。
   image:
     needs: test
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -90,18 +91,18 @@ jobs:
       # GHCR 镜像名必须全小写；github.repository 会保留仓库名大小写。
       - name: Compute image name
         run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/backend" >> "$GITHUB_ENV"
-      # main：sha + latest；v* tag：sha + 1.0.0 + 1.0（不覆盖 latest）。
+      # v* tag：sha + 1.0.0 + 1.0 + latest（预发布 tag 不更新 latest）。
       - uses: docker/metadata-action@v6
         id: meta
         with:
           images: ${{ env.IMAGE_NAME }}
-          # 关闭 semver 自动附加 latest；latest 只由 main 的 raw tag 产生。
+          # 关闭 semver 自动附加 latest，由下方 raw tag 显式控制。
           flavor: latest=false
           tags: |
             type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
       - uses: docker/login-action@v4
         if: github.event_name == 'push'
         with:
@@ -112,6 +113,6 @@ jobs:
         with:
           context: backend
           file: backend/Dockerfile
-          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

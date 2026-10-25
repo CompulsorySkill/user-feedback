@@ -113,8 +113,9 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
   其余静态文件回退到 `index.html`。
 - Caddy 证书与配置：`caddy-data` / `caddy-config` 卷；迁移前先备份。
 - RustFS 数据：`rustfs-data` 卷；Postgres 数据：`postgres-data` 卷。
-- 镜像 tag：`main` 推送生成 `latest` + `sha-<commit>`；`v*` Git tag 生成
-  `1.0.0`、`1.0` + `sha-<commit>`，tag 构建不会覆盖 `latest`。
+- 镜像构建仅由 `v*` Git tag 触发：生成 `1.0.0`、`1.0`、`sha-<commit>`，
+  稳定版同时更新 `latest`（预发布 tag 不更新）；普通 `main` push 不触发。
+- 发布新版本：`git tag -a v1.1.0 -m "v1.1.0" && git push origin v1.1.0`。
 - 镜像回滚：设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 到上一个 semver 或 `sha-*` tag，
   `docker compose pull && docker compose up -d`。
 - RustFS 容量告警仍需在宿主机 / 监控侧配置；清理任务只删除超过保留期且未被引用的对象。
