@@ -81,8 +81,23 @@ export interface ChangelogSummary {
   updated_at: string
 }
 
+export interface ChangelogAttachment {
+  id: number
+  object_key: string | null
+  filename: string
+  content_type: string
+  size: number
+  download_url: string
+}
+
+export interface ChangelogAttachmentInput {
+  object_key: string
+  filename: string
+}
+
 export interface ChangelogDetail extends ChangelogSummary {
   content: import('@/types/content').JSONContent
+  attachments: ChangelogAttachment[]
 }
 
 export interface Page<T> {
@@ -111,7 +126,12 @@ export interface UploadCleanupResult {
   errors: string[]
 }
 
-export type UploadPurpose = 'post_image' | 'post_video' | 'changelog_image' | 'changelog_video'
+export type UploadPurpose =
+  | 'post_image'
+  | 'post_video'
+  | 'changelog_image'
+  | 'changelog_video'
+  | 'changelog_attachment'
 
 export interface UploadTicket {
   object_key: string

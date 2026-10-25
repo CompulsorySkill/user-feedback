@@ -1,9 +1,10 @@
 import { api } from './client'
-import type { ChangelogDetail, ChangelogSummary, Page } from './types'
+import type { ChangelogAttachmentInput, ChangelogDetail, ChangelogSummary, Page } from './types'
 
 export interface ChangelogInput {
   title: string
   content: import('@/types/content').JSONContent
+  attachments?: ChangelogAttachmentInput[]
 }
 
 export function listChangelogs(

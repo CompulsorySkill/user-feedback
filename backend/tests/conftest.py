@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.api.deps import get_storage_backend
 from app.core.config import settings
 from app.core.db import get_session
-from app.core.storage import PresignedUpload
+from app.core.storage import PresignedUpload, StorageObject
 from app.main import app
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -97,6 +97,7 @@ class FakeStorage:
 
     def __init__(self) -> None:
         self.deleted: list[str] = []
+        self.objects: dict[str, bytes] = {}
 
     def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload:
         return PresignedUpload(
@@ -108,6 +109,18 @@ class FakeStorage:
 
     def delete_object(self, object_key: str) -> None:
         self.deleted.append(object_key)
+
+    def open_object(self, object_key: str) -> StorageObject:
+        from io import BytesIO
+
+        if object_key not in self.objects:
+            raise FileNotFoundError(object_key)
+        data = self.objects[object_key]
+        return StorageObject(
+            body=BytesIO(data),
+            content_type="application/octet-stream",
+            content_length=len(data),
+        )
 
 
 # --------------------------------------------------------------------------- #

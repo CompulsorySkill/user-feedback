@@ -50,8 +50,8 @@ pnpm format:check   # 校验格式（CI 使用）
 | `/admin/audit` | 审计日志：管理操作流水、动作筛选、预演/执行未引用上传对象清理（仅管理员） |
 | `/login` | 登录：SSO token 粘贴 + 开发环境快速登录 |
 | `/changelog` | 已发布更新日志；管理员可见草稿与「新建」入口 |
-| `/changelog/:id` | 更新日志详情 |
-| `/changelog/new`、`/changelog/:id/edit` | 管理更新日志（仅管理员，非管理员 404） |
+| `/changelog/:id` | 更新日志详情；附件列表走后端受控下载 |
+| `/changelog/new`、`/changelog/:id/edit` | 管理更新日志（仅管理员，非管理员 404）；支持上传任意类型附件（单个 ≤100MB，最多 10 个） |
 
 ## 单元测试
 
@@ -62,7 +62,8 @@ pnpm format:check   # 校验格式（CI 使用）
 - `tests/api/client.spec.ts`：`{ detail, code }` 错误、204、`X-Session-Expired` refresh 重放与失败降级
 - `tests/components/PostFeed.spec.ts`：首次加载、URL 初始标签、点击标签写入路由
 - `tests/components/TagPicker.spec.ts`：建议标签、自定义标签、去重与数量上限
-- `tests/utils/date.spec.ts`、`tests/utils/audit.spec.ts`：日期与审计动作展示
+- `tests/utils/date.spec.ts`、`tests/utils/audit.spec.ts`、`tests/utils/format.spec.ts`：日期、审计动作与文件大小
+- `tests/composables/useUpload.spec.ts`：附件任意类型上传、空 MIME 兜底与非媒体类型拒绝
 
 ```bash
 pnpm test

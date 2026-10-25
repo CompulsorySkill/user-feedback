@@ -21,13 +21,32 @@ class ChangelogSummary(UTCModel):
     updated_at: datetime
 
 
+class ChangelogAttachmentInput(BaseModel):
+    object_key: str = Field(min_length=1, max_length=255, pattern=r"^uploads/")
+    filename: str = Field(min_length=1, max_length=255)
+
+
+class ChangelogAttachment(BaseModel):
+    id: int
+    # 编辑需要 object_key；公开响应中不暴露，避免绕过下载接口直连存储。
+    object_key: str | None = None
+    filename: str
+    content_type: str
+    size: int
+    download_url: str
+
+
 class ChangelogDetail(ChangelogSummary):
     content: dict[str, Any]
+    attachments: list[ChangelogAttachment] = Field(default_factory=list)
 
 
 class ChangelogCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     content: dict[str, Any]
+    attachments: list[ChangelogAttachmentInput] = Field(
+        default_factory=list, max_length=10
+    )
 
     @field_validator("title")
     @classmethod
@@ -41,6 +60,9 @@ class ChangelogCreateRequest(BaseModel):
 class ChangelogUpdateRequest(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     content: dict[str, Any] | None = None
+    attachments: list[ChangelogAttachmentInput] | None = Field(
+        default=None, max_length=10
+    )
 
     @field_validator("title")
     @classmethod

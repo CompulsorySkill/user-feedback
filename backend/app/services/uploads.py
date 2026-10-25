@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from app.core.config import settings
 from app.core.errors import AppException
-from app.core.identity import Identity
+from app.core.identity import AuthenticatedUser, Identity
 from app.core.storage import StorageBackend, build_object_key
 from app.models import Upload
 from app.schemas.upload import (
@@ -25,9 +25,16 @@ class UploadService:
     ) -> UploadPresignResponse:
         if identity is None:
             raise AppException(403, code="IDENTITY_REQUIRED", detail="缺少身份")
+        if payload.purpose == "changelog_attachment" and not (
+            isinstance(identity, AuthenticatedUser) and identity.is_admin
+        ):
+            raise AppException(
+                403, code="ADMIN_REQUIRED", detail="只有管理员可以上传更新日志附件"
+            )
         content_type = payload.content_type.strip().lower()
         allowed_types = PURPOSE_CONTENT_TYPES[payload.purpose]
-        if content_type not in allowed_types:
+        # 空元组 = 任意类型（更新日志附件）。
+        if allowed_types and content_type not in allowed_types:
             raise AppException(
                 415,
                 code="UNSUPPORTED_MEDIA_TYPE",
@@ -41,8 +48,14 @@ class UploadService:
             )
 
         object_key = build_object_key(content_type)
+        # 附件强制以 octet-stream 存储，避免 text/html、SVG 等被浏览器直接执行。
+        presign_content_type = (
+            "application/octet-stream"
+            if payload.purpose == "changelog_attachment"
+            else content_type
+        )
         presigned = self.storage.presign_put(
-            object_key=object_key, content_type=content_type
+            object_key=object_key, content_type=presign_content_type
         )
 
         self.session.add(

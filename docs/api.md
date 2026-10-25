@@ -125,10 +125,33 @@ keyset 分页。响应：
 { "filename": "cover.png", "content_type": "image/png", "purpose": "post_image", "size": 123456 }
 ```
 
-- purpose：`post_image` / `post_video` / `changelog_image` / `changelog_video`
+- purpose：`post_image` / `post_video` / `changelog_image` / `changelog_video` / `changelog_attachment`
 - 图片：PNG / JPEG / WebP / GIF；视频：仅 `video/mp4`；单文件 ≤ `UPLOAD_MAX_BYTES`（默认 100MB）
+- `changelog_attachment` 仅管理员可用，**不限制 content-type**；对象以 `application/octet-stream` 存储，
+  下载走受控接口并强制 `Content-Disposition: attachment`
 - 返回 `object_key`、`upload_url`、`method: "PUT"`、`headers`
 - 浏览器 `PUT` 时必须原样携带返回的 `Content-Type`（参与 SigV4 签名）；`object_key` 由服务端生成
+
+### 更新日志附件
+
+创建 / 编辑更新日志时传 `attachments`（最多 10 个），先通过 presign 上传，再提交元数据：
+
+```json
+{
+  "title": "v1.1 发布说明",
+  "content": { "type": "doc", "content": [] },
+  "attachments": [
+    { "object_key": "uploads/<uuid>.bin", "filename": "release.zip" }
+  ]
+}
+```
+
+- 附件必须是**当前管理员**的 `Upload`，且 purpose 为 `changelog_attachment`；否则 400 `INVALID_ATTACHMENT`
+- `filename` 仅作下载展示，服务端会去掉路径与控制字符；真实类型 / 大小取自 Upload 记录
+- 附件下载：`GET /v1/changelogs/{id}/attachments/{attachment_id}`
+  - 强制 `application/octet-stream` + `attachment`，防止 HTML/SVG 等在同源内联执行
+  - 草稿附件仅管理员可下载；已发布日志的附件公开可下载
+  - 公开详情响应不返回 `object_key`，避免绕过受控下载接口
 
 ### 富文本校验
 
@@ -142,7 +165,7 @@ keyset 分页。响应：
 `POST /api/v1/admin/uploads/cleanup?dry_run=false&grace_hours=24`（管理员）
 
 - 扫描 `uploads` 表中创建超过 `grace_hours`（默认 24，最大 720）的记录；
-- 只保留在反馈 / 更新日志富文本中出现的 object key；
+- 只保留在反馈 / 更新日志富文本或 `changelog_attachments` 中出现的 object key；
 - 未引用对象从 RustFS 删除，并删除对应 `Upload` 行；单次最多删除 200 条，
   但会继续向后扫描（已引用记录不会阻塞后续孤儿对象）；
 - `dry_run=true` 只返回可清理数量，不删除任何对象；
@@ -200,9 +223,10 @@ keyset 分页。响应：
 | POST / DELETE | `/v1/posts/{id}/vote` | 匿名 / 登录 |
 | GET | `/v1/posts/{id}/comments` | 公开 |
 | POST | `/v1/posts/{id}/comments` | 匿名 / 登录 |
-| POST | `/v1/uploads/presign` | 匿名 / 登录 |
+| POST | `/v1/uploads/presign` | 图片 / 视频：匿名 / 登录；更新日志附件：仅管理员 |
 | GET | `/v1/changelogs`、`/v1/changelogs/{id}` | 公开；草稿仅管理员 |
-| POST / PATCH / DELETE | `/v1/changelogs[/{id}]` | 管理员 |
+| POST / PATCH / DELETE | `/v1/changelogs[/{id}]` | 管理员；请求可带 `attachments` |
+| GET | `/v1/changelogs/{id}/attachments/{attachment_id}` | 公开（草稿仅管理员）；强制下载 |
 | POST | `/v1/changelogs/{id}/publish`、`/unpublish` | 管理员 |
 | GET | `/sso/jwt?token=&return_to=` | 公开（产品侧跳转，失败降级匿名） |
 | POST | `/sso/jwt` | 公开；`{token, return_to}` 换取会话，返回 `redirect_to` |

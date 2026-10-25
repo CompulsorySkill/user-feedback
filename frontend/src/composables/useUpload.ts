@@ -19,8 +19,9 @@ export function useUpload() {
 
   async function upload(file: File, purpose: UploadPurpose): Promise<string | null> {
     error.value = ''
+    const isAttachment = purpose === 'changelog_attachment'
 
-    if (!ALLOWED_CONTENT_TYPES.has(file.type)) {
+    if (!isAttachment && !ALLOWED_CONTENT_TYPES.has(file.type)) {
       error.value = '仅支持 PNG / JPEG / WebP / GIF 图片与 MP4 视频'
       return null
     }
@@ -33,7 +34,7 @@ export function useUpload() {
     try {
       const ticket = await presignUpload({
         filename: file.name,
-        content_type: file.type,
+        content_type: file.type || 'application/octet-stream',
         purpose,
         size: file.size,
       })

@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { IconArrowLeft, IconEdit, IconLoader2, IconRefresh } from '@tabler/icons-vue'
+import {
+  IconArrowLeft,
+  IconDownload,
+  IconEdit,
+  IconFile,
+  IconLoader2,
+  IconRefresh,
+} from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { getChangelog, publishChangelog, unpublishChangelog } from '@/api/changelogs'
 import type { ChangelogDetail } from '@/api/types'
 import RichTextRenderer from '@/components/RichTextRenderer.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils/date'
+import { formatBytes } from '@/utils/format'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -92,6 +100,28 @@ watch(() => route.params.id, load, { immediate: true })
         </header>
         <section class="rich-text">
           <RichTextRenderer :node="entry.content" />
+        </section>
+
+        <section v-if="entry.attachments.length" class="changelog-attachments">
+          <h2>附件</h2>
+          <a
+            v-for="attachment in entry.attachments"
+            :key="attachment.id"
+            :href="attachment.download_url"
+            :download="attachment.filename"
+            class="attachment-item"
+          >
+            <span class="attachment-icon">
+              <IconFile :size="18" :stroke-width="1.8" />
+            </span>
+            <span class="attachment-main">
+              <span class="attachment-name">{{ attachment.filename }}</span>
+              <span class="attachment-meta">
+                {{ attachment.content_type || '未知类型' }} · {{ formatBytes(attachment.size) }}
+              </span>
+            </span>
+            <IconDownload :size="16" :stroke-width="1.8" class="attachment-download" />
+          </a>
         </section>
       </article>
     </template>

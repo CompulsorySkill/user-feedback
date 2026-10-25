@@ -1,7 +1,7 @@
 """未引用上传对象清理。
 
 presign 会先写 ``uploads`` 记录，真正上传的 object key 只有在反馈 / 更新日志
-富文本里出现才算被引用。这里清理超过保留期仍未被引用的记录与 RustFS 对象，
+富文本或 ``changelog_attachments`` 里出现才算被引用。这里清理超过保留期仍未被引用的记录与 RustFS 对象，
 同时覆盖「presign 后从未上传」和「编辑内容后移除媒体」两种情况。
 
 注意：只删除数据库中有 presign 记录的对象，不做 bucket 全量扫描，避免误删
@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.storage import StorageBackend
-from app.models import ChangelogEntry, Post, Upload
+from app.models import ChangelogAttachment, ChangelogEntry, Post, Upload
 from app.schemas.audit import UploadCleanupResult
 
 MAX_BATCH = 200
@@ -46,6 +46,14 @@ class UploadCleanupService:
                 for key in keys:
                     if key in text:
                         referenced.add(key)
+
+        # 更新日志附件不在 content JSON 中，必须单独计入引用。
+        attachment_rows = await self.session.execute(
+            select(ChangelogAttachment.object_key).where(
+                ChangelogAttachment.object_key.in_(keys)
+            )
+        )
+        referenced.update(attachment_rows.scalars().all())
         return referenced
 
     async def run(

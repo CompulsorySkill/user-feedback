@@ -8,7 +8,7 @@ FastAPI + SQLAlchemy 2.x（async）+ Alembic。schema 唯一权威是 Alembic，
 app/
   api/          路由层（/api/health、/api/v1/*）
   core/         config / db / errors / pagination / identity / rate_limit / storage
-  models/       SQLAlchemy 模型（11 张表）
+  models/       SQLAlchemy 模型（12 张表）
   schemas/      Pydantic v2 请求 / 响应模式
   services/     业务规则（公开性、分页、匿名写、富文本校验、投票）
   repositories/ 数据访问（SQLAlchemy 查询）
@@ -70,9 +70,10 @@ uv run python -m scripts.cleanup_uploads             # 删除记录 + 对象
 | GET | `/api/v1/posts/{id}` | 反馈详情，私有看板内反馈同样 404 |
 | POST | `/api/v1/posts/{id}/vote` | 匿名投票（幂等；`closed` → 403 `POST_CLOSED`） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
-| POST | `/api/v1/uploads/presign` | presigned PUT（图片 4 种类型 / `video/mp4`，≤100MB） |
+| POST | `/api/v1/uploads/presign` | presigned PUT（图片 / MP4；附件任意类型仅管理员，≤100MB） |
 | GET | `/api/v1/changelogs` | 已发布；管理员可用 `include_drafts=true` |
-| GET | `/api/v1/changelogs/{id}` | 草稿 → 404（非管理员） |
+| GET | `/api/v1/changelogs/{id}` | 草稿 → 404（非管理员）；含附件元数据 |
+| GET | `/api/v1/changelogs/{id}/attachments/{attachment_id}` | 下载附件；草稿仅管理员，强制 attachment |
 | GET | `/api/v1/auth/capabilities` | 登录能力（是否开放开发快速登录） |
 | POST | `/api/v1/auth/dev-login` | 仅 development 环境；生产 404 |
 
@@ -82,11 +83,15 @@ uv run python -m scripts.cleanup_uploads             # 删除记录 + 对象
 
 - **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
 - **上传**：`POST /uploads/presign` 校验 purpose / content-type / size 后，用公网同域 endpoint（`RUSTFS_ENDPOINT_PUBLIC`）+ path-style + `s3v4` 生成 URL，并写入 `Uploads` 归属；key 由服务端生成（`uploads/{uuid}.<ext>`）。
+- **更新日志附件**：`changelog_attachment` purpose 仅管理员可用，不限制 content-type；对象按
+  `application/octet-stream` 存储，附件表记录原文件名/类型/大小。下载接口强制
+  `Content-Disposition: attachment`，草稿附件仅管理员可访问；公开详情不返回 object_key。
 - **富文本校验**：`doc` 顶层、深度 ≤ 8、节点 ≤ 2000；`image` / `video` 的 `src` 必须是当前身份的 `Upload` 记录且 purpose/类型匹配，否则 400 `INVALID_CONTENT`。
 - **限流**：`rate_limit_counters` 固定窗口 UPSERT，vote 20/min、post 5/10min、comment 10/min；每小时清理 1 小时前的窗口。
 - **投票**：匿名唯一索引去重，计数与投票同事务维护；`closed` 与关闭访客投票的看板直接拒绝。
-- **上传清理**：`Upload` 仅代表 presign 归属；清理任务扫描反馈 / 更新日志 JSON，删除超过
-  `UPLOAD_CLEANUP_GRACE_HOURS`（默认 24）仍未被引用的 RustFS 对象与 `Upload` 行。
+- **上传清理**：`Upload` 仅代表 presign 归属；清理任务扫描反馈 / 更新日志 JSON 与
+  `changelog_attachments`，删除超过 `UPLOAD_CLEANUP_GRACE_HOURS`（默认 24）仍未被引用的
+  RustFS 对象与 `Upload` 行。
 
 ## SSO / 会话 / 权限（P3）
 
@@ -129,7 +134,7 @@ P4 已在本机 Postgres 16.9 上实跑 `upgrade head → downgrade base → upg
 uv run pytest -q
 ```
 
-用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留、标签与站点配置。A2–A5 另覆盖会话过期标记与 refresh、POST SSO、合并失败降级、生产配置校验、Secure cookie、SSO 密钥轮换与 ADMIN_EMAILS 升降级。当前 **132 passed**。
+用例覆盖：`/api/health`、初始迁移与降级、Vote 部分唯一索引、Post 状态约束、P1 读路径（公开性过滤 / keyset 分页 / 草稿隐藏 / 时间序列化）、P2 写路径（匿名 cookie 签名与复用、presign 类型与大小校验、发帖媒体归属、伪造 src 拒绝、投票幂等与关闭校验、post/vote 限流）、P3（SSO/角色/return_to/刷新/登出、匿名合并、状态机、编辑冻结、更新日志生命周期、评论层级与限流）、P4 加固（安全头、SSO token 日志脱敏、限流清理、富文本白名单/体积/危险链接、跨身份媒体、管理员重开），以及列表状态筛选 / 最热排序与游标 / 开发快速登录 / 作者编辑与历史媒体保留、标签与站点配置。A2–A5 另覆盖会话过期标记与 refresh、POST SSO、合并失败降级、生产配置校验、Secure cookie、SSO 密钥轮换与 ADMIN_EMAILS 升降级。当前 **137 passed**。
 
 ## Docker
 

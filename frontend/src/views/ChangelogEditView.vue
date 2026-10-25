@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
+import {
+  IconArrowLeft,
+  IconFile,
+  IconLoader2,
+  IconPaperclip,
+  IconSend,
+  IconX,
+} from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import {
   createChangelog,
@@ -11,11 +18,24 @@ import {
   unpublishChangelog,
   updateChangelog,
 } from '@/api/changelogs'
+import type { ChangelogAttachmentInput } from '@/api/types'
 import PostEditor from '@/components/PostEditor.vue'
+import { useUpload } from '@/composables/useUpload'
 import type { JSONContent } from '@/types/content'
+import { formatBytes } from '@/utils/format'
+
+const MAX_ATTACHMENTS = 10
+
+interface AttachmentDraft extends ChangelogAttachmentInput {
+  size?: number
+  content_type?: string
+}
 
 const route = useRoute()
 const router = useRouter()
+const { uploading: attachmentUploading, error: attachmentError, upload } = useUpload()
+const attachments = ref<AttachmentDraft[]>([])
+const attachmentInput = ref<HTMLInputElement | null>(null)
 
 const editingId = computed(() => {
   const id = route.params.id
@@ -39,6 +59,18 @@ async function load(): Promise<void> {
     title.value = entry.title
     initialContent.value = entry.content
     published.value = entry.is_published
+    attachments.value = entry.attachments.flatMap((attachment) =>
+      attachment.object_key
+        ? [
+            {
+              object_key: attachment.object_key,
+              filename: attachment.filename,
+              size: attachment.size,
+              content_type: attachment.content_type,
+            },
+          ]
+        : [],
+    )
   } catch (err) {
     loadError.value = err instanceof ApiError ? err.message : '加载失败'
   } finally {
@@ -50,11 +82,44 @@ function payload() {
   const content = editorRef.value?.getJSON()
   if (!title.value.trim()) throw new Error('请填写标题')
   if (!content || editorRef.value?.isEmpty()) throw new Error('请填写正文')
-  return { title: title.value.trim(), content: content as JSONContent }
+  return {
+    title: title.value.trim(),
+    content: content as JSONContent,
+    attachments: attachments.value.map(({ object_key, filename }) => ({
+      object_key,
+      filename,
+    })),
+  }
+}
+
+async function addAttachments(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  if (!files.length) return
+  attachmentError.value = ''
+  for (const file of files) {
+    if (attachments.value.length >= MAX_ATTACHMENTS) {
+      attachmentError.value = `最多添加 ${MAX_ATTACHMENTS} 个附件`
+      break
+    }
+    const objectKey = await upload(file, 'changelog_attachment')
+    if (!objectKey) break
+    attachments.value.push({
+      object_key: objectKey,
+      filename: file.name,
+      size: file.size,
+      content_type: file.type || 'application/octet-stream',
+    })
+  }
+}
+
+function removeAttachment(index: number): void {
+  attachments.value.splice(index, 1)
 }
 
 async function save(publishAfter = false): Promise<void> {
-  if (submitting.value || uploading.value) return
+  if (submitting.value || uploading.value || attachmentUploading.value) return
   submitting.value = true
   error.value = ''
   try {
@@ -139,6 +204,49 @@ onMounted(load)
           />
         </div>
 
+        <div class="field">
+          <span class="field-label">附件</span>
+          <div class="attachment-picker">
+            <input ref="attachmentInput" type="file" multiple hidden @change="addAttachments" />
+            <button
+              type="button"
+              class="button button-ghost button-small"
+              :disabled="attachmentUploading || attachments.length >= MAX_ATTACHMENTS"
+              @click="attachmentInput?.click()"
+            >
+              <IconLoader2 v-if="attachmentUploading" class="spin" :size="14" :stroke-width="2" />
+              <IconPaperclip v-else :size="14" :stroke-width="2" />
+              {{ attachmentUploading ? '上传中…' : '添加附件' }}
+            </button>
+            <span class="attachment-hint">
+              任意类型文件，单个不超过 100MB，最多 {{ MAX_ATTACHMENTS }} 个
+            </span>
+          </div>
+
+          <ul v-if="attachments.length" class="attachment-edit-list">
+            <li
+              v-for="(attachment, index) in attachments"
+              :key="attachment.object_key"
+              class="attachment-edit-item"
+            >
+              <IconFile :size="16" :stroke-width="1.8" />
+              <span class="attachment-name">{{ attachment.filename }}</span>
+              <span v-if="attachment.size" class="attachment-meta">
+                {{ formatBytes(attachment.size) }}
+              </span>
+              <button
+                type="button"
+                class="attachment-remove"
+                :aria-label="`移除附件 ${attachment.filename}`"
+                @click="removeAttachment(index)"
+              >
+                <IconX :size="14" :stroke-width="2" />
+              </button>
+            </li>
+          </ul>
+          <p v-if="attachmentError" class="inline-error">{{ attachmentError }}</p>
+        </div>
+
         <p v-if="error" class="inline-error">{{ error }}</p>
 
         <div class="compose-actions">
@@ -161,7 +269,11 @@ onMounted(load)
             >
               {{ published ? '撤回发布' : '发布' }}
             </button>
-            <button type="submit" class="button button-primary" :disabled="submitting || uploading">
+            <button
+              type="submit"
+              class="button button-primary"
+              :disabled="submitting || uploading || attachmentUploading"
+            >
               <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               保存

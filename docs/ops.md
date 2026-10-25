@@ -121,7 +121,7 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
 
 ## 8. 上传对象清理
 
-presign 会先写 `uploads` 记录，只有在反馈 / 更新日志富文本中出现过的 object key 才算被引用。
+presign 会先写 `uploads` 记录，只有在反馈 / 更新日志富文本或更新日志附件表中出现过的 object key 才算被引用。
 超过 `UPLOAD_CLEANUP_GRACE_HOURS`（默认 24 小时）仍未引用的对象会被清理，覆盖：
 
 - presign 后浏览器从未成功 PUT；

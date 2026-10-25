@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import delete, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import Cursor
-from app.models import ChangelogEntry
+from app.models import ChangelogAttachment, ChangelogEntry
 
 
 class ChangelogRepository:
@@ -43,3 +43,34 @@ class ChangelogRepository:
         if not include_drafts:
             stmt = stmt.where(ChangelogEntry.is_published.is_(True))
         return await self.session.scalar(stmt)
+
+    async def list_attachments(
+        self, changelog_id: uuid.UUID
+    ) -> list[ChangelogAttachment]:
+        rows = await self.session.execute(
+            select(ChangelogAttachment)
+            .where(ChangelogAttachment.changelog_id == changelog_id)
+            .order_by(ChangelogAttachment.id.asc())
+        )
+        return list(rows.scalars().all())
+
+    async def get_attachment(
+        self, changelog_id: uuid.UUID, attachment_id: int
+    ) -> ChangelogAttachment | None:
+        return await self.session.scalar(
+            select(ChangelogAttachment).where(
+                ChangelogAttachment.id == attachment_id,
+                ChangelogAttachment.changelog_id == changelog_id,
+            )
+        )
+
+    async def replace_attachments(
+        self, changelog_id: uuid.UUID, attachments: list[ChangelogAttachment]
+    ) -> None:
+        await self.session.execute(
+            delete(ChangelogAttachment).where(
+                ChangelogAttachment.changelog_id == changelog_id
+            )
+        )
+        if attachments:
+            self.session.add_all(attachments)

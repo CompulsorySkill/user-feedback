@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Query, Request, Response
 from fastapi import status as http_status
+from fastapi.responses import StreamingResponse
 
-from app.api.deps import AdminUserDep, AuditServiceDep, ChangelogServiceDep, IdentityDep
+from app.api.deps import (
+    AdminUserDep,
+    AuditServiceDep,
+    ChangelogServiceDep,
+    IdentityDep,
+    StorageDep,
+)
+from app.core.errors import AppException
 from app.core.identity import AuthenticatedUser
 from app.schemas.changelog import (
     ChangelogCreateRequest,
@@ -27,6 +37,31 @@ CursorQuery = Annotated[str | None, Query(description="上一页返回的 next_c
 
 def _is_admin(identity) -> bool:
     return isinstance(identity, AuthenticatedUser) and identity.is_admin
+
+
+def _content_disposition(filename: str) -> str:
+    fallback = (
+        "".join(
+            char if 32 <= ord(char) < 127 and char not in '"\\' else "_"
+            for char in filename
+        )
+        or "attachment"
+    )
+    return (
+        f'attachment; filename="{fallback}"; '
+        f"filename*=UTF-8''{quote(filename, safe='')}"
+    )
+
+
+async def _stream_object(body: Any):
+    try:
+        while True:
+            chunk = await asyncio.to_thread(body.read, 64 * 1024)
+            if not chunk:
+                break
+            yield chunk
+    finally:
+        await asyncio.to_thread(body.close)
 
 
 @router.get("", response_model=Page[ChangelogSummary], summary="更新日志列表")
@@ -64,7 +99,11 @@ async def create_changelog(
         actor=admin,
         target_type="changelog",
         target_id=entry.id,
-        detail={"title": entry.title, "is_published": entry.is_published},
+        detail={
+            "title": entry.title,
+            "is_published": entry.is_published,
+            "attachment_count": len(entry.attachments),
+        },
         ip=request_ip(request),
     )
     return entry
@@ -77,6 +116,41 @@ async def get_changelog(
     service: ChangelogServiceDep,
 ) -> ChangelogDetail:
     return await service.get(changelog_id, viewer_is_admin=_is_admin(identity))
+
+
+@router.get(
+    "/{changelog_id}/attachments/{attachment_id}",
+    summary="下载更新日志附件",
+)
+async def download_attachment(
+    changelog_id: uuid.UUID,
+    attachment_id: int,
+    identity: IdentityDep,
+    service: ChangelogServiceDep,
+    storage: StorageDep,
+) -> StreamingResponse:
+    attachment = await service.get_attachment(
+        changelog_id,
+        attachment_id,
+        viewer_is_admin=_is_admin(identity),
+    )
+    try:
+        stored = await asyncio.to_thread(storage.open_object, attachment.object_key)
+    except FileNotFoundError:
+        raise AppException(
+            404, code="ATTACHMENT_NOT_FOUND", detail="附件文件不存在"
+        ) from None
+
+    return StreamingResponse(
+        _stream_object(stored.body),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": _content_disposition(attachment.filename),
+            "Content-Length": str(stored.content_length or attachment.size),
+            "Cache-Control": "private, max-age=0, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.patch(
@@ -102,6 +176,8 @@ async def update_changelog(
             "title": entry.title,
             "title_changed": payload.title is not None,
             "content_changed": payload.content is not None,
+            "attachments_changed": payload.attachments is not None,
+            "attachment_count": len(entry.attachments),
         },
         ip=request_ip(request),
     )

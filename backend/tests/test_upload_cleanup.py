@@ -12,6 +12,7 @@ from app.services.upload_cleanup import UploadCleanupService
 from tests.conftest import (
     FakeStorage,
     insert_board,
+    insert_changelog,
     insert_post,
     insert_upload,
     sqlite_url,
@@ -80,6 +81,40 @@ async def test_cleanup_keeps_referenced_and_deletes_orphan(
         async with sessionmaker() as session:
             keys = set((await session.execute(select(Upload.object_key))).scalars())
         assert keys == {"uploads/keep.png", "uploads/fresh.png"}
+    finally:
+        await engine.dispose()
+
+
+async def test_cleanup_keeps_changelog_attachment(db_path, sqlite_conn) -> None:
+    changelog_id = insert_changelog(
+        sqlite_conn,
+        title="带附件的更新日志",
+        created_at=NOW - timedelta(hours=2),
+    )
+    insert_upload(
+        sqlite_conn,
+        object_key="uploads/release.zip",
+        created_at=NOW - timedelta(hours=48),
+        purpose="changelog_attachment",
+        content_type="application/zip",
+    )
+    sqlite_conn.execute(
+        "INSERT INTO changelog_attachments"
+        " (changelog_id, object_key, filename, content_type, size)"
+        " VALUES (?, 'uploads/release.zip', 'release.zip', 'application/zip', 10)",
+        (changelog_id,),
+    )
+    sqlite_conn.commit()
+
+    engine = create_async_engine(sqlite_url(db_path))
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    storage = FakeStorage()
+    try:
+        async with sessionmaker() as session:
+            result = await UploadCleanupService(session, storage).run(grace_hours=24)
+        assert result.referenced == 1
+        assert result.deleted == 0
+        assert storage.deleted == []
     finally:
         await engine.dispose()
 

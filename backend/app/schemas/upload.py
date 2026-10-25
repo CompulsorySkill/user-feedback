@@ -7,7 +7,11 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 UploadPurpose = Literal[
-    "post_image", "post_video", "changelog_image", "changelog_video"
+    "post_image",
+    "post_video",
+    "changelog_image",
+    "changelog_video",
+    "changelog_attachment",
 ]
 
 IMAGE_CONTENT_TYPES = ("image/png", "image/jpeg", "image/webp", "image/gif")
@@ -18,6 +22,8 @@ PURPOSE_CONTENT_TYPES: dict[str, tuple[str, ...]] = {
     "changelog_image": IMAGE_CONTENT_TYPES,
     "post_video": VIDEO_CONTENT_TYPES,
     "changelog_video": VIDEO_CONTENT_TYPES,
+    # 空元组表示不限制 content-type，由更新日志附件专用。
+    "changelog_attachment": (),
 }
 
 

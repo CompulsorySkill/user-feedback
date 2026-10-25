@@ -107,7 +107,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | P0 骨架 | ✅ 本地 | Alembic 初始迁移（SQLite 已验证 / Postgres 方言离线渲染）、API 骨架与 `/api/health`、Vite + Vue 骨架；Docker Compose / Caddy 交付物见生产部署 |
 | P1 读路径 | ✅ 本地 | 看板 / 反馈 / 更新日志列表与详情、keyset 分页、Tiptap JSON 白名单渲染（含图片与 MP4）、匿名可读全部公开内容 |
 | P2 写路径 + 匿名 + 视频 | ✅ 本地 | 匿名签名 cookie、RustFS presign 直传（图片 / MP4）、匿名发帖、投票与取消、数据库限流、富文本媒体归属校验 |
-| P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写、3 层楼中楼评论 |
+| P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写与任意类型附件、3 层楼中楼评论 |
 | P4 加固 + CI | ✅ 本地 | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练、双 CI workflow（含 GHCR 镜像构建） |
 | 运营完善 | ✅ 本地 | 标签筛选（多选 OR）、审计日志（管理员操作留痕 + 查询页）、未引用上传对象清理（CLI + 管理员触发）、Vitest 前端单测替代浏览器脚本 |
 | Docker + Caddy 交付 | ✅ 配置交付 | 双镜像、Compose、Caddy 自动 HTTPS、GHCR 构建、部署文档；当前开发机无 Docker，运行验收待目标机执行 |
@@ -141,9 +141,10 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
 | GET | `/api/v1/posts/{id}/comments` | 评论扁平列表（含 `parent_id`） |
 | POST | `/api/v1/posts/{id}/comments` | 发表评论（≤3 层，超出挂根并「回复 @xxx」） |
-| POST | `/api/v1/uploads/presign` | 获取 presigned PUT（图片 / MP4，≤100MB） |
+| POST | `/api/v1/uploads/presign` | 获取 presigned PUT（图片 / MP4，≤100MB）；更新日志附件支持任意类型（仅管理员） |
 | GET | `/api/v1/changelogs?limit=&cursor=` | 已发布更新日志列表；管理员可用 `include_drafts=true` |
-| POST/PATCH/DELETE | `/api/v1/changelogs[/{id}]` | 更新日志写（仅管理员） |
+| POST/PATCH/DELETE | `/api/v1/changelogs[/{id}]` | 更新日志写（仅管理员）；可携带最多 10 个附件 |
+| GET | `/api/v1/changelogs/{id}/attachments/{attachment_id}` | 下载附件（草稿仅管理员，强制 attachment） |
 | POST | `/api/v1/changelogs/{id}/publish`、`/unpublish` | 发布 / 撤回（仅管理员） |
 | GET | `/api/sso/jwt?token=&return_to=` | SSO 跳转登录（失败降级匿名） |
 | POST | `/api/sso/jwt` | SSO 登录（token 走 body，不进 URL） |

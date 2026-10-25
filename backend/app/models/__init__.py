@@ -4,6 +4,7 @@ from app.models.audit import AuditLog
 from app.models.base import Base
 from app.models.board import Board
 from app.models.changelog import ChangelogEntry
+from app.models.changelog_attachment import ChangelogAttachment
 from app.models.comment import Comment
 from app.models.post import Post
 from app.models.rate_limit import RateLimitCounter
@@ -16,6 +17,7 @@ __all__ = [
     "AuditLog",
     "Base",
     "Board",
+    "ChangelogAttachment",
     "ChangelogEntry",
     "Comment",
     "Post",

@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Protocol
+from typing import Any, Protocol
 
 import boto3
 from botocore.client import Config
@@ -35,14 +35,24 @@ class PresignedUpload:
     headers: dict[str, str] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class StorageObject:
+    body: Any
+    content_type: str | None
+    content_length: int | None
+
+
 class StorageBackend(Protocol):
     def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload: ...
 
     def delete_object(self, object_key: str) -> None: ...
 
+    def open_object(self, object_key: str) -> StorageObject: ...
+
 
 def build_object_key(content_type: str) -> str:
-    extension = EXTENSIONS.get(content_type, "")
+    # 非图片/视频（如更新日志附件）统一用 .bin，真实文件名保存在数据库。
+    extension = EXTENSIONS.get(content_type, ".bin")
     return f"uploads/{uuid.uuid4().hex}{extension}"
 
 
@@ -104,6 +114,20 @@ class S3Storage:
             code = str(exc.response.get("Error", {}).get("Code", ""))
             if code not in {"NoSuchKey", "404", "NotFound"}:
                 raise
+
+    def open_object(self, object_key: str) -> StorageObject:
+        try:
+            response = self._admin.get_object(Bucket=self.bucket, Key=object_key)
+        except ClientError as exc:
+            code = str(exc.response.get("Error", {}).get("Code", ""))
+            if code in {"NoSuchKey", "404", "NotFound"}:
+                raise FileNotFoundError(object_key) from None
+            raise
+        return StorageObject(
+            body=response["Body"],
+            content_type=response.get("ContentType"),
+            content_length=response.get("ContentLength"),
+        )
 
 
 @lru_cache
