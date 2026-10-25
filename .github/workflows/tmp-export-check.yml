@@ -23,7 +23,7 @@ jobs:
           tar_file="frontend-check-arm64.tar"
           skopeo copy --override-os linux --override-arch arm64 \
             --authfile "$HOME/.docker/config.json" \
-            "docker://$image" "docker-archive:$tar_file:ref=$image"
+            "docker://$image" "docker-archive:$tar_file:$image"
           echo "--- tar entries ---"
           tar -tf "$tar_file" | head -5
           echo "--- manifest.json ---"
