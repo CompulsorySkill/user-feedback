@@ -117,6 +117,11 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
 - RustFS 数据：`rustfs-data` 卷；Postgres 数据：`postgres-data` 卷。
 - 镜像构建仅由 `v*` Git tag 触发：生成 `1.0.0`、`1.0`、`sha-<commit>`，
   稳定版同时更新 `latest`（预发布 tag 不更新）；普通 `main` push 不触发。
+  镜像为多架构（`linux/amd64` + `linux/arm64`）。
+- 构建完成后 workflow 会把两个架构的单架构镜像导出为 `backend-<版本>-linux-<架构>.tar.gz`
+  与 `frontend-<版本>-linux-<架构>.tar.gz`，附到同名 GitHub Release（Release 不存在时自动创建）。
+  离线部署：`docker load -i backend-1.0.2-linux-arm64.tar.gz`，加载后的镜像名为
+  `ghcr.io/<owner>/<repo>/backend:1.0.2`，可直接用作 `BACKEND_IMAGE`。
 - 发布新版本：`git tag -a v1.1.0 -m "v1.1.0" && git push origin v1.1.0`。
 - 镜像回滚：设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 到上一个 semver 或 `sha-*` tag，
   `docker compose pull && docker compose up -d`。

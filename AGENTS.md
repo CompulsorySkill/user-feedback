@@ -227,6 +227,8 @@ uv run alembic check
   2. 提交；
   3. 打 tag 并推送：`git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`。
 - 稳定 tag 生成 `X.Y.Z`、`X.Y`、`sha-<commit>` 和 `latest`；预发布 tag 不更新 `latest`。
+  镜像为多架构（`linux/amd64` + `linux/arm64`），构建后两个架构的 `.tar.gz` 会自动附到同名
+  GitHub Release（不存在则创建）。
 - GHCR 镜像名必须全小写（workflow 已处理）。
 - 版本或 tag 未获明确要求时，不要自行打 tag、推送镜像或修改 `latest`。
 - 依赖变更必须同时提交锁文件：后端 `uv.lock`，前端 `pnpm-lock.yaml`。
