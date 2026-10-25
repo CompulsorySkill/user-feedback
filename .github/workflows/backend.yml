@@ -155,8 +155,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # release-assets 没有 checkout，必须显式指定仓库。
           tag="$GITHUB_REF_NAME"
-          gh release view "$tag" >/dev/null 2>&1 \
-            || gh release create "$tag" --title "$tag" --generate-notes --verify-tag \
-            || gh release view "$tag" >/dev/null
-          gh release upload "$tag" "backend-$VERSION-linux-${{ matrix.arch }}.tar.gz" --clobber
+          repo="$GITHUB_REPOSITORY"
+          gh release view "$tag" --repo "$repo" >/dev/null 2>&1 \
+            || gh release create "$tag" --repo "$repo" --title "$tag" --generate-notes --verify-tag \
+            || gh release view "$tag" --repo "$repo" >/dev/null
+          gh release upload "$tag" "backend-$VERSION-linux-${{ matrix.arch }}.tar.gz" --repo "$repo" --clobber
