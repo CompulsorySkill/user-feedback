@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     sso_return_to_default: str = "/"
     session_jwt_secret: str = ""
     admin_emails: str = ""
+    # 管理员邮箱 + 密码登录（开发与生产都可用）；留空则关闭该入口。
+    admin_password: str = ""
 
     # --- P2 起启用 ---
     rustfs_endpoint_internal: str = ""

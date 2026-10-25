@@ -34,6 +34,7 @@ def isolated_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "sso_secrets", [TEST_SSO_SECRET])
     monkeypatch.setattr(settings, "session_jwt_secret", TEST_SESSION_SECRET)
     monkeypatch.setattr(settings, "admin_emails", "")
+    monkeypatch.setattr(settings, "admin_password", "")
     monkeypatch.setattr(settings, "sso_return_to_default", "/")
     monkeypatch.setattr(settings, "rate_limit_enabled", True)
 

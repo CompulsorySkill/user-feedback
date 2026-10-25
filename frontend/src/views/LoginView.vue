@@ -3,7 +3,13 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { IconArrowLeft, IconLoader2, IconLogin } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import { devLogin, getAuthCapabilities, ssoLogin, type AuthCapabilities } from '@/api/auth'
+import {
+  adminLogin,
+  devLogin,
+  getAuthCapabilities,
+  ssoLogin,
+  type AuthCapabilities,
+} from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -18,6 +24,9 @@ const error = ref('')
 const token = ref('')
 const email = ref('admin@example.com')
 const name = ref('管理员')
+const adminEmail = ref('')
+const adminPassword = ref('')
+const adminName = ref('')
 
 const redirectTo = computed(() => {
   const raw = route.query.redirect
@@ -55,6 +64,32 @@ async function loginWithSso(): Promise<void> {
           ? 'SSO token 无效或已过期'
           : err.message
         : 'SSO 登录失败'
+  } finally {
+    submitting.value = false
+  }
+}
+
+function adminLoginError(err: unknown): string {
+  if (!(err instanceof ApiError)) return '管理员登录失败'
+  if (err.status === 401) return '管理员邮箱或密码不正确'
+  if (err.status === 404) return '未配置 ADMIN_EMAILS / ADMIN_PASSWORD，密码登录不可用'
+  return err.message
+}
+
+async function loginAsAdmin(): Promise<void> {
+  if (!adminEmail.value.trim() || !adminPassword.value || submitting.value) return
+  submitting.value = true
+  error.value = ''
+  try {
+    await adminLogin(
+      adminEmail.value.trim(),
+      adminPassword.value,
+      adminName.value.trim() || undefined,
+    )
+    await auth.hydrate()
+    await router.replace(redirectTo.value)
+  } catch (err) {
+    error.value = adminLoginError(err)
   } finally {
     submitting.value = false
   }
@@ -133,6 +168,31 @@ onMounted(load)
           <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
           <IconLogin v-else :size="16" :stroke-width="2" />
           使用 SSO token 登录
+        </button>
+      </section>
+
+      <section v-if="caps?.admin_login" class="login-card">
+        <h2>管理员登录</h2>
+        <label class="field">
+          <span class="field-label">管理员邮箱</span>
+          <input v-model="adminEmail" class="field-input" type="email" maxlength="320" />
+        </label>
+        <label class="field">
+          <span class="field-label">密码</span>
+          <input v-model="adminPassword" class="field-input" type="password" maxlength="128" />
+        </label>
+        <label class="field">
+          <span class="field-label">显示名（可选，留空将沿用账号已有昵称）</span>
+          <input v-model="adminName" class="field-input" maxlength="128" />
+        </label>
+        <button
+          class="button button-primary"
+          type="button"
+          :disabled="submitting"
+          @click="loginAsAdmin"
+        >
+          <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
+          进入管理员后台
         </button>
       </section>
 

@@ -7,6 +7,13 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 
+def normalize_email(value: str) -> str:
+    email = value.strip().lower()
+    if "@" not in email or email.startswith("@") or email.endswith("@"):
+        raise ValueError("邮箱格式不正确")
+    return email
+
+
 class UserInfo(BaseModel):
     id: int
     email: str
@@ -28,15 +35,19 @@ class DevLoginRequest(BaseModel):
     @field_validator("email")
     @classmethod
     def _validate_email(cls, value: str) -> str:
-        email = value.strip().lower()
-        if "@" not in email or email.startswith("@") or email.endswith("@"):
-            raise ValueError("邮箱格式不正确")
-        return email
+        return normalize_email(value)
+
+
+class AdminLoginRequest(DevLoginRequest):
+    """管理员邮箱 + 密码登录；显示名仍可选。"""
+
+    password: str = Field(min_length=1, max_length=128)
 
 
 class AuthCapabilities(BaseModel):
     sso: bool = True
     dev_login: bool
+    admin_login: bool = False
 
 
 class SSOLoginRequest(BaseModel):

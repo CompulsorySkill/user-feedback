@@ -58,6 +58,8 @@
 - 管理员可在 `/admin/tags` 维护**内置标签**；内置标签会出现在发布/编辑反馈的推荐列表中，普通标签不会。
 - 公开接口 `GET /tags` 默认只返回内置标签；`GET /tags?include_custom=true` 返回全部标签，
   供列表筛选器使用。管理员 `GET /admin/tags` 同样返回全部标签及使用数。
+- `post_count` 只统计**公开看板**的反馈；带 `board=<slug>` 时只统计该看板的反馈
+  （筛选器 badge 因此与当前看板一致，不再显示全站计数）。
 - 删除标签会从所有反馈上移除关联，但不会删除反馈本身。
 
 ### 标签筛选
@@ -208,7 +210,7 @@ keyset 分页。响应：
 | GET | `/v1/boards/{slug}/posts` | 公开 |
 | POST | `/v1/boards/{slug}/posts` | 匿名 / 登录；可带 `tags` |
 | GET | `/v1/site` | 公开（`APP_NAME`） |
-| GET | `/v1/tags` | 公开；内置标签（`include_custom=true` 含用户标签） |
+| GET | `/v1/tags` | 公开；内置标签（`include_custom=true` 含用户标签，`board=<slug>` 限定计数范围） |
 | GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
 | GET | `/v1/admin/audit-logs` | 管理员；审计日志 |
 | POST | `/v1/admin/uploads/cleanup` | 管理员；清理未引用上传对象 |
@@ -233,6 +235,7 @@ keyset 分页。响应：
 | GET | `/v1/auth/me`、`/capabilities` | 公开（按 cookie） |
 | POST | `/v1/auth/refresh`、`/logout` | 公开（按 cookie） |
 | POST | `/v1/auth/dev-login` | 仅 `ENVIRONMENT=development`；生产返回 404 |
+| POST | `/v1/auth/admin-login` | 公开；`{email, password, name?}`，邮箱需命中 `ADMIN_EMAILS`、密码比对 `ADMIN_PASSWORD`；未配置时 404，失败 401 `INVALID_CREDENTIALS`，10 次 / 5 分钟 / IP 限流 |
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。
 

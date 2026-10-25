@@ -61,7 +61,7 @@ pnpm dev
 
 本地联调 SSO：用 `deploy/.env` 里的密钥签发 5 分钟 token，再打开
 `/api/sso/jwt?token=<token>&return_to=/b/product`，登录成功后头部会显示用户名与管理员徽标。
-`ADMIN_EMAILS` 中的邮箱登录即为管理员。
+`ADMIN_EMAILS` 中的邮箱登录即为管理员；设置 `ADMIN_PASSWORD` 后也可在 `/login` 直接用邮箱 + 密码登录。
 
 ### 4. 测试
 
@@ -125,7 +125,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索、重复 `tag=` 标签筛选（OR） |
 | POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称、浏览器环境信息与标签（≤5 个） |
 | GET | `/api/v1/site` | 站点配置（当前为 `APP_NAME`） |
-| GET | `/api/v1/tags` | 内置标签列表（含使用数）；`include_custom=true` 返回全部标签，供筛选器使用 |
+| GET | `/api/v1/tags` | 内置标签列表（含使用数）；`include_custom=true` 返回全部标签，`board=<slug>` 把使用数限定在该看板 |
 | GET | `/api/v1/admin/tags` | 全部标签（管理员） |
 | POST | `/api/v1/admin/tags` | 新增内置标签（管理员） |
 | DELETE | `/api/v1/admin/tags/{id}` | 删除标签并从所有反馈移除（管理员） |
@@ -150,13 +150,14 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | POST | `/api/sso/jwt` | SSO 登录（token 走 body，不进 URL） |
 | GET/POST | `/api/v1/auth/me`、`/refresh`、`/logout` | 当前身份、刷新、登出 |
 | GET/POST | `/api/v1/auth/capabilities`、`/dev-login` | 登录能力；开发环境快速登录（生产 404） |
+| POST | `/api/v1/auth/admin-login` | 管理员邮箱 + 密码登录（开发与生产均可用，需 `ADMIN_EMAILS` + `ADMIN_PASSWORD`） |
 
 错误统一为 `{ "detail": ..., "code": ... }`；分页游标无效返回 400 `INVALID_CURSOR`，
 限流返回 429 `RATE_LIMITED`，伪造媒体引用返回 400 `INVALID_CONTENT`。
 
 权限矩阵、状态机、上传契约见 [docs/api.md](docs/api.md)；SSO 对接与管理员维护见 [docs/sso.md](docs/sso.md)。
 
-前端 `/login` 提供两种登录方式：SSO token 粘贴（生产可用）与开发环境快速登录（仅 `ENVIRONMENT=development`，邮箱命中 `ADMIN_EMAILS` 即管理员）。
+前端 `/login` 提供三种登录方式：SSO token 粘贴（生产可用）、管理员邮箱 + 密码登录（`ADMIN_EMAILS` + `ADMIN_PASSWORD`，开发与生产均可用，显示名可选）与开发环境快速登录（仅 `ENVIRONMENT=development`，邮箱命中 `ADMIN_EMAILS` 即管理员）。
 
 ## Postgres 迁移演练（P4）
 

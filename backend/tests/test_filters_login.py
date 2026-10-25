@@ -42,7 +42,11 @@ async def dev_login(client: AsyncClient, email: str):
 
 async def test_capabilities_and_dev_login(client: AsyncClient, dev_env) -> None:
     caps = await client.get("/api/v1/auth/capabilities")
-    assert caps.json() == {"sso": True, "dev_login": True}
+    assert caps.json() == {
+        "sso": True,
+        "dev_login": True,
+        "admin_login": False,
+    }
 
     response = await dev_login(client, "admin@example.com")
     assert response.status_code == 200

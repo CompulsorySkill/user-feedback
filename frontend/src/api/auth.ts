@@ -17,6 +17,7 @@ export interface AuthMe {
 export interface AuthCapabilities {
   sso: boolean
   dev_login: boolean
+  admin_login: boolean
 }
 
 export function getMe(): Promise<AuthMe> {
@@ -29,6 +30,11 @@ export function getAuthCapabilities(): Promise<AuthCapabilities> {
 
 export function devLogin(email: string, name?: string): Promise<AuthMe> {
   return api.post<AuthMe>('/v1/auth/dev-login', { email, name: name || null })
+}
+
+/** 管理员邮箱 + 密码登录；开发与生产均可用（需配置 ADMIN_EMAILS / ADMIN_PASSWORD）。 */
+export function adminLogin(email: string, password: string, name?: string): Promise<AuthMe> {
+  return api.post<AuthMe>('/v1/auth/admin-login', { email, password, name: name || null })
 }
 
 export function refreshSession(): Promise<AuthMe> {

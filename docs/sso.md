@@ -42,9 +42,13 @@
 3. 设置 `SSO_SECRETS='["new"]'` → 再次重启。
 4. 轮换期间旧 token 仍可验签；顺序为「新在前、旧在后」。
 
-## 5. 管理员维护（ADMIN_EMAILS）
+## 5. 管理员维护（ADMIN_EMAILS / ADMIN_PASSWORD）
 
-- 唯一授权路径：`ADMIN_EMAILS="alice@example.com,bob@example.com"`（逗号分隔，trim + 小写比较）。
+- 授权路径：`ADMIN_EMAILS="alice@example.com,bob@example.com"`（逗号分隔，trim + 小写比较）。
+- 设置 `ADMIN_PASSWORD` 后，开发与生产都可在 `/login` 用「管理员邮箱 + 密码」登录
+  （`POST /api/v1/auth/admin-login`）；显示名可留空，沿用账号已有昵称。
+  该接口按来源 IP 限流（10 次 / 5 分钟），密码错误只返回 401 `INVALID_CREDENTIALS`。
+- 生产环境不想开放密码登录时，把 `ADMIN_PASSWORD` 留空即可（只保留 SSO）。
 - 修改后**必须重启 backend**；下一次 SSO 登录或 access token 过期重登时生效。
 - 角色由本系统根据邮箱计算，与签发方无关。
 - 运维注意：清空该变量会导致无人可管理，请保留至少一个有效邮箱并纳入变更记录。
@@ -63,6 +67,7 @@
 
 前端提供 `/login` 登录页：
 
+- **管理员密码登录**：配置 `ADMIN_EMAILS` + `ADMIN_PASSWORD` 后可用（开发与生产均可用），显示名可选。
 - **开发快速登录**：`ENVIRONMENT=development` 时可用，输入邮箱直接签发会话；邮箱命中 `ADMIN_EMAILS` 即为管理员。生产环境该接口返回 404。
 - **SSO token 粘贴**：前端通过 `POST /api/sso/jwt` 提交 `{token, return_to}`，由后端下发
   HttpOnly 会话并返回 `redirect_to`；token 不会进入 URL / 浏览器历史。产品侧原有的
@@ -83,8 +88,9 @@ uv run python -c "import jwt,time; print(jwt.encode({'email':'admin@example.com'
 | POST | `/api/sso/jwt` | 提交 `{token, return_to}` 换取会话（推荐，token 不进 URL） |
 | GET | `/api/sso/jwt?token=&return_to=` | 产品侧跳转登录，失败降级匿名 |
 | GET | `/api/v1/auth/me` | 当前身份（登录用户 / 匿名 / 未识别） |
-| GET | `/api/v1/auth/capabilities` | 登录能力（是否开放开发快速登录） |
+| GET | `/api/v1/auth/capabilities` | 登录能力（是否开放开发快速登录 / 管理员密码登录） |
 | POST | `/api/v1/auth/dev-login` | 仅 development；生产 404 |
+| POST | `/api/v1/auth/admin-login` | `{email, password, name?}`：邮箱命中 `ADMIN_EMAILS` 且密码匹配 `ADMIN_PASSWORD` 即登录，未配置 404 |
 | POST | `/api/v1/auth/refresh` | 用 refresh cookie 轮换 access（同时轮换 refresh） |
 | POST | `/api/v1/auth/logout` | 清除会话 cookie |
 

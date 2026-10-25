@@ -22,6 +22,7 @@ RATE_LIMITS: dict[str, tuple[int, int]] = {
     "vote": (60, 20),
     "post": (600, 5),
     "comment": (60, 10),
+    "admin_login": (300, 10),
 }
 
 

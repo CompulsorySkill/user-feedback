@@ -13,6 +13,7 @@
 - [ ] `POSTGRES_PASSWORD` 足够强；`DATABASE_URL` 中的密码与之一致
 - [ ] `SSO_SECRETS` 至少一项，64 位 hex；`SESSION_JWT_SECRET` 独立随机值
 - [ ] `ADMIN_EMAILS` 至少保留一名有效管理员
+- [ ] `ADMIN_PASSWORD` 已设置（否则只能走 SSO）且足够强，或确认已改为空、只允许 SSO
 - [ ] `RUSTFS_ENDPOINT_PUBLIC` 与 `https://SITE_ADDRESS` 完全同源
 - [ ] `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` 已替换默认值
 - [ ] RustFS bucket 已执行 `docker compose run --rm backend python -m scripts.bootstrap_storage`
@@ -90,6 +91,7 @@ docker compose exec -T postgres psql -U feedback -d feedback_restore \
 - **SSO_SECRETS 轮换**：见 [sso.md](sso.md) 第 4 节（新密钥在前 → 通知签发方 → 等 ≥5 分钟 → 移除旧密钥）。
 - **SESSION_JWT_SECRET 轮换**：直接替换并重启，所有用户会话失效，需要重新 SSO 登录；建议低峰执行。
 - **ADMIN_EMAILS**：改环境变量并重启；下一次 SSO 登录或 access 过期重登时同步 role。
+- **ADMIN_PASSWORD**：改环境变量并重启；为空时关闭邮箱 + 密码登录（`/api/v1/auth/admin-login` 返回 404），只保留 SSO。
 
 ## 6. 健康检查与观测
 
