@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import { createPost, getBoard } from '@/api/boards'
+import { createPost, listBoards } from '@/api/boards'
 import { listBuiltinTags } from '@/api/tags'
 import type { Board, TagSummary } from '@/api/types'
 import PostEditor from '@/components/PostEditor.vue'
@@ -15,7 +15,17 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const boards = ref<Board[]>([])
 const board = ref<Board | null>(null)
+const boardSlug = ref('')
+const selectableBoards = computed(() =>
+  boards.value.filter(
+    (item) => item.allow_guest_posting || auth.isAuthenticated || item.slug === board.value?.slug,
+  ),
+)
+const canPost = computed(() =>
+  Boolean(board.value && (board.value.allow_guest_posting || auth.isAuthenticated)),
+)
 const loading = ref(true)
 const loadError = ref('')
 const title = ref('')
@@ -50,7 +60,18 @@ async function load(): Promise<void> {
   loading.value = true
   loadError.value = ''
   try {
-    board.value = await getBoard(String(route.params.slug ?? ''))
+    boards.value = await listBoards()
+    const routed = String(route.params.slug ?? '')
+    // 看板页进来沿用 URL；否则默认第一个可访客发布的看板。
+    const initial = routed
+      ? boards.value.find((item) => item.slug === routed)
+      : (boards.value.find((item) => item.allow_guest_posting) ?? boards.value[0])
+    if (!initial) {
+      loadError.value = routed ? '看板不存在或未公开。' : '还没有可发布的看板。'
+      return
+    }
+    board.value = initial
+    boardSlug.value = initial.slug
   } catch (error) {
     loadError.value =
       error instanceof ApiError
@@ -63,8 +84,15 @@ async function load(): Promise<void> {
   }
 }
 
+watch(boardSlug, (slug) => {
+  const next = boards.value.find((item) => item.slug === slug)
+  if (!next) return
+  board.value = next
+  void router.replace({ name: 'new-post-board', params: { slug } })
+})
+
 async function submit(): Promise<void> {
-  if (submitting.value || uploading.value || !board.value) return
+  if (submitting.value || uploading.value || !board.value || !canPost.value) return
 
   const trimmedTitle = title.value.trim()
   if (!trimmedTitle) {
@@ -116,16 +144,25 @@ onMounted(() => {
 
     <template v-else-if="board">
       <header class="page-header">
-        <p class="eyebrow">发布到 /{{ board.slug }}</p>
+        <p class="eyebrow">New feedback</p>
         <h1>发布反馈</h1>
         <p class="muted">匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。</p>
       </header>
 
-      <div v-if="!board.allow_guest_posting && !auth.isAuthenticated" class="notice notice-closed">
-        该看板已关闭匿名发布，请先登录后再发布。
+      <div v-if="!canPost" class="notice notice-closed">
+        该看板已关闭匿名发布，请先登录或改选其他看板。
       </div>
 
-      <form v-else class="compose" @submit.prevent="submit">
+      <form class="compose" @submit.prevent="submit">
+        <label class="field">
+          <span class="field-label">发布到</span>
+          <select v-model="boardSlug" class="field-input" aria-label="选择发布到哪个看板">
+            <option v-for="item in selectableBoards" :key="item.slug" :value="item.slug">
+              {{ item.name }}
+            </option>
+          </select>
+        </label>
+
         <div class="field">
           <span class="field-label">昵称（可选）</span>
           <input
@@ -167,7 +204,11 @@ onMounted(() => {
           </label>
           <div class="compose-buttons">
             <RouterLink :to="`/b/${board.slug}`" class="button button-ghost">取消</RouterLink>
-            <button class="button button-primary" type="submit" :disabled="submitting || uploading">
+            <button
+              class="button button-primary"
+              type="submit"
+              :disabled="submitting || uploading || !canPost"
+            >
               <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { IconLoader2, IconRefresh } from '@tabler/icons-vue'
+import { RouterLink } from 'vue-router'
+import { IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { listBoards } from '@/api/boards'
 import type { Board } from '@/api/types'
@@ -37,7 +38,7 @@ onMounted(load)
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <button type="button" class="button button-ghost button-small" @click="load">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
       </button>
     </div>
@@ -55,6 +56,10 @@ onMounted(load)
               <span>{{ boards.length }} 个看板</span>
             </div>
           </div>
+          <RouterLink to="/new" class="button button-primary">
+            <IconPlus :size="16" :stroke-width="2" />
+            发布反馈
+          </RouterLink>
         </header>
 
         <PostFeed show-board />

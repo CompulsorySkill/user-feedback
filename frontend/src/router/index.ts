@@ -16,8 +16,13 @@ const router = createRouter({
       component: () => import('@/views/BoardView.vue'),
     },
     {
-      path: '/b/:slug/new',
+      path: '/new',
       name: 'new-post',
+      component: () => import('@/views/NewPostView.vue'),
+    },
+    {
+      path: '/b/:slug/new',
+      name: 'new-post-board',
       component: () => import('@/views/NewPostView.vue'),
     },
     {
@@ -102,6 +107,7 @@ router.afterEach((to) => {
     feedback: '全部反馈',
     board: '看板',
     'new-post': '发布反馈',
+    'new-post-board': '发布反馈',
     post: '反馈详情',
     'post-edit': '编辑反馈',
     'admin-boards': '看板管理',
