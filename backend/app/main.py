@@ -7,8 +7,9 @@ import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_offline import FastAPIOffline
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -64,7 +65,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(
+    app = FastAPIOffline(
         title=settings.app_name,
         version=settings.app_version,
         lifespan=lifespan,

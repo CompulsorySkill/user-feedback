@@ -92,6 +92,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "boto3" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "fastapi-offline" },
     { name = "pyjwt" },
     { name = "sqlalchemy", extra = ["asyncio"] },
 ]
@@ -111,6 +112,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30" },
     { name = "boto3", specifier = ">=1.40" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.162.0" },
+    { name = "fastapi-offline", specifier = ">=1.7.7" },
     { name = "pyjwt", specifier = ">=2.10" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
 ]
@@ -344,6 +346,18 @@ dependencies = [
 sdist = { url = "https://mirrors.ustc.edu.cn/pypi/packages/c0/8a/2857421c2218426e9f7635f9796e4e4bb41116b4b96d2fdf0cf8ed9ab5ae/fastapi_cloud_cli-0.26.0.tar.gz", hash = "sha256:5fd64c26228c8ead803461e8b58ae64ffd586e960d97ab1fc848efac2d9539be", size = 126180, upload-time = "2026-09-10T16:52:14.522Z" }
 wheels = [
     { url = "https://mirrors.ustc.edu.cn/pypi/packages/30/96/0e527b3aa93c0ade8b4edc959eb064df49f816469d4781312374b4ce1bab/fastapi_cloud_cli-0.26.0-py3-none-any.whl", hash = "sha256:94029f92f3dc4289b376e1213f0d6cc7c30d4f32de7e47b5effc6dc754ab9ce9", size = 108653, upload-time = "2026-09-10T16:52:13.493Z" },
+]
+
+[[package]]
+name = "fastapi-offline"
+version = "1.7.7"
+source = { registry = "https://mirrors.ustc.edu.cn/pypi/simple" }
+dependencies = [
+    { name = "fastapi" },
+]
+sdist = { url = "https://mirrors.ustc.edu.cn/pypi/packages/15/a5/f650b565354d38f98211683a7b5c3578d450848421444799cb51da8e562f/fastapi_offline-1.7.7.tar.gz", hash = "sha256:aeeabe67dd40f867ab0fe64dd8de742949e36ba5f3ac6aeb055baef274ed91d0", size = 777678, upload-time = "2026-06-19T20:43:28.938Z" }
+wheels = [
+    { url = "https://mirrors.ustc.edu.cn/pypi/packages/8d/de/808ff88dac73c97ad32c653f92f6751ea5a0a211ae1dffd471125e63a31e/fastapi_offline-1.7.7-py3-none-any.whl", hash = "sha256:60c8399fd7d3e3b01510e14468709e3dea1a0e773ef920372d057392d736a1f9", size = 777007, upload-time = "2026-06-19T20:43:27.767Z" },
 ]
 
 [[package]]
