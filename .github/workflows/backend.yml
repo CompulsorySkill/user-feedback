@@ -150,7 +150,7 @@ jobs:
             --override-os linux --override-arch "${{ matrix.arch }}" \
             --authfile "$HOME/.docker/config.json" \
             "docker://$IMAGE_NAME:sha-$GITHUB_SHA" \
-            "docker-archive:$tar:ref=$IMAGE_NAME:$VERSION"
+            "docker-archive:$tar:$IMAGE_NAME:$VERSION"
           gzip -9 "$tar"
       # 同一个 Release 由两个 workflow 共同追加文件；已存在时直接追加。
       - name: Attach to GitHub Release
