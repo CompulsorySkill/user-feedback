@@ -28,13 +28,13 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "FeedLog"
-    app_version: str = "1.0.3"
+    app_version: str = "1.0.4"
     environment: str = "development"
 
     database_url: str = "sqlite+aiosqlite:///./feedback.db"
     sql_echo: bool = False
 
-    public_origin: str = "http://localhost:5173"
+    public_origin: str = ""
 
     # --- P3 起启用 ---
     sso_secrets: list[str] = []
@@ -46,7 +46,6 @@ class Settings(BaseSettings):
 
     # --- P2 起启用 ---
     rustfs_endpoint_internal: str = ""
-    rustfs_endpoint_public: str = ""
     rustfs_bucket: str = "storage"
     rustfs_access_key: str = ""
     rustfs_secret_key: str = ""
@@ -84,10 +83,10 @@ class Settings(BaseSettings):
             return self
 
         required = {
+            "PUBLIC_ORIGIN": self.public_origin,
             "SSO_SECRETS": self.sso_secrets,
             "SESSION_JWT_SECRET": self.session_jwt_secret,
             "RUSTFS_ENDPOINT_INTERNAL": self.rustfs_endpoint_internal,
-            "RUSTFS_ENDPOINT_PUBLIC": self.rustfs_endpoint_public,
             "RUSTFS_ACCESS_KEY": self.rustfs_access_key,
             "RUSTFS_SECRET_KEY": self.rustfs_secret_key,
         }

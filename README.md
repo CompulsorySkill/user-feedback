@@ -28,13 +28,12 @@ cp deploy/.env.example deploy/.env
 APP_NAME=FeedLog
 PUBLIC_ORIGIN=http://127.0.0.1:5173
 RUSTFS_ENDPOINT_INTERNAL=http://127.0.0.1:9000
-RUSTFS_ENDPOINT_PUBLIC=http://127.0.0.1:5173
 RUSTFS_ACCESS_KEY=...
 RUSTFS_SECRET_KEY=...
 ```
 
 `APP_NAME` 会同步到前端头部与浏览器标题，修改后重启后端并刷新页面即可。
-`RUSTFS_ENDPOINT_PUBLIC` 必须与浏览器实际访问的站点同源，否则 SigV4 签名对不上。
+上传 presign 直接用 `PUBLIC_ORIGIN`（必须等于浏览器实际访问的站点 origin，否则 SigV4 签名对不上）。
 
 ### 2. 后端
 
@@ -93,7 +92,7 @@ curl https://<SITE_ADDRESS>/api/health
 docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 24
 ```
 
-- Caddy 自动申请/续期 HTTPS 证书；本地无域名时可把 `SITE_ADDRESS` 设为 `:80`（同时把 `PUBLIC_ORIGIN`、`RUSTFS_ENDPOINT_PUBLIC` 改成对应的 `http://` 地址）。
+- Caddy 自动申请/续期 HTTPS 证书；本地无域名时可把 `SITE_ADDRESS` 设为 `:80`（同时把 `PUBLIC_ORIGIN` 改成对应的 `http://` 地址）。
 - `docker compose up -d --build` 在目标机构建 `backend` / `frontend` 镜像；也可在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 后，先 `docker login ghcr.io` 再 `docker compose pull && docker compose up -d`。
 - 只有推送 `v*` Git tag 才触发 Actions 构建：生成 `1.0.0`、`1.0`、`sha-<commit>` 和 `latest`（预发布 tag 不更新 `latest`）。**普通 push 到 `main` 不触发构建**，生产建议固定 `1.0.0`。
 - 迁移在 backend 启动命令中执行；多副本时应拆成独立的一次性任务。

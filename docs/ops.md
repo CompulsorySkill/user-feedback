@@ -9,12 +9,13 @@
 - [ ] `deploy/.env` 由 `.env.production.example` 复制并填好；`ENVIRONMENT=production`
 - [ ] `APP_NAME` 已按站点品牌修改（前端头部与浏览器标题读取此值）
 - [ ] `SITE_ADDRESS` 为真实域名，DNS 已指向目标机，公网开放 TCP 80/443 与 UDP 443
+  （裸 IP HTTPS 见 §2 的说明，改用内置 CA 自签）
 - [ ] `ACME_EMAIL` 可接收证书到期通知
 - [ ] `POSTGRES_PASSWORD` 足够强；`DATABASE_URL` 中的密码与之一致
 - [ ] `SSO_SECRETS` 至少一项，64 位 hex；`SESSION_JWT_SECRET` 独立随机值
 - [ ] `ADMIN_EMAILS` 至少保留一名有效管理员
 - [ ] `ADMIN_PASSWORD` 已设置（否则只能走 SSO）且足够强，或确认已改为空、只允许 SSO
-- [ ] `RUSTFS_ENDPOINT_PUBLIC` 与 `https://SITE_ADDRESS` 完全同源
+- [ ] `PUBLIC_ORIGIN` 与 `https://SITE_ADDRESS` 完全同源（CORS、cookie、上传签名共用）
 - [ ] `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` 已替换默认值
 - [ ] RustFS bucket 已执行 `docker compose run --rm backend python -m scripts.bootstrap_storage`
 - [ ] Caddy 自动申请 TLS；确认 `feedlog_access` / `feedlog_refresh` 带 `Secure`
@@ -39,7 +40,18 @@ curl -fsS https://<SITE_ADDRESS>/api/health
 
 - Caddy 首次启动会自动申请证书，数据保存在 `caddy-data` 卷。
 - 只在本机验证 Caddy 配置而不部署时，可设置 `SITE_ADDRESS=:80`，并同步把
-  `PUBLIC_ORIGIN` / `RUSTFS_ENDPOINT_PUBLIC` 改为对应的 `http://` 地址。
+  `PUBLIC_ORIGIN` 改为对应的 `http://` 地址。
+- 裸 IP HTTPS：公信 CA 不签发裸 IP 证书，`SITE_ADDRESS` 填 IP（不要带 `https://`
+  前缀），并设 `CADDY_LOCAL_CERTS=local_certs` 让 Caddy 用内置 CA 自签；
+  `PUBLIC_ORIGIN` 同步改为 `https://<IP>`。
+  内置 CA 不被客户端默认信任，需把根证书分发给访问方：
+  `docker compose cp frontend:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt`。
+  若改用自有 IP SAN 证书，则在 `frontend/Caddyfile` 的 site 块加
+  `tls /certs/fullchain.pem /certs/key.pem`，并在 compose 中把证书目录挂到 `/certs:ro`。
+- 宿主机端口冲突时可改 `.env` 的 `HTTP_PORT` / `HTTPS_PORT`（容器内仍为 80/443）；
+  非 443 时 `PUBLIC_ORIGIN` 必须带上端口，否则 CORS 与
+  签名 Host 不匹配。另外域名 + ACME 部署请保持 `HTTPS_PORT=443`，否则 TLS-ALPN
+  验证端口不通，只能靠 `HTTP_PORT=80` 的 HTTP-01（两者都要改则无法签证书）。
 - 若使用 GHCR 镜像：在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 为固定版本
   （如 `…/backend:1.0.0`），先 `docker login ghcr.io`，再
   `docker compose pull && docker compose up -d`，无需 `--build`。

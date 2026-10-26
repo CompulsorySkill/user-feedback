@@ -32,7 +32,6 @@ def make_settings(**overrides) -> Settings:
         "sso_secrets": ["a" * 64],
         "session_jwt_secret": SESSION_SECRET,
         "rustfs_endpoint_internal": "http://rustfs:9000",
-        "rustfs_endpoint_public": "https://feedback.example.com",
         "rustfs_access_key": "access",
         "rustfs_secret_key": "secret",
         "public_origin": "https://feedback.example.com",
@@ -54,7 +53,8 @@ def test_production_config_accepts_complete_settings() -> None:
         {"database_url": "sqlite+aiosqlite:///./feedback.db"},
         {"sso_secrets": []},
         {"session_jwt_secret": ""},
-        {"rustfs_endpoint_public": ""},
+        {"rustfs_endpoint_internal": ""},
+        {"public_origin": ""},
         {"rustfs_access_key": ""},
     ],
 )

@@ -71,17 +71,18 @@ def _make_client(endpoint_url: str, access_key: str, secret_key: str):
 
 
 class S3Storage:
-    """浏览器侧 presign 走公网 endpoint；服务端删除走内网 endpoint。"""
+    """浏览器侧 presign 走站点同源地址（/storage 由 Caddy 反代）；服务端删除走内网 endpoint。"""
 
     def __init__(self) -> None:
         self.bucket = settings.rustfs_bucket
+        # presign 的 Host 必须等于浏览器实际请求的 Host，即站点 origin。
         self._signer = _make_client(
-            settings.rustfs_endpoint_public,
+            settings.public_origin,
             settings.rustfs_access_key,
             settings.rustfs_secret_key,
         )
         internal_endpoint = (
-            settings.rustfs_endpoint_internal or settings.rustfs_endpoint_public
+            settings.rustfs_endpoint_internal or settings.public_origin
         )
         self._admin = _make_client(
             internal_endpoint,

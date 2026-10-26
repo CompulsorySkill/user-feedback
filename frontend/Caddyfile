@@ -1,5 +1,8 @@
 {
 	admin off
+	# 裸 IP 部署时由 .env 传 local_certs，改用 Caddy 内置 CA 自签（公信 CA 不给裸 IP 签证书）。
+	# 域名部署留空即走 ACME；空展开后被当作空行，Caddy 允许。
+	{$CADDY_LOCAL_CERTS}
 	email {$ACME_EMAIL:ops@example.com}
 }
 

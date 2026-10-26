@@ -83,7 +83,7 @@ uv run python -m scripts.cleanup_uploads             # 删除记录 + 对象
 ## 匿名身份与写路径（P2）
 
 - **匿名 cookie**：`feedlog_anonymous=<token>.<hmac>`，`HttpOnly; SameSite=Lax`，生产加 `Secure`；DB 只存 `anon:<token>`，不依赖 IP / UA。
-- **上传**：`POST /uploads/presign` 校验 purpose / content-type / size 后，用公网同域 endpoint（`RUSTFS_ENDPOINT_PUBLIC`）+ path-style + `s3v4` 生成 URL，并写入 `Uploads` 归属；key 由服务端生成（`uploads/{uuid}.<ext>`）。
+- **上传**：`POST /uploads/presign` 校验 purpose / content-type / size 后，用站点同源地址（`PUBLIC_ORIGIN`）+ path-style + `s3v4` 生成 URL，并写入 `Uploads` 归属；key 由服务端生成（`uploads/{uuid}.<ext>`）。
 - **更新日志附件**：`changelog_attachment` purpose 仅管理员可用，不限制 content-type；对象按
   `application/octet-stream` 存储，附件表记录原文件名/类型/大小。下载接口强制
   `Content-Disposition: attachment`，草稿附件仅管理员可访问；公开详情不返回 object_key。
