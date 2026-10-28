@@ -1,70 +1,34 @@
 # 生产运维手册（P4 / A5 / Docker + Caddy）
 
-本文件记录生产配置、备份恢复与回滚流程。Docker Compose 与 Caddy 交付物已落在
-`deploy/`、`backend/Dockerfile`、`frontend/Dockerfile`、`frontend/Caddyfile`。
-当前开发机没有 Docker Engine，容器运行验收需在目标 Docker 主机执行。
+本文件覆盖部署后的运维：备份恢复、密钥轮换、上传清理、观测与回滚。
+**首次部署、环境变量与验收步骤见 [deploy.md](deploy.md)。**
 
-## 1. 启动前检查清单
-
-- [ ] `deploy/.env` 由 `.env.production.example` 复制并填好；`ENVIRONMENT=production`
-- [ ] `APP_NAME` 已按站点品牌修改（前端头部与浏览器标题读取此值）
-- [ ] `SITE_ADDRESS` 为真实域名，DNS 已指向目标机，公网开放 TCP 80/443 与 UDP 443
-  （裸 IP HTTPS 见 §2 的说明，改用内置 CA 自签）
-- [ ] `ACME_EMAIL` 可接收证书到期通知
-- [ ] `POSTGRES_PASSWORD` 足够强；`DATABASE_URL` 中的密码与之一致
-- [ ] `SSO_SECRETS` 至少一项，64 位 hex；`SESSION_JWT_SECRET` 独立随机值
-- [ ] `ADMIN_EMAILS` 至少保留一名有效管理员
-- [ ] `ADMIN_PASSWORD` 已设置（否则只能走 SSO）且足够强，或确认已改为空、只允许 SSO
-- [ ] `PUBLIC_ORIGIN` 与 `https://SITE_ADDRESS` 完全同源（CORS 白名单）
-- [ ] 若需要 http 直连访问并登录，已设 `COOKIE_SECURE=false`（否则浏览器会丢弃会话 cookie）
-- [ ] `S3_ACCESS_KEY` / `S3_SECRET_KEY` 已替换默认值
-- [ ] RustFS bucket 已执行 `docker compose run --rm backend python -m scripts.bootstrap_storage`
-- [ ] Caddy 自动申请 TLS；确认 `feedlog_access` / `feedlog_refresh` 带 `Secure`
-- [ ] 已配置每日上传清理任务（`UPLOAD_CLEANUP_GRACE_HOURS` 默认 24）
-
-启动校验由 `app/core/config.py` 的 production validator 完成：缺少 SSO/RustFS 配置、
-或 `DATABASE_URL` 非 Postgres 时，进程直接报错退出，不会带开发默认值上线。
-
-## 2. 首次部署
+## 1. 部署入口
 
 ```bash
 cd deploy
-cp .env.production.example .env
-# 编辑 .env（至少改 SITE_ADDRESS / ACME_EMAIL / POSTGRES_PASSWORD / SSO / RustFS）
-
+cp .env.example .env   # 按 deploy.md §3 填写
 docker compose up -d --build
-docker compose ps
-docker compose logs -f backend
 docker compose run --rm backend python -m scripts.bootstrap_storage
 curl -fsS https://<SITE_ADDRESS>/api/health
 ```
 
-- Caddy 首次启动会自动申请证书，数据保存在 `caddy-data` 卷。
-- 两个入口（`http://<SITE_ADDRESS>` 与 `https://<SITE_ADDRESS>`）同时提供服务，不再互相
-  301 跳转：端口由 `HTTP_PORT` / `HTTPS_PORT` 决定，容器内固定 80/443。
-- 需要用 http 入口登录（没有前置反代兜住 TLS）时必须设 `COOKIE_SECURE=false`，
-  否则带 `Secure` 的会话 cookie 在明文连接上会被浏览器丢弃；该开关会把会话 cookie
-  以明文发送，仅建议在受控内网使用。
-- 裸 IP HTTPS：公信 CA 不签发裸 IP 证书，`SITE_ADDRESS` 填 IP（不要带 `https://`
-  前缀或端口），并设 `CADDY_LOCAL_CERTS=local_certs` 让 Caddy 用内置 CA 自签；
-  `PUBLIC_ORIGIN` 同步改为 `https://<IP>`。
-  内置 CA 不被客户端默认信任，需把根证书分发给访问方：
-  `docker compose cp frontend:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt`。
-  若改用自有 IP SAN 证书，则在 `frontend/Caddyfile` 的 `https://` site 块加
-  `tls /certs/fullchain.pem /certs/key.pem`，并在 compose 中把证书目录挂到 `/certs:ro`。
-- 前置还有别的反代时（比如它终结 TLS 再转给 80 端口）：上传 presign 的签名 Host 必须
-  等于浏览器请求的 Host，前置反代要保留原始 `Host`（nginx 默认行为，不要改成
-  `proxy_set_header Host $proxy_host`）；`upload_url` 是相对路径，协议与端口由浏览器补全，
-  所以前置反代终结 TLS 不影响直传。
-- 宿主机端口冲突时可改 `.env` 的 `HTTP_PORT` / `HTTPS_PORT`（容器内仍为 80/443）；
-  非 443 时 `PUBLIC_ORIGIN` 必须带上端口，否则 CORS 白名单不匹配。域名 + ACME 部署
-  请保持 `HTTPS_PORT=443`，否则 TLS-ALPN 验证端口不通，只能靠 `HTTP_PORT=80` 的
-  HTTP-01（两者都要改则无法签证书）。
-- 若使用 GHCR 镜像：在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 为固定版本
-  （如 `…/backend:1.0.0`），先 `docker login ghcr.io`，再
-  `docker compose pull && docker compose up -d`，无需 `--build`。
-- 迁移随 backend 启动执行；多副本部署时改为独立一次性任务：
-  `docker compose run --rm backend alembic upgrade head`。
+- 配置只来自 `deploy/.env`（`ENVIRONMENT=production` 会在启动时强制校验必填项）。
+- `SITE_ADDRESS` / `PUBLIC_ORIGIN` / `COOKIE_SECURE` 必须与访问方式一致，
+  三种场景（域名 HTTPS、裸 IP HTTP、裸 IP 自签 HTTPS）见 deploy.md §1、§3。
+- Caddy 同时提供 `http://` 与 `https://` 两个入口，互不跳转；端口由 `HTTP_PORT` /
+  `HTTPS_PORT` 决定，容器内固定 80/443。非 443 时 `PUBLIC_ORIGIN` 要带端口；
+  域名 + ACME 部署必须保持 `HTTPS_PORT=443`（TLS-ALPN 验证），否则只能靠
+  `HTTP_PORT=80` 的 HTTP-01。
+- 前置还有别的反代时（它终结 TLS 再转给 80/443）：presign 签名 Host 必须等于浏览器
+  请求的 Host，前置反代要保留原始 `Host`；`upload_url` 是相对路径，协议与端口由浏览器补全。
+- 镜像与迁移：`docker compose pull && docker compose up -d` 升级；迁移随 backend 启动执行，
+  多副本时改为 `docker compose run --rm backend alembic upgrade head`。
+
+## 2. 启动校验
+
+生产启动校验由 `app/core/config.py` 的 production validator 完成：缺少 SSO / RustFS 配置、
+`PUBLIC_ORIGIN` 为空或 `DATABASE_URL` 非 Postgres 时，进程直接报错退出，不会带开发默认值上线。
 
 ## 3. 数据库 schema 升级与回滚
 

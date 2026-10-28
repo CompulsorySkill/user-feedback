@@ -37,7 +37,8 @@ docs/       实施方案、API、SSO、运维文档
 
 ```bash
 cp deploy/.env.example deploy/.env
-# 填写 S3_ACCESS_KEY / S3_SECRET_KEY 等；本地默认 SQLite
+# 本地开发改 ENVIRONMENT=development、DATABASE_URL=sqlite+aiosqlite:///./feedback.db、
+# PUBLIC_ORIGIN=http://127.0.0.1:5173，再填 S3_ACCESS_KEY / S3_SECRET_KEY
 ```
 
 ### 后端
@@ -116,8 +117,8 @@ tests/             每个用例独立 SQLite 库，schema 由迁移链构建
 ### 4.2 配置
 
 - 配置字段集中在 `app/core/config.py` 的 `Settings`，读取 `deploy/.env`。
-- 新增配置时同步更新 `deploy/.env.example` 与 `deploy/.env.production.example`，
-  并在 `docs/ops.md` 或相关文档说明。
+- 新增配置时同步更新 `deploy/.env.example`（按子服务分组，模板值为生产值），
+  并在 `docs/deploy.md` 或相关文档说明。
 - `ENVIRONMENT=production` 会强制校验 Postgres、SSO、session、RustFS 配置；
   不要绕过该校验，也不要把开发默认值带进生产。
 - 密钥、token、cookie 值不得写入日志、提交记录或前端产物。
@@ -238,7 +239,8 @@ uv run alembic check
 
 - 根 `README.md`：项目入口、本地开发、接口摘要、阶段状态。
 - `docs/api.md`：接口契约、权限矩阵、状态机。改 API 必须同步。
-- `docs/ops.md`：生产部署、备份恢复、清理、回滚。改部署或运维流程必须同步。
+- `docs/deploy.md`：部署步骤、环境变量逐项说明与验收清单。改部署或配置项必须同步。
+- `docs/ops.md`：部署后的运维（备份恢复、密钥轮换、清理、回滚）。
 - `docs/sso.md`：SSO 对接与密钥轮换。
 - `docs/实施方案.md`：早期设计稿，部分工具 / 目录设想未落地（例如其中的
   pre-commit、ruff、eslint/prettier、`features/` 分层）。**以代码、`pyproject.toml`、
