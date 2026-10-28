@@ -100,7 +100,9 @@ class FakeStorage:
         self.deleted: list[str] = []
         self.objects: dict[str, bytes] = {}
 
-    def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload:
+    def presign_put(
+        self, *, object_key: str, content_type: str, host: str
+    ) -> PresignedUpload:
         return PresignedUpload(
             object_key=object_key,
             upload_url=f"http://storage.test/{object_key}?signature=fake",

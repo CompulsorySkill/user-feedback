@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/core/config.py -> backend/app/core -> backend/app -> backend -> repo root
@@ -36,6 +36,10 @@ class Settings(BaseSettings):
 
     public_origin: str = ""
 
+    # cookie 的 Secure 标记。留空按 environment 推断（生产开、开发关）；
+    # 需要用 http 直接访问并登录时显式设为 false。
+    cookie_secure: bool | None = None
+
     # --- P3 起启用 ---
     sso_secrets: list[str] = []
     sso_return_to_default: str = "/"
@@ -45,10 +49,10 @@ class Settings(BaseSettings):
     admin_password: str = ""
 
     # --- P2 起启用 ---
-    rustfs_endpoint_internal: str = ""
-    rustfs_bucket: str = "storage"
-    rustfs_access_key: str = ""
-    rustfs_secret_key: str = ""
+    s3_endpoint_internal: str = ""
+    s3_bucket: str = "storage"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
     upload_max_bytes: int = 104857600
     # presign 后超过该时长仍未被任何反馈 / 更新日志引用的对象会被清理。
     upload_cleanup_grace_hours: int = 24
@@ -68,6 +72,10 @@ class Settings(BaseSettings):
         return self.environment.lower() == "production"
 
     @property
+    def secure_cookies(self) -> bool:
+        return self.is_production if self.cookie_secure is None else self.cookie_secure
+
+    @property
     def admin_email_set(self) -> set[str]:
         """逗号分隔的管理员邮箱，统一 trim + 小写。"""
         return {
@@ -75,6 +83,12 @@ class Settings(BaseSettings):
             for email in self.admin_emails.split(",")
             if email.strip()
         }
+
+    @field_validator("cookie_secure", mode="before")
+    @classmethod
+    def _empty_cookie_secure(cls, value: object) -> object:
+        """允许 .env 里写 COOKIE_SECURE= 表示「按 environment 推断」。"""
+        return None if value == "" else value
 
     @model_validator(mode="after")
     def _require_production_settings(self) -> "Settings":
@@ -86,9 +100,9 @@ class Settings(BaseSettings):
             "PUBLIC_ORIGIN": self.public_origin,
             "SSO_SECRETS": self.sso_secrets,
             "SESSION_JWT_SECRET": self.session_jwt_secret,
-            "RUSTFS_ENDPOINT_INTERNAL": self.rustfs_endpoint_internal,
-            "RUSTFS_ACCESS_KEY": self.rustfs_access_key,
-            "RUSTFS_SECRET_KEY": self.rustfs_secret_key,
+            "S3_ENDPOINT_INTERNAL": self.s3_endpoint_internal,
+            "S3_ACCESS_KEY": self.s3_access_key,
+            "S3_SECRET_KEY": self.s3_secret_key,
         }
         missing = [name for name, value in required.items() if not value]
         if missing:

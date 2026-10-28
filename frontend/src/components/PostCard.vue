@@ -6,7 +6,7 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import TagList from '@/components/TagList.vue'
 import VoteButton from '@/components/VoteButton.vue'
 import type { PostSummary } from '@/api/types'
-import { formatRelative } from '@/utils/date'
+import { formatDateTime, formatRelative } from '@/utils/date'
 
 withDefaults(defineProps<{ post: PostSummary; showBoard?: boolean }>(), {
   showBoard: false,
@@ -25,7 +25,9 @@ withDefaults(defineProps<{ post: PostSummary; showBoard?: boolean }>(), {
       >
         {{ post.board_name }}
       </RouterLink>
-      <span class="post-time">{{ formatRelative(post.created_at) }}</span>
+      <span class="post-time" :title="formatDateTime(post.created_at)">
+        {{ formatRelative(post.created_at) }}
+      </span>
     </div>
 
     <RouterLink :to="`/post/${post.id}`" class="post-title-link">

@@ -299,6 +299,17 @@ class PostService:
         await self.session.commit()
         return await self.get(post_id, identity)
 
+    async def delete(self, post_id: uuid.UUID) -> str:
+        """管理员删除反馈；评论 / 投票 / 标签关联由数据库级联清理。"""
+        row = await self.posts.get_with_board(post_id)
+        if row is None:
+            raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
+        post = row[0]
+        title = post.title
+        await self.posts.delete_with_content(post)
+        await self.session.commit()
+        return title
+
     async def update(
         self,
         post_id: uuid.UUID,

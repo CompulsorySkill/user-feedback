@@ -27,9 +27,9 @@ cp deploy/.env.example deploy/.env
 ```dotenv
 APP_NAME=FeedLog
 PUBLIC_ORIGIN=http://127.0.0.1:5173
-RUSTFS_ENDPOINT_INTERNAL=http://127.0.0.1:9000
-RUSTFS_ACCESS_KEY=...
-RUSTFS_SECRET_KEY=...
+S3_ENDPOINT_INTERNAL=http://127.0.0.1:9000
+S3_ACCESS_KEY=...
+S3_SECRET_KEY=...
 ```
 
 `APP_NAME` 会同步到前端头部与浏览器标题，修改后重启后端并刷新页面即可。
@@ -84,7 +84,7 @@ cd deploy
 cp .env.production.example .env
 # 必改：SITE_ADDRESS / ACME_EMAIL / POSTGRES_PASSWORD
 #      SSO_SECRETS / SESSION_JWT_SECRET / ADMIN_EMAILS
-#      RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY
+#      S3_ACCESS_KEY / S3_SECRET_KEY
 docker compose up -d --build
 docker compose run --rm backend python -m scripts.bootstrap_storage
 curl https://<SITE_ADDRESS>/api/health
@@ -92,7 +92,7 @@ curl https://<SITE_ADDRESS>/api/health
 docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 24
 ```
 
-- Caddy 自动申请/续期 HTTPS 证书；本地无域名时可把 `SITE_ADDRESS` 设为 `:80`（同时把 `PUBLIC_ORIGIN` 改成对应的 `http://` 地址）。
+- Caddy 同时提供 `http://` 与 `https://` 两个入口（不再自动跳转）；`SITE_ADDRESS` 填域名或裸 IP（不带 scheme / 端口）。用 http 入口登录需设 `COOKIE_SECURE=false`，细则见 [docs/ops.md](docs/ops.md)。
 - `docker compose up -d --build` 在目标机构建 `backend` / `frontend` 镜像；也可在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 后，先 `docker login ghcr.io` 再 `docker compose pull && docker compose up -d`。
 - 只有推送 `v*` Git tag 才触发 Actions 构建：生成 `1.0.0`、`1.0`、`sha-<commit>` 和 `latest`（预发布 tag 不更新 `latest`）。**普通 push 到 `main` 不触发构建**，生产建议固定 `1.0.0`。
 - 迁移在 backend 启动命令中执行；多副本时应拆成独立的一次性任务。

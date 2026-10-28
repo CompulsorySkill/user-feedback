@@ -2,11 +2,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { IconLoader2, IconRefresh, IconSend, IconX } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import { createComment, listComments, type CommentItem } from '@/api/comments'
+import { createComment, deleteComment, listComments, type CommentItem } from '@/api/comments'
 import CommentNode from '@/components/CommentNode.vue'
+import { useAuthStore } from '@/stores/auth'
 import type { CommentNodeData } from '@/types/comment'
 
 const props = defineProps<{ postId: string; closed: boolean }>()
+const emit = defineEmits<{ count: [number] }>()
+
+const auth = useAuthStore()
 
 const items = ref<CommentItem[]>([])
 const loading = ref(true)
@@ -42,6 +46,7 @@ async function load(): Promise<void> {
   try {
     const response = await listComments(props.postId)
     items.value = response.items
+    emit('count', response.items.length)
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : '评论加载失败'
   } finally {
@@ -76,6 +81,17 @@ async function submit(): Promise<void> {
 }
 
 onMounted(load)
+
+async function removeComment(node: CommentNodeData): Promise<void> {
+  if (!window.confirm('确认删除这条评论？其下的回复会一并删除。')) return
+  error.value = ''
+  try {
+    await deleteComment(props.postId, node.id)
+    await load()
+  } catch (err) {
+    error.value = err instanceof ApiError ? err.message : '删除失败，请稍后重试'
+  }
+}
 </script>
 
 <template>
@@ -104,7 +120,9 @@ onMounted(load)
         :key="node.id"
         :node="node"
         :depth="1"
+        :can-delete="auth.isAdmin"
         @reply="startReply"
+        @delete="removeComment"
       />
     </div>
 

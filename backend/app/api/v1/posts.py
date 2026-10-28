@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, Request, Response
 from fastapi import status as http_status
 
 from app.api.deps import (
+    AdminUserDep,
     AuditServiceDep,
     CommentServiceDep,
     IdentityDep,
@@ -84,6 +85,30 @@ async def get_post(
     post_id: uuid.UUID, identity: IdentityDep, service: PostServiceDep
 ) -> PostDetail:
     return await service.get(post_id, identity)
+
+
+@router.delete(
+    "/{post_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    summary="删除反馈及其评论（管理员）",
+)
+async def delete_post(
+    post_id: uuid.UUID,
+    request: Request,
+    admin: AdminUserDep,
+    service: PostServiceDep,
+    audit: AuditServiceDep,
+) -> Response:
+    title = await service.delete(post_id)
+    await audit.record(
+        action="post.delete",
+        actor=admin,
+        target_type="post",
+        target_id=post_id,
+        detail={"title": title},
+        ip=request_ip(request),
+    )
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)
 
 
 @router.patch("/{post_id}", response_model=PostDetail, summary="编辑反馈")
@@ -186,3 +211,28 @@ async def create_comment(
 ) -> CommentItem:
     actor = resolve_write_identity(identity, request, response)
     return await service.create(post_id, payload, actor)
+
+
+@router.delete(
+    "/{post_id}/comments/{comment_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    summary="删除评论及其回复（管理员）",
+)
+async def delete_comment(
+    post_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    request: Request,
+    admin: AdminUserDep,
+    service: CommentServiceDep,
+    audit: AuditServiceDep,
+) -> Response:
+    content = await service.delete(post_id, comment_id)
+    await audit.record(
+        action="comment.delete",
+        actor=admin,
+        target_type="comment",
+        target_id=comment_id,
+        detail={"post_id": str(post_id), "content": content[:200]},
+        ip=request_ip(request),
+    )
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)

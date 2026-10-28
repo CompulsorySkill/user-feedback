@@ -25,3 +25,9 @@ export function createComment(
 ): Promise<CommentItem> {
   return api.post<CommentItem>(`/v1/posts/${encodeURIComponent(postId)}/comments`, input)
 }
+
+export function deleteComment(postId: string, commentId: string): Promise<void> {
+  return api.delete<void>(
+    `/v1/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+  )
+}

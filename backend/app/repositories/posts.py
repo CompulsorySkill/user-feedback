@@ -6,11 +6,11 @@ import uuid
 from collections.abc import Sequence
 from typing import Literal
 
-from sqlalchemy import Select, and_, or_, select, tuple_
+from sqlalchemy import Select, and_, delete, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import Cursor, TopCursor
-from app.models import Board, Post, PostTag, Tag, User
+from app.models import Board, Comment, Post, PostTag, Tag, User, Vote
 
 PostSort = Literal["recent", "top"]
 
@@ -156,3 +156,10 @@ class PostRepository:
             return None
         post, board, author_name = row
         return post, board, author_name
+
+    async def delete_with_content(self, post: Post) -> None:
+        """显式级联删除，不依赖数据库 FK 开关（测试与服务端连接行为一致）。"""
+        await self.session.execute(delete(Vote).where(Vote.post_id == post.id))
+        await self.session.execute(delete(Comment).where(Comment.post_id == post.id))
+        await self.session.execute(delete(PostTag).where(PostTag.post_id == post.id))
+        await self.session.delete(post)

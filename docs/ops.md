@@ -15,8 +15,9 @@
 - [ ] `SSO_SECRETS` 至少一项，64 位 hex；`SESSION_JWT_SECRET` 独立随机值
 - [ ] `ADMIN_EMAILS` 至少保留一名有效管理员
 - [ ] `ADMIN_PASSWORD` 已设置（否则只能走 SSO）且足够强，或确认已改为空、只允许 SSO
-- [ ] `PUBLIC_ORIGIN` 与 `https://SITE_ADDRESS` 完全同源（CORS、cookie、上传签名共用）
-- [ ] `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` 已替换默认值
+- [ ] `PUBLIC_ORIGIN` 与 `https://SITE_ADDRESS` 完全同源（CORS 白名单）
+- [ ] 若需要 http 直连访问并登录，已设 `COOKIE_SECURE=false`（否则浏览器会丢弃会话 cookie）
+- [ ] `S3_ACCESS_KEY` / `S3_SECRET_KEY` 已替换默认值
 - [ ] RustFS bucket 已执行 `docker compose run --rm backend python -m scripts.bootstrap_storage`
 - [ ] Caddy 自动申请 TLS；确认 `feedlog_access` / `feedlog_refresh` 带 `Secure`
 - [ ] 已配置每日上传清理任务（`UPLOAD_CLEANUP_GRACE_HOURS` 默认 24）
@@ -39,19 +40,26 @@ curl -fsS https://<SITE_ADDRESS>/api/health
 ```
 
 - Caddy 首次启动会自动申请证书，数据保存在 `caddy-data` 卷。
-- 只在本机验证 Caddy 配置而不部署时，可设置 `SITE_ADDRESS=:80`，并同步把
-  `PUBLIC_ORIGIN` 改为对应的 `http://` 地址。
+- 两个入口（`http://<SITE_ADDRESS>` 与 `https://<SITE_ADDRESS>`）同时提供服务，不再互相
+  301 跳转：端口由 `HTTP_PORT` / `HTTPS_PORT` 决定，容器内固定 80/443。
+- 需要用 http 入口登录（没有前置反代兜住 TLS）时必须设 `COOKIE_SECURE=false`，
+  否则带 `Secure` 的会话 cookie 在明文连接上会被浏览器丢弃；该开关会把会话 cookie
+  以明文发送，仅建议在受控内网使用。
 - 裸 IP HTTPS：公信 CA 不签发裸 IP 证书，`SITE_ADDRESS` 填 IP（不要带 `https://`
-  前缀），并设 `CADDY_LOCAL_CERTS=local_certs` 让 Caddy 用内置 CA 自签；
+  前缀或端口），并设 `CADDY_LOCAL_CERTS=local_certs` 让 Caddy 用内置 CA 自签；
   `PUBLIC_ORIGIN` 同步改为 `https://<IP>`。
   内置 CA 不被客户端默认信任，需把根证书分发给访问方：
   `docker compose cp frontend:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt`。
-  若改用自有 IP SAN 证书，则在 `frontend/Caddyfile` 的 site 块加
+  若改用自有 IP SAN 证书，则在 `frontend/Caddyfile` 的 `https://` site 块加
   `tls /certs/fullchain.pem /certs/key.pem`，并在 compose 中把证书目录挂到 `/certs:ro`。
+- 前置还有别的反代时（比如它终结 TLS 再转给 80 端口）：上传 presign 的签名 Host 必须
+  等于浏览器请求的 Host，前置反代要保留原始 `Host`（nginx 默认行为，不要改成
+  `proxy_set_header Host $proxy_host`）；`upload_url` 是相对路径，协议与端口由浏览器补全，
+  所以前置反代终结 TLS 不影响直传。
 - 宿主机端口冲突时可改 `.env` 的 `HTTP_PORT` / `HTTPS_PORT`（容器内仍为 80/443）；
-  非 443 时 `PUBLIC_ORIGIN` 必须带上端口，否则 CORS 与
-  签名 Host 不匹配。另外域名 + ACME 部署请保持 `HTTPS_PORT=443`，否则 TLS-ALPN
-  验证端口不通，只能靠 `HTTP_PORT=80` 的 HTTP-01（两者都要改则无法签证书）。
+  非 443 时 `PUBLIC_ORIGIN` 必须带上端口，否则 CORS 白名单不匹配。域名 + ACME 部署
+  请保持 `HTTPS_PORT=443`，否则 TLS-ALPN 验证端口不通，只能靠 `HTTP_PORT=80` 的
+  HTTP-01（两者都要改则无法签证书）。
 - 若使用 GHCR 镜像：在 `.env` 设置 `BACKEND_IMAGE` / `FRONTEND_IMAGE` 为固定版本
   （如 `…/backend:1.0.0`），先 `docker login ghcr.io`，再
   `docker compose pull && docker compose up -d`，无需 `--build`。

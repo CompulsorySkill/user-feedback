@@ -37,7 +37,7 @@ docs/       实施方案、API、SSO、运维文档
 
 ```bash
 cp deploy/.env.example deploy/.env
-# 填写 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY 等；本地默认 SQLite
+# 填写 S3_ACCESS_KEY / S3_SECRET_KEY 等；本地默认 SQLite
 ```
 
 ### 后端

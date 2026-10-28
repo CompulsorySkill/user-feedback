@@ -32,6 +32,26 @@ class CommentRepository:
     def add(self, comment: Comment) -> None:
         self.session.add(comment)
 
+    async def subtree(self, comment_id: uuid.UUID) -> list[list[uuid.UUID]]:
+        """按层返回评论自身与全部后代，最深层在前（先删子再删父）。"""
+        levels: list[list[uuid.UUID]] = [[comment_id]]
+        frontier = [comment_id]
+        while frontier:
+            children = list(
+                (
+                    await self.session.execute(
+                        select(Comment.id).where(Comment.parent_id.in_(frontier))
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if not children:
+                break
+            levels.append(children)
+            frontier = children
+        return list(reversed(levels))
+
     async def parent_chain_depth(self, comment: Comment) -> int:
         """返回评论深度（根评论为 1）。"""
         depth = 1

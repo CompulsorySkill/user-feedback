@@ -6,8 +6,8 @@
 	email {$ACME_EMAIL:ops@example.com}
 }
 
-# 域名由 deploy/.env 的 SITE_ADDRESS 提供；本地无域名时可用 :80。
-{$SITE_ADDRESS:localhost} {
+# 站点路由在 http / https 两个入口间共享：两个入口都能独立访问，不再互相跳转。
+(site) {
 	# 媒体走 RustFS 已是压缩格式，避免对视频/图片做二次压缩。
 	@compressible not path /storage/*
 	encode @compressible zstd gzip
@@ -52,4 +52,15 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
+}
+
+# 站点地址由 deploy/.env 的 SITE_ADDRESS 提供（域名或裸 IP，不带 scheme / 端口）。
+# 本地无域名时用 localhost。写全 scheme 是为了关掉 Caddy 自动的 http → https 跳转，
+# 让两个入口都能直接使用。
+http://{$SITE_ADDRESS:localhost} {
+	import site
+}
+
+https://{$SITE_ADDRESS:localhost} {
+	import site
 }

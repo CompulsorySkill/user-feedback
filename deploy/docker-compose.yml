@@ -25,12 +25,13 @@ services:
         max-file: "3"
 
   rustfs:
-    image: ${RUSTFS_IMAGE:-rustfs/rustfs:latest}
+    image: ${S3_IMAGE:-rustfs/rustfs:latest}
     restart: unless-stopped
     command: ["/data"]
     environment:
-      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?set RUSTFS_ACCESS_KEY in deploy/.env}
-      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?set RUSTFS_SECRET_KEY in deploy/.env}
+      # 容器自身仍用 RustFS 的 RUSTFS_* 变量名，值来自 deploy/.env 的 S3_*。
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY in deploy/.env}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in deploy/.env}
       RUSTFS_ADDRESS: ":9000"
       RUSTFS_CONSOLE_ENABLE: "false"
       RUSTFS_OBS_LOGGER_LEVEL: error

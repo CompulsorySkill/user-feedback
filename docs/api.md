@@ -132,6 +132,8 @@ keyset 分页。响应：
 - `changelog_attachment` 仅管理员可用，**不限制 content-type**；对象以 `application/octet-stream` 存储，
   下载走受控接口并强制 `Content-Disposition: attachment`
 - 返回 `object_key`、`upload_url`、`method: "PUT"`、`headers`
+- `upload_url` 是站点相对路径（`/storage/...`），浏览器按当前访问的 origin 补全协议与端口；
+  签名 Host 取自本次请求的 `Host`，因此 `http` / `https`（含前置反代）都能直传
 - 浏览器 `PUT` 时必须原样携带返回的 `Content-Type`（参与 SigV4 签名）；`object_key` 由服务端生成
 
 ### 更新日志附件
@@ -197,7 +199,8 @@ keyset 分页。响应：
 
 - 仅追加，不随目标对象删除；actor 被删除后保留邮箱快照。
 - 记录动作：`board.create/update/delete`、`tag.create/delete`、`post.update`（管理员）、
-  `post.status`、`changelog.create/update/delete/publish/unpublish`、`upload.cleanup`。
+  `post.status`、`post.delete`、`comment.delete`、
+  `changelog.create/update/delete/publish/unpublish`、`upload.cleanup`。
 - `action` 精确筛选；`before_id` 为上一页最后一条的 `id`；按 `id` 倒序。
 - 审计写入失败 best-effort：记录服务端日志，不回滚已提交的业务操作。
 
@@ -221,10 +224,12 @@ keyset 分页。响应：
 | POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
 | GET | `/v1/posts/{id}` | 公开（返回 `is_author`） |
 | PATCH | `/v1/posts/{id}` | 作者 / 管理员 |
+| DELETE | `/v1/posts/{id}` | 管理员；级联删除评论、投票与标签关联 |
 | PATCH | `/v1/posts/{id}/status` | 作者（仅关闭）/ 管理员 |
 | POST / DELETE | `/v1/posts/{id}/vote` | 匿名 / 登录 |
 | GET | `/v1/posts/{id}/comments` | 公开 |
 | POST | `/v1/posts/{id}/comments` | 匿名 / 登录 |
+| DELETE | `/v1/posts/{id}/comments/{comment_id}` | 管理员；连子回复一并删除并修正 `comment_count` |
 | POST | `/v1/uploads/presign` | 图片 / 视频：匿名 / 登录；更新日志附件：仅管理员 |
 | GET | `/v1/changelogs`、`/v1/changelogs/{id}` | 公开；草稿仅管理员 |
 | POST / PATCH / DELETE | `/v1/changelogs[/{id}]` | 管理员；请求可带 `attachments` |

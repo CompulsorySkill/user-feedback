@@ -21,6 +21,7 @@ import {
 import { StorageImage, VideoNode } from '@/editor/extensions'
 import { useUpload } from '@/composables/useUpload'
 import type { JSONContent } from '@/types/content'
+import { imageFilesFromClipboard } from '@/utils/clipboard'
 
 const props = withDefaults(
   defineProps<{
@@ -52,6 +53,14 @@ const editor = useEditor({
       class: 'tiptap',
       'aria-label': '反馈正文',
     },
+    // 粘贴剪贴板里的截图 / 图片时，阻止默认的 base64 嵌入，改走直传。
+    handlePaste: (_view, event) => {
+      const files = imageFilesFromClipboard(event.clipboardData)
+      if (files.length === 0) return false
+      event.preventDefault()
+      void pasteImages(files)
+      return true
+    },
   },
   onCreate: ({ editor: instance }) => emit('update:json', instance.getJSON()),
   onUpdate: ({ editor: instance }) => emit('update:json', instance.getJSON()),
@@ -71,6 +80,28 @@ function pickFile(purpose: 'image' | 'video'): void {
   fileInput.value?.click()
 }
 
+function insertMedia(file: File, purpose: 'image' | 'video', key: string): void {
+  if (!editor.value) return
+  if (purpose === 'image') {
+    editor.value.chain().focus().setImage({ src: key, alt: file.name }).run()
+  } else {
+    editor.value
+      .chain()
+      .focus()
+      .insertContent({ type: 'video', attrs: { src: key, poster: null } })
+      .run()
+  }
+}
+
+async function pasteImages(files: File[]): Promise<void> {
+  const purpose = `${props.scope}_image` as 'post_image' | 'changelog_image'
+  // 逐张上传，保证插入顺序与粘贴顺序一致。
+  for (const file of files) {
+    const key = await upload(file, purpose)
+    if (key) insertMedia(file, 'image', key)
+  }
+}
+
 async function onFileChange(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -85,15 +116,7 @@ async function onFileChange(event: Event): Promise<void> {
   const key = await upload(file, purpose)
   if (!key) return
 
-  if (pendingPurpose.value === 'image') {
-    editor.value.chain().focus().setImage({ src: key, alt: file.name }).run()
-  } else {
-    editor.value
-      .chain()
-      .focus()
-      .insertContent({ type: 'video', attrs: { src: key, poster: null } })
-      .run()
-  }
+  insertMedia(file, pendingPurpose.value, key)
 }
 
 defineExpose({

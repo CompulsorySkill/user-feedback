@@ -10,6 +10,7 @@ import uuid
 from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any, Protocol
+from urllib.parse import urlsplit
 
 import boto3
 from botocore.client import Config
@@ -43,7 +44,9 @@ class StorageObject:
 
 
 class StorageBackend(Protocol):
-    def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload: ...
+    def presign_put(
+        self, *, object_key: str, content_type: str, host: str
+    ) -> PresignedUpload: ...
 
     def delete_object(self, object_key: str) -> None: ...
 
@@ -70,39 +73,46 @@ def _make_client(endpoint_url: str, access_key: str, secret_key: str):
     )
 
 
+@lru_cache(maxsize=16)
+def _signer_for(host: str):
+    """presign 的签名 Host 必须等于浏览器实际请求的 Host（http / https、裸 IP、自定义端口各不同）。"""
+    return _make_client(
+        f"http://{host}",
+        settings.s3_access_key,
+        settings.s3_secret_key,
+    )
+
+
 class S3Storage:
     """浏览器侧 presign 走站点同源地址（/storage 由 Caddy 反代）；服务端删除走内网 endpoint。"""
 
     def __init__(self) -> None:
-        self.bucket = settings.rustfs_bucket
-        # presign 的 Host 必须等于浏览器实际请求的 Host，即站点 origin。
-        self._signer = _make_client(
-            settings.public_origin,
-            settings.rustfs_access_key,
-            settings.rustfs_secret_key,
-        )
-        internal_endpoint = (
-            settings.rustfs_endpoint_internal or settings.public_origin
-        )
+        self.bucket = settings.s3_bucket
+        internal_endpoint = settings.s3_endpoint_internal or settings.public_origin
         self._admin = _make_client(
             internal_endpoint,
-            settings.rustfs_access_key,
-            settings.rustfs_secret_key,
+            settings.s3_access_key,
+            settings.s3_secret_key,
         )
 
-    def presign_put(self, *, object_key: str, content_type: str) -> PresignedUpload:
-        url = self._signer.generate_presigned_url(
-            "put_object",
-            Params={
-                "Bucket": self.bucket,
-                "Key": object_key,
-                "ContentType": content_type,
-            },
-            ExpiresIn=settings.presign_expires_seconds,
+    def presign_put(
+        self, *, object_key: str, content_type: str, host: str
+    ) -> PresignedUpload:
+        url = urlsplit(
+            _signer_for(host).generate_presigned_url(
+                "put_object",
+                Params={
+                    "Bucket": self.bucket,
+                    "Key": object_key,
+                    "ContentType": content_type,
+                },
+                ExpiresIn=settings.presign_expires_seconds,
+            )
         )
         return PresignedUpload(
             object_key=object_key,
-            upload_url=url,
+            # 返回相对路径：浏览器按自己访问的协议 / 端口补全，http 与 https 都能直传。
+            upload_url=f"{url.path}?{url.query}",
             expires_in=settings.presign_expires_seconds,
             headers={"Content-Type": content_type},
         )

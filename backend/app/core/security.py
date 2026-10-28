@@ -112,7 +112,7 @@ def decode_session_token(token: str, *, expected_type: str) -> dict:
 def set_session_cookies(
     response: Response, *, access_token: str, refresh_token: str
 ) -> None:
-    secure = settings.is_production
+    secure = settings.secure_cookies
     max_age_access = settings.access_token_minutes * 60
     max_age_refresh = settings.refresh_token_days * 24 * 3600
 

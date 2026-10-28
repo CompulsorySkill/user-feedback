@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { IconArrowLeft, IconEdit, IconLoader2, IconMessage, IconRefresh } from '@tabler/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  IconArrowLeft,
+  IconEdit,
+  IconLoader2,
+  IconMessage,
+  IconRefresh,
+  IconTrash,
+} from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
-import { getPost } from '@/api/posts'
+import { deletePost, getPost } from '@/api/posts'
 import type { PostDetail } from '@/api/types'
 import AuthorTag from '@/components/AuthorTag.vue'
 import CommentSection from '@/components/CommentSection.vue'
@@ -13,13 +20,16 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import TagList from '@/components/TagList.vue'
 import VoteButton from '@/components/VoteButton.vue'
 import { useAuthStore } from '@/stores/auth'
-import { formatDate, formatRelative } from '@/utils/date'
+import { formatDate, formatDateTime, formatRelative } from '@/utils/date'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const post = ref<PostDetail | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
+const deleting = ref(false)
+const actionError = ref('')
 
 const isClosed = computed(() => post.value?.status === 'closed')
 const canEdit = computed(() => {
@@ -30,6 +40,22 @@ const canEdit = computed(() => {
 
 function onPostUpdated(updated: PostDetail): void {
   post.value = updated
+}
+
+async function removePost(): Promise<void> {
+  if (!post.value || deleting.value) return
+  if (!window.confirm('确认删除这条反馈？其评论与投票会一并删除，且不可恢复。')) return
+  deleting.value = true
+  actionError.value = ''
+  const boardSlug = post.value.board.slug
+  try {
+    await deletePost(post.value.id)
+    await router.push(`/b/${boardSlug}`)
+  } catch (error) {
+    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。'
+  } finally {
+    deleting.value = false
+  }
 }
 
 async function load(): Promise<void> {
@@ -68,7 +94,9 @@ watch(() => route.params.id, load, { immediate: true })
         <header class="post-detail-head">
           <div class="post-badges">
             <StatusBadge :status="post.status" />
-            <span class="post-time">{{ formatDate(post.created_at) }}</span>
+            <span class="post-time" :title="formatDateTime(post.created_at)">
+              {{ formatDate(post.created_at) }}
+            </span>
           </div>
           <h1>{{ post.title }}</h1>
           <TagList v-if="post.tags.length" :tags="post.tags" class="post-detail-tags" />
@@ -78,7 +106,9 @@ watch(() => route.params.id, load, { immediate: true })
               <IconMessage :size="15" :stroke-width="1.8" />
               {{ post.comment_count }} 条评论
             </span>
-            <span class="meta-item subtle">更新于 {{ formatRelative(post.updated_at) }}</span>
+            <span class="meta-item subtle" :title="formatDateTime(post.updated_at)">
+              更新于 {{ formatRelative(post.updated_at) }}
+            </span>
           </div>
           <div class="post-detail-actions">
             <PostStatusControl :post="post" @updated="onPostUpdated" />
@@ -90,7 +120,19 @@ watch(() => route.params.id, load, { immediate: true })
               <IconEdit :size="15" :stroke-width="2" />
               编辑反馈
             </RouterLink>
+            <button
+              v-if="auth.isAdmin"
+              type="button"
+              class="button button-ghost button-small button-danger"
+              :disabled="deleting"
+              @click="removePost"
+            >
+              <IconLoader2 v-if="deleting" class="spin" :size="15" :stroke-width="2" />
+              <IconTrash v-else :size="15" :stroke-width="2" />
+              删除反馈
+            </button>
           </div>
+          <p v-if="actionError" class="inline-error">{{ actionError }}</p>
         </header>
 
         <div v-if="isClosed" class="notice notice-closed">
@@ -135,7 +177,7 @@ watch(() => route.params.id, load, { immediate: true })
         </footer>
       </article>
 
-      <CommentSection :post-id="post.id" :closed="isClosed" />
+      <CommentSection :post-id="post.id" :closed="isClosed" @count="post.comment_count = $event" />
     </template>
 
     <div v-else class="inline-error">

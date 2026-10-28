@@ -21,7 +21,7 @@ class UploadService:
         self.storage = storage
 
     async def presign(
-        self, identity: Identity, payload: UploadPresignRequest
+        self, identity: Identity, payload: UploadPresignRequest, *, host: str
     ) -> UploadPresignResponse:
         if identity is None:
             raise AppException(403, code="IDENTITY_REQUIRED", detail="缺少身份")
@@ -55,7 +55,7 @@ class UploadService:
             else content_type
         )
         presigned = self.storage.presign_put(
-            object_key=object_key, content_type=presign_content_type
+            object_key=object_key, content_type=presign_content_type, host=host
         )
 
         self.session.add(

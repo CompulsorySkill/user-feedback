@@ -31,9 +31,9 @@ def make_settings(**overrides) -> Settings:
         "database_url": "postgresql+asyncpg://feedback:pw@postgres:5432/feedback",
         "sso_secrets": ["a" * 64],
         "session_jwt_secret": SESSION_SECRET,
-        "rustfs_endpoint_internal": "http://rustfs:9000",
-        "rustfs_access_key": "access",
-        "rustfs_secret_key": "secret",
+        "s3_endpoint_internal": "http://rustfs:9000",
+        "s3_access_key": "access",
+        "s3_secret_key": "secret",
         "public_origin": "https://feedback.example.com",
     }
     base.update(overrides)
@@ -53,9 +53,9 @@ def test_production_config_accepts_complete_settings() -> None:
         {"database_url": "sqlite+aiosqlite:///./feedback.db"},
         {"sso_secrets": []},
         {"session_jwt_secret": ""},
-        {"rustfs_endpoint_internal": ""},
+        {"s3_endpoint_internal": ""},
         {"public_origin": ""},
-        {"rustfs_access_key": ""},
+        {"s3_access_key": ""},
     ],
 )
 def test_production_config_rejects_incomplete_settings(overrides: dict) -> None:
@@ -82,6 +82,27 @@ def test_secure_cookies_in_production(monkeypatch: pytest.MonkeyPatch, prod_env)
     assert all(
         "secure" not in header.lower()
         for header in dev_response.headers.getlist("set-cookie")
+    )
+
+
+def test_cookie_secure_defaults_to_environment() -> None:
+    assert make_settings().secure_cookies is True
+    assert make_settings(environment="development").secure_cookies is False
+    # .env 里留空 = 按 environment 推断。
+    assert make_settings(cookie_secure="").cookie_secure is None
+
+
+def test_cookie_secure_can_be_disabled_for_plain_http(
+    monkeypatch: pytest.MonkeyPatch, prod_env
+) -> None:
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "cookie_secure", False)
+    response = Response()
+    set_session_cookies(response, access_token="access", refresh_token="refresh")
+
+    assert all(
+        "secure" not in header.lower()
+        for header in response.headers.getlist("set-cookie")
     )
 
 

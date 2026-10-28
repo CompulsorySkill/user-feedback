@@ -76,7 +76,7 @@ def set_anonymous_cookie(response: Response, token: str) -> None:
         max_age=settings.anonymous_cookie_max_age,
         httponly=True,
         samesite="lax",
-        secure=settings.is_production,
+        secure=settings.secure_cookies,
         path="/",
     )
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppException
@@ -135,6 +135,21 @@ class CommentService:
             author_name = user.display_name if user else None
 
         return self._item(comment, author_name)
+
+    async def delete(self, post_id: uuid.UUID, comment_id: uuid.UUID) -> str:
+        """管理员删除评论及其全部回复，返回被删评论内容供审计。"""
+        post, _board = await self._post(post_id)
+        comment = await self.comments.get(comment_id)
+        if comment is None or comment.post_id != post_id:
+            raise AppException(404, code="COMMENT_NOT_FOUND", detail="评论不存在")
+
+        content = comment.content
+        levels = await self.comments.subtree(comment_id)
+        for level in levels:
+            await self.session.execute(delete(Comment).where(Comment.id.in_(level)))
+        post.comment_count = max(0, post.comment_count - sum(len(x) for x in levels))
+        await self.session.commit()
+        return content
 
     async def _author_label(self, comment: Comment) -> str:
         if comment.author_id is None:

@@ -558,6 +558,10 @@
   cursor: not-allowed;
 }
 
+.comment-action-danger {
+  color: var(--error);
+}
+
 .comment-children {
   display: flex;
   flex-direction: column;
