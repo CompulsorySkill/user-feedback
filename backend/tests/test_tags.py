@@ -351,4 +351,14 @@ async def test_site_name_from_settings(
     response = await client.get("/api/v1/site")
 
     assert response.status_code == 200
-    assert response.json() == {"name": "反馈中心"}
+    assert response.json() == {"name": "反馈中心", "storage_prefix": "/storage"}
+
+
+async def test_site_storage_prefix_follows_s3_bucket(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "s3_bucket", "media")
+
+    response = await client.get("/api/v1/site")
+
+    assert response.json()["storage_prefix"] == "/media"

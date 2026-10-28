@@ -90,6 +90,8 @@ services:
     restart: unless-stopped
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in deploy/.env}
+      # 媒体直传 / 读取的路径前缀，必须与 backend 的 S3_BUCKET 一致。
+      S3_BUCKET: ${S3_BUCKET:-storage}
       ACME_EMAIL: ${ACME_EMAIL:-ops@example.com}
       # 裸 IP HTTPS：在 .env 设 CADDY_LOCAL_CERTS=local_certs；留空走 ACME。
       CADDY_LOCAL_CERTS: ${CADDY_LOCAL_CERTS:-}

@@ -47,6 +47,14 @@ def test_production_config_accepts_complete_settings() -> None:
     assert config.database_url.startswith("postgresql")
 
 
+def test_s3_bucket_is_validated_as_url_path() -> None:
+    assert make_settings(s3_bucket="media").s3_bucket == "media"
+    with pytest.raises(ValidationError):
+        make_settings(s3_bucket="media/public")
+    with pytest.raises(ValidationError):
+        make_settings(s3_bucket="Media")
+
+
 @pytest.mark.parametrize(
     "overrides",
     [

@@ -9,7 +9,7 @@
 # 站点路由在 http / https 两个入口间共享：两个入口都能独立访问，不再互相跳转。
 (site) {
 	# 媒体走 RustFS 已是压缩格式，避免对视频/图片做二次压缩。
-	@compressible not path /storage/*
+	@compressible not path /{$S3_BUCKET:storage}/*
 	encode @compressible zstd gzip
 
 	# 只接受 100MB 以内的请求体；与 UPLOAD_MAX_BYTES 保持一致。
@@ -25,8 +25,9 @@
 		reverse_proxy backend:8000
 	}
 
-	# 不重写路径：/storage/<key> 原样转给 RustFS，保证 SigV4 canonical URI 一致。
-	handle /storage/* {
+	# 不重写路径：/<bucket>/<key> 原样转给 RustFS（path-style），保证 SigV4 canonical URI 一致。
+	# bucket 名由 S3_BUCKET 提供，与后端 presign 及 /v1/site 的 storage_prefix 一致。
+	handle /{$S3_BUCKET:storage}/* {
 		reverse_proxy rustfs:9000
 	}
 

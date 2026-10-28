@@ -172,7 +172,8 @@ uv run alembic check
 - 接口类型集中在 `src/api/types.ts`；不要从后端 OpenAPI 自动生成并入库。
 - 认证状态在 Pinia `stores/auth`；会话凭证是 HttpOnly cookie，不要写入 localStorage。
 - 富文本只按白名单渲染，**禁止 `v-html`**；未知节点只渲染子节点。
-- 媒体 JSON 只存 object key，展示统一经 `storageUrl()` 拼 `/storage/`。
+- 媒体 JSON 只存 object key，展示统一经 `storageUrl()` 拼前缀；前缀来自 `GET /v1/site` 的
+  `storage_prefix`（等于 `/S3_BUCKET`，默认 `/storage`），Caddy 反代同一路径。
 - 图标统一 `@tabler/icons-vue`；不引入 Google Fonts，使用系统字体栈。
 - 首期不引入 TanStack Query；页面 `setup` 中直接调用 `api/`。
 

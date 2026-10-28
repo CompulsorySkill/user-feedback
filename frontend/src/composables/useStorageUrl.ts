@@ -1,12 +1,21 @@
-const STORAGE_PREFIX = '/storage/'
+let storagePrefix = '/storage/'
 
 /**
- * 富文本中的图片 / 视频 src 存 object key，渲染时拼上 /storage/。
- * 带协议的绝对地址与 data: 直接透传；写入侧的归属校验在 P2 服务端完成。
+ * 媒体前缀由后端 `GET /v1/site` 的 `storage_prefix` 提供（等于 S3_BUCKET），
+ * 启动时设置一次；Caddy 把该前缀原样反代给 RustFS（path-style 签名）。
+ */
+export function setStoragePrefix(prefix: string): void {
+  const normalized = prefix.trim().replace(/^\/+|\/+$/g, '')
+  if (normalized) storagePrefix = `/${normalized}/`
+}
+
+/**
+ * 富文本中的图片 / 视频 src 存 object key，渲染时拼上媒体前缀。
+ * 带协议的绝对地址与 data: 直接透传；写入侧的归属校验在服务端完成。
  */
 export function storageUrl(src: string): string {
   if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:')) {
     return src
   }
-  return `${STORAGE_PREFIX}${src.replace(/^\/+/, '')}`
+  return `${storagePrefix}${src.replace(/^\/+/, '')}`
 }

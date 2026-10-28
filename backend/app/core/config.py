@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -83,6 +84,14 @@ class Settings(BaseSettings):
             for email in self.admin_emails.split(",")
             if email.strip()
         }
+
+    @field_validator("s3_bucket")
+    @classmethod
+    def _valid_bucket(cls, value: str) -> str:
+        """bucket 名会作为公开 URL 的路径前缀，只允许 S3 合法字符。"""
+        if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", value):
+            raise ValueError("S3_BUCKET 只能包含小写字母、数字、点和连字符，长度 3-63")
+        return value
 
     @field_validator("cookie_secure", mode="before")
     @classmethod

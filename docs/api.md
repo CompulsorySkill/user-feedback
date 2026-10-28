@@ -132,7 +132,7 @@ keyset 分页。响应：
 - `changelog_attachment` 仅管理员可用，**不限制 content-type**；对象以 `application/octet-stream` 存储，
   下载走受控接口并强制 `Content-Disposition: attachment`
 - 返回 `object_key`、`upload_url`、`method: "PUT"`、`headers`
-- `upload_url` 是站点相对路径（`/storage/...`），浏览器按当前访问的 origin 补全协议与端口；
+- `upload_url` 是站点相对路径（`/<S3_BUCKET>/...`，默认 `/storage/...`），浏览器按当前访问的 origin 补全协议与端口；
   签名 Host 取自本次请求的 `Host`，因此 `http` / `https`（含前置反代）都能直传
 - 浏览器 `PUT` 时必须原样携带返回的 `Content-Type`（参与 SigV4 签名）；`object_key` 由服务端生成
 
@@ -212,7 +212,7 @@ keyset 分页。响应：
 | GET | `/v1/boards`、`/v1/boards/{slug}` | 公开 |
 | GET | `/v1/boards/{slug}/posts` | 公开 |
 | POST | `/v1/boards/{slug}/posts` | 匿名 / 登录；可带 `tags` |
-| GET | `/v1/site` | 公开（`APP_NAME`） |
+| GET | `/v1/site` | 公开；`{name, storage_prefix}`，前缀等于 `/<S3_BUCKET>` |
 | GET | `/v1/tags` | 公开；内置标签（`include_custom=true` 含用户标签，`board=<slug>` 限定计数范围） |
 | GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
 | GET | `/v1/admin/audit-logs` | 管理员；审计日志 |

@@ -2,6 +2,7 @@ import { api } from './client'
 
 export interface SiteInfo {
   name: string
+  storage_prefix: string
 }
 
 export function getSiteInfo(): Promise<SiteInfo> {

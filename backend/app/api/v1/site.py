@@ -14,7 +14,10 @@ router = APIRouter(tags=["site"])
 
 @router.get("/site", response_model=SiteInfo, summary="站点名称等公开配置")
 async def get_site_info() -> SiteInfo:
-    return SiteInfo(name=settings.app_name)
+    return SiteInfo(
+        name=settings.app_name,
+        storage_prefix=f"/{settings.s3_bucket}",
+    )
 
 
 @router.get("/tags", response_model=list[TagSummary], summary="公开标签列表")

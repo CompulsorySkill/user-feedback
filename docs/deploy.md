@@ -10,7 +10,7 @@
 
 | 服务 | 对外 | 说明 |
 |---|---|---|
-| `frontend` | `HTTP_PORT` / `HTTPS_PORT` | Caddy：SPA 静态文件 + `/api/*` → `backend:8000` + `/storage/*` → `rustfs:9000` |
+| `frontend` | `HTTP_PORT` / `HTTPS_PORT` | Caddy：SPA 静态文件 + `/api/*` → `backend:8000` + `/<S3_BUCKET>/*` → `rustfs:9000` |
 | `backend` | 仅内网 8000 | FastAPI；启动时自动 `alembic upgrade head` |
 | `postgres` | 仅内网 5432 | 生产必须用 Postgres |
 | `rustfs` | 仅内网 9000 | 对象存储（S3 兼容），bucket 由 `scripts.bootstrap_storage` 初始化 |
@@ -52,6 +52,7 @@ cp .env.example .env
 | `ADMIN_EMAILS` | 至少一名管理员邮箱（逗号分隔） |
 | `ADMIN_PASSWORD` | 管理员邮箱 + 密码登录；留空则该入口关闭，只走 SSO |
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | RustFS 的访问密钥，不要用示例值 |
+| `S3_BUCKET` | 默认 `storage`；改名会同时改变媒体公开路径（`/<bucket>/<key>`），需重建 bucket 并迁移旧对象 |
 
 **按场景改**
 
@@ -140,6 +141,7 @@ docker compose run --rm backend alembic upgrade head
 | CORS 报错 / 401 跨域 | `PUBLIC_ORIGIN` 与实际地址不同源（协议、端口、主机都要一致） |
 | 上传返回 403 / `SignatureDoesNotMatch` | 前置反代改写了 `Host`；必须透传浏览器原始 `Host`（nginx 默认即可，别设 `proxy_set_header Host $proxy_host`） |
 | 上传 400 / 图片不显示 | RustFS bucket 未初始化：跑 §4 的 `bootstrap_storage` |
+| 改了 `S3_BUCKET` 后旧图片 404 | 对象仍在旧 bucket：先把对象复制到新 bucket，再重启 backend / frontend（Caddy 与前端前缀都会跟着变） |
 | Caddy 报签证书失败 | 场景 A 检查 80/443 是否可达、DNS 是否生效；裸 IP 必须走场景 B 或 C（公信 CA 不给 IP 签证书） |
 | `https://<IP>` 提示证书不受信任 | 场景 C 的预期行为，需分发内置 CA 根证书给访问方；客户端不信任则改用场景 B |
 | 容器起来了但页面打不开 | 只映射了部分端口：重启 `docker compose up -d`，确认 `docker compose ps` 端口映射 |
