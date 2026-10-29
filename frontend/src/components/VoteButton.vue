@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useStorage } from '@vueuse/core'
 import { IconLoader2, IconThumbUp } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { unvotePost, votePost } from '@/api/posts'
@@ -16,39 +17,24 @@ const props = withDefaults(
 
 const STORAGE_KEY = 'feedback:voted-posts'
 
-function readVoted(): Set<string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const parsed = raw ? (JSON.parse(raw) as unknown) : []
-    return new Set(Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [])
-  } catch {
-    return new Set()
-  }
-}
+/** 已投票记录；隐私模式下 useStorage 自动降级为内存 ref，不抛错。 */
+const votedIds = useStorage<string[]>(STORAGE_KEY, [])
 
-function persistVoted(votedIds: Set<string>): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...votedIds]))
-  } catch {
-    // 隐私模式等场景忽略
-  }
+/** 存储可能被手工改坏，只信任字符串数组。 */
+function sanitize(ids: unknown): string[] {
+  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
 }
 
 const count = ref(props.initialCount)
-const voted = ref(false)
+const voted = ref(sanitize(votedIds.value).includes(props.postId))
 const pending = ref(false)
 const error = ref('')
-
-onMounted(() => {
-  voted.value = readVoted().has(props.postId)
-})
 
 async function toggle(): Promise<void> {
   if (pending.value || props.disabled) return
 
   const wasVoted = voted.value
   const previousCount = count.value
-  const votedIds = readVoted()
 
   pending.value = true
   error.value = ''
@@ -59,9 +45,8 @@ async function toggle(): Promise<void> {
     const result = wasVoted ? await unvotePost(props.postId) : await votePost(props.postId)
     count.value = result.vote_count
     voted.value = result.voted
-    if (result.voted) votedIds.add(props.postId)
-    else votedIds.delete(props.postId)
-    persistVoted(votedIds)
+    const others = sanitize(votedIds.value).filter((id) => id !== props.postId)
+    votedIds.value = result.voted ? [...others, props.postId] : others
   } catch (err) {
     voted.value = wasVoted
     count.value = previousCount

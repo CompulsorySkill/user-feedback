@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDebounceFn } from '@vueuse/core'
 import { IconLoader2, IconRefresh, IconSearch, IconX } from '@tabler/icons-vue'
 import { ApiError } from '@/api/client'
 import { listAllPosts, listBoardPosts, type ListPostsOptions, type PostSort } from '@/api/boards'
@@ -53,8 +54,14 @@ const tagFilter = ref<string[]>(normalizeTags(route.query.tag))
 const searchQuery = ref(normalizeSearch(route.query.q))
 const searchInput = ref(searchQuery.value)
 
-let searchTimer: ReturnType<typeof setTimeout> | null = null
 let loadScheduled = false
+
+const runSearch = useDebounceFn(() => {
+  const value = searchInput.value.trim().slice(0, 100)
+  if (value === searchQuery.value) return
+  searchQuery.value = value
+  syncQuery()
+}, 300)
 
 /** 切换看板与重置筛选可能在同一 tick 触发，合并为一次请求。 */
 function scheduleLoad(): void {
@@ -169,18 +176,12 @@ function toggleTag(name: string): void {
 }
 
 function onSearchInput(): void {
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {
-    const value = searchInput.value.trim().slice(0, 100)
-    if (value === searchQuery.value) return
-    searchQuery.value = value
-    syncQuery()
-  }, 300)
+  runSearch()
 }
 
 function clearSearch(): void {
   searchInput.value = ''
-  if (searchTimer) clearTimeout(searchTimer)
+  runSearch.cancel()
   if (!searchQuery.value) return
   searchQuery.value = ''
   syncQuery()
@@ -211,7 +212,8 @@ onMounted(() => {
   void load()
 })
 onUnmounted(() => {
-  if (searchTimer) clearTimeout(searchTimer)
+  // 防抖不随组件作用域释放，卸载后仍可能触发一次 syncQuery 改写路由。
+  runSearch.cancel()
 })
 
 watch(
