@@ -112,7 +112,8 @@ class S3Storage:
         return PresignedUpload(
             object_key=object_key,
             # 返回相对路径：浏览器按自己访问的协议 / 端口补全，http 与 https 都能直传。
-            upload_url=f"{url.path}?{url.query}",
+            # 子路径部署时加上 BASE_PATH 前缀；签名仍只覆盖 RustFS 看到的路径。
+            upload_url=f"{settings.base_prefix}{url.path}?{url.query}",
             expires_in=settings.presign_expires_seconds,
             headers={"Content-Type": content_type},
         )

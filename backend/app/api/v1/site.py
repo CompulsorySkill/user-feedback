@@ -16,7 +16,7 @@ router = APIRouter(tags=["site"])
 async def get_site_info() -> SiteInfo:
     return SiteInfo(
         name=settings.app_name,
-        storage_prefix=f"/{settings.s3_bucket}",
+        storage_prefix=f"{settings.base_prefix}/{settings.s3_bucket}",
     )
 
 

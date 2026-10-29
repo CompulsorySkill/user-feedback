@@ -95,7 +95,8 @@ RustFS 连通性 → 迁移版本。Caddy 访问日志默认关闭（避免 GET 
 ## 7. Docker/Caddy 运维
 
 - 四个服务：`postgres`、`rustfs`、`backend`、`frontend`（Caddy），均 `restart: unless-stopped`。
-- Caddy 路由：`/api/*` → `backend:8000`，`/<S3_BUCKET>/*`（默认 `/storage/*`）→ `rustfs:9000`（不重写路径），
+- Caddy 路由：`BASE_PATH` 非空时同时接受「带前缀」与「已剥前缀」两种请求（企业反代两种都能用），
+  再 `/api/*` → `backend:8000`、`/<S3_BUCKET>/*`（默认 `/storage/*`）→ `rustfs:9000`（不重写路径），
   其余静态文件回退到 `index.html`。
 - Caddy 证书与配置：`caddy-data` / `caddy-config` 卷；迁移前先备份。
 - RustFS 数据：`rustfs-data` 卷；Postgres 数据：`postgres-data` 卷。

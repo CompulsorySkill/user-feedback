@@ -354,6 +354,16 @@ async def test_site_name_from_settings(
     assert response.json() == {"name": "反馈中心", "storage_prefix": "/storage"}
 
 
+async def test_site_storage_prefix_includes_base_path(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "base_path", "feedback")
+
+    response = await client.get("/api/v1/site")
+
+    assert response.json()["storage_prefix"] == "/feedback/storage"
+
+
 async def test_site_storage_prefix_follows_s3_bucket(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:

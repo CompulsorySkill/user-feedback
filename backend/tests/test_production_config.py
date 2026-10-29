@@ -47,6 +47,34 @@ def test_production_config_accepts_complete_settings() -> None:
     assert config.database_url.startswith("postgresql")
 
 
+def test_base_path_is_normalized_and_validated() -> None:
+    assert make_settings().base_prefix == ""
+    assert (
+        make_settings(
+            base_path="/feedback/", public_origin="https://h.example/feedback"
+        ).base_path
+        == "feedback"
+    )
+    assert (
+        make_settings(base_path="a/b", public_origin="https://h.example/a/b").base_prefix
+        == "/a/b"
+    )
+    with pytest.raises(ValidationError):
+        make_settings(base_path="a b")
+
+
+def test_public_origin_must_match_base_path() -> None:
+    config = make_settings(
+        base_path="feedback", public_origin="https://feedback.example.com/feedback"
+    )
+    assert config.base_prefix == "/feedback"
+
+    with pytest.raises(ValidationError):
+        make_settings(
+            base_path="feedback", public_origin="https://feedback.example.com"
+        )
+
+
 def test_s3_bucket_is_validated_as_url_path() -> None:
     assert make_settings(s3_bucket="media").s3_bucket == "media"
     with pytest.raises(ValidationError):

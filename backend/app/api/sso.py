@@ -26,6 +26,11 @@ from app.services.sso import (
     merge_anonymous_identity_safely,
 )
 
+
+def _frontend_target(return_to: str | None) -> str:
+    """站内目标路径补上 BASE_PATH，子路径部署时浏览器跳转才对。"""
+    return f"{settings.base_prefix}{validate_return_to(return_to)}"
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sso", tags=["sso"])
@@ -66,7 +71,7 @@ async def sso_login(
     token: str = "",
     return_to: str | None = None,
 ) -> RedirectResponse:
-    target = validate_return_to(return_to)
+    target = _frontend_target(return_to)
     if not token:
         return RedirectResponse(target, status_code=302)
 
@@ -97,7 +102,7 @@ async def sso_login_post(
     response: Response,
     session: SessionDep,
 ) -> SSOLoginResponse:
-    target = validate_return_to(payload.return_to)
+    target = _frontend_target(payload.return_to)
     claims = verify_sso_token(payload.token)
 
     user, clear_anonymous = await _complete_login(session, claims, request)

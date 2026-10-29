@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -36,6 +37,10 @@ class Settings(BaseSettings):
     sql_echo: bool = False
 
     public_origin: str = ""
+
+    # 子路径部署，如 "feedback"（对应 https://host/feedback）。留空 = 部署在根路径。
+    # 需与 Caddy 的 BASE_PATH、前端构建变量 VITE_BASE 一致。
+    base_path: str = ""
 
     # cookie 的 Secure 标记。留空按 environment 推断（生产开、开发关）；
     # 需要用 http 直接访问并登录时显式设为 false。
@@ -73,6 +78,11 @@ class Settings(BaseSettings):
         return self.environment.lower() == "production"
 
     @property
+    def base_prefix(self) -> str:
+        """浏览器侧路径前缀（含前导斜杠，无尾斜杠）；根部署为空串。"""
+        return f"/{self.base_path}" if self.base_path else ""
+
+    @property
     def secure_cookies(self) -> bool:
         return self.is_production if self.cookie_secure is None else self.cookie_secure
 
@@ -84,6 +94,17 @@ class Settings(BaseSettings):
             for email in self.admin_emails.split(",")
             if email.strip()
         }
+
+    @field_validator("base_path")
+    @classmethod
+    def _valid_base_path(cls, value: str) -> str:
+        """子路径会拼进浏览器 URL，只允许单层或多层安全字符，且不带首尾斜杠。"""
+        value = value.strip().strip("/")
+        if not value:
+            return ""
+        if not re.fullmatch(r"[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)*", value):
+            raise ValueError("BASE_PATH 只允许字母、数字、. _ ~ - 和 / 分隔的层级")
+        return value
 
     @field_validator("s3_bucket")
     @classmethod
@@ -118,6 +139,12 @@ class Settings(BaseSettings):
             raise ValueError(f"production 环境缺少必填配置: {', '.join(missing)}")
         if not self.database_url.startswith("postgresql"):
             raise ValueError("production 环境 DATABASE_URL 必须指向 Postgres")
+        origin_path = urlsplit(self.public_origin).path.rstrip("/")
+        if origin_path != self.base_prefix:
+            raise ValueError(
+                "PUBLIC_ORIGIN 的路径必须等于 BASE_PATH"
+                f"（当前 {origin_path or '/'} vs {self.base_prefix or '/'}）"
+            )
         return self
 
 

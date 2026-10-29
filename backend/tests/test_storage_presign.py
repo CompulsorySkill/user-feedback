@@ -18,6 +18,16 @@ def _storage_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     storage_module._signer_for.cache_clear()
 
 
+def test_presign_url_includes_base_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "base_path", "feedback")
+
+    presigned = S3Storage().presign_put(
+        object_key="uploads/a.png", content_type="image/png", host="example.com"
+    )
+
+    assert presigned.upload_url.startswith("/feedback/storage/uploads/a.png?X-Amz-")
+
+
 def test_presign_returns_relative_url_for_request_host() -> None:
     presigned = S3Storage().presign_put(
         object_key="uploads/a.png", content_type="image/png", host="203.0.113.10:8443"

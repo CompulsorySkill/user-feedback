@@ -53,6 +53,7 @@ cp .env.example .env
 | `ADMIN_PASSWORD` | 管理员邮箱 + 密码登录；留空则该入口关闭，只走 SSO |
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | RustFS 的访问密钥，不要用示例值 |
 | `S3_BUCKET` | 默认 `storage`；改名会同时改变媒体公开路径（`/<bucket>/<key>`），需重建 bucket 并迁移旧对象 |
+| `BASE_PATH` / `VITE_BASE` | 子路径部署用（见下节），根部署留空 / 默认 |
 
 **按场景改**
 
@@ -71,6 +72,63 @@ cp .env.example .env
 - `COOKIE_SECURE` 留空时按 `ENVIRONMENT` 推断（生产开）。明文 HTTP 下带 `Secure` 的
   会话 cookie 会被浏览器丢弃，表现为「登录后立刻变回匿名」。
 - `S3_ENDPOINT_INTERNAL` 保持 `http://rustfs:9000`（容器内网地址），不要改成域名。
+
+### 子路径部署（如 `https://example.com/feedback/`）
+
+默认部署在根路径。挂在前缀下时需要**同时**设置三处，缺一不可：
+
+| 位置 | 变量 | 示例 |
+|---|---|---|
+| `deploy/.env`（backend + Caddy） | `BASE_PATH` | `/feedback`（带前导斜杠、无尾斜杠） |
+| 同上（前端构建参数，compose 透传） | `VITE_BASE` | `/feedback/`（带尾斜杠） |
+| `deploy/.env` | `PUBLIC_ORIGIN` | `https://example.com/feedback`（路径必须等于 `BASE_PATH`，production 启动会校验） |
+
+```bash
+cd deploy
+# .env 里设 BASE_PATH=/feedback、VITE_BASE=/feedback/、
+# PUBLIC_ORIGIN=https://example.com/feedback
+docker compose up -d --build      # 必须本机构建：子路径 base 是前端构建期常量
+```
+
+- `VITE_BASE` 只在**构建镜像**时生效；GHCR 预构建镜像（根路径 base）不能直接用于子路径，
+  需要在本机 `docker compose build`（或在 CI 用对应 `VITE_BASE` 构建）。
+- Caddy 会先把 `BASE_PATH` 前缀剥掉再走内部路由，`/api`、`/storage`、`/assets` 与根部署一致；
+  后端的 presign 直传地址、`/v1/site.storage_prefix`、SSO 跳转目标都会自动带上该前缀。
+- 外层反向代理只需转发 `/feedback/*`，其余路径不用暴露。
+- 目录前缀改动等同于站点迁移：旧链接、SSO 侧配置的回调地址要同步更新；媒体只存 object key，
+  历史内容不受影响。
+
+### 企业级 TLS / 前缀反代（推荐形态）
+
+公司环境常见的组合是：公司反代终结 TLS 并把应用挂在前缀下，本服务只提供内网 HTTP。
+
+```
+浏览器 ──https──▶ 公司反代（TLS / 鉴权 / 限流） ──http──▶ frontend(Caddy) ──▶ backend / rustfs
+                        /feedback/*              （透传或剥前缀，见下表）
+```
+
+- 本服务**不需要**对外暴露 443：只发布 `HTTP_PORT`，公司反代转发到它。
+  同时把 `CADDY_LOCAL_CERTS=local_certs`，避免 Caddy 为不可达的 443 反复尝试 ACME。
+- `PUBLIC_ORIGIN` 写浏览器实际地址（`https://example.com/feedback`），cookie 保持默认
+  `Secure`（浏览器侧是 https，反代到本服务是明文不影响 cookie 标记）。
+- 前缀接入的两种方式都支持，按公司反代的配置选一种：
+
+| 反代行为 | 本服务看到的路径 | 需要的设置 |
+|---|---|---|
+| 原样透传前缀：`/feedback/api/x` | `/feedback/api/x` | `BASE_PATH=/feedback`（Caddy 剥前缀） |
+| 已剥掉前缀：转发成 `/api/x` | `/api/x` | `BASE_PATH=/feedback`（Caddy 根路由直接命中） |
+
+  两种情况都要：`VITE_BASE=/feedback/` 构建前端、`PUBLIC_ORIGIN` 带 `/feedback`。
+  Caddy 同时接受带前缀与不带前缀的请求，所以反代改不改前缀都不用动配置。
+
+- 公司反代必须做到：
+  - **保留原始 `Host`**（`proxy_set_header Host $host`）。上传直传的 SigV4 用请求 Host 签名，
+    改成上游主机名会 403 `SignatureDoesNotMatch`；同理 `/storage/*` 要一起转发。
+  - 透传 `Range` 与 `Accept-Ranges`（视频拖动依赖），不要缓冲整个响应体。
+  - 请求体上限 ≥ 100MB（`UPLOAD_MAX_BYTES`），否则大文件在反代层就被 413。
+  - 可选：`X-Forwarded-Proto` / `X-Forwarded-For`（后端已按代理头解析客户端 IP）。
+- 多客户 / 前缀由公司侧决定时，`VITE_BASE` 仍是**构建期**常量：每个前缀需要对应构建一次
+  镜像（或使用 CI 预构建的不同 `VITE_BASE` 变体）。
 
 `ENVIRONMENT=production` 会在启动时强校验：`PUBLIC_ORIGIN`、`SSO_SECRETS`、
 `SESSION_JWT_SECRET`、`S3_ENDPOINT_INTERNAL`、`S3_ACCESS_KEY`、`S3_SECRET_KEY`
@@ -141,6 +199,8 @@ docker compose run --rm backend alembic upgrade head
 | CORS 报错 / 401 跨域 | `PUBLIC_ORIGIN` 与实际地址不同源（协议、端口、主机都要一致） |
 | 上传返回 403 / `SignatureDoesNotMatch` | 前置反代改写了 `Host`；必须透传浏览器原始 `Host`（nginx 默认即可，别设 `proxy_set_header Host $proxy_host`） |
 | 上传 400 / 图片不显示 | RustFS bucket 未初始化：跑 §4 的 `bootstrap_storage` |
+| 公司反代后上传 403 | 反代改写了 `Host`（或没转发 `/storage/*`）：保留原始 Host 并把 `<前缀>/storage/*` 一并转发 |
+| 子路径部署后接口 404 / 白屏 | 三处没对齐：`BASE_PATH`（Caddy）、`VITE_BASE`（镜像构建）、`PUBLIC_ORIGIN` 路径必须一致；改了 `VITE_BASE` 必须重新 `docker compose build` |
 | 改了 `S3_BUCKET` 后旧图片 404 | 对象仍在旧 bucket：先把对象复制到新 bucket，再重启 backend / frontend（Caddy 与前端前缀都会跟着变） |
 | Caddy 报签证书失败 | 场景 A 检查 80/443 是否可达、DNS 是否生效；裸 IP 必须走场景 B 或 C（公信 CA 不给 IP 签证书） |
 | `https://<IP>` 提示证书不受信任 | 场景 C 的预期行为，需分发内置 CA 根证书给访问方；客户端不信任则改用场景 B |

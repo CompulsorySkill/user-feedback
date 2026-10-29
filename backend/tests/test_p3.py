@@ -120,6 +120,22 @@ async def test_expired_sso_token_degrades_to_anonymous(client: AsyncClient) -> N
     assert "feedlog_access" not in client.cookies
 
 
+async def test_sso_redirect_respects_base_path(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "base_path", "feedback")
+
+    response = await login(client, "alice@example.com", target="/b/product")
+    assert response.headers["location"] == "/feedback/b/product"
+
+    posted = await client.post(
+        "/api/sso/jwt",
+        json={"token": sso_token("bob@example.com"), "return_to": "/post/1"},
+    )
+    assert posted.status_code == 200
+    assert posted.json()["redirect_to"] == "/feedback/post/1"
+
+
 @pytest.mark.parametrize(
     "return_to",
     ["//evil.com", "https://evil.com", "/\\evil.com", "javascript:alert(1)"],

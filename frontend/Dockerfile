@@ -5,6 +5,10 @@
 # "qemu: uncaught target signal 4 (Illegal instruction)" 直接崩掉。
 FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 
+# 子路径部署时构建期传入，例如 VITE_BASE=/feedback/；默认根路径。
+ARG VITE_BASE=/
+ENV VITE_BASE=${VITE_BASE}
+
 WORKDIR /app
 RUN npm install --global pnpm@11.28.5
 

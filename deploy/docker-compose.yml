@@ -87,11 +87,16 @@ services:
     image: ${FRONTEND_IMAGE:-feedback-frontend:local}
     build:
       context: ../frontend
+      args:
+        # 子路径部署：与 .env 的 BASE_PATH 对应，如 /feedback/。仅本机构建生效。
+        VITE_BASE: ${VITE_BASE:-/}
     restart: unless-stopped
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in deploy/.env}
       # 媒体直传 / 读取的路径前缀，必须与 backend 的 S3_BUCKET 一致。
       S3_BUCKET: ${S3_BUCKET:-storage}
+      # 子路径部署：如 /feedback（带前导斜杠）；根部署留空。
+      BASE_PATH: ${BASE_PATH:-}
       ACME_EMAIL: ${ACME_EMAIL:-ops@example.com}
       # 裸 IP HTTPS：在 .env 设 CADDY_LOCAL_CERTS=local_certs；留空走 ACME。
       CADDY_LOCAL_CERTS: ${CADDY_LOCAL_CERTS:-}

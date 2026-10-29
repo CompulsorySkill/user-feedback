@@ -6,16 +6,39 @@
 	email {$ACME_EMAIL:ops@example.com}
 }
 
-# 站点路由在 http / https 两个入口间共享：两个入口都能独立访问，不再互相跳转。
+# 站点路由在 http / https 两个入口间共享。
+# 两种接入方式都支持：
+# 1) 前置反代原样透传前缀（/feedback/*）→ 先剥掉 BASE_PATH 再按根路径处理；
+# 2) 前置反代已经剥掉前缀（转成 /api/*）→ 直接命中根路由。
+# 根部署时 BASE_PATH 留空，第一段等价于根路由。
 (site) {
-	# 媒体走 RustFS 已是压缩格式，避免对视频/图片做二次压缩。
-	@compressible not path /{$S3_BUCKET:storage}/*
-	encode @compressible zstd gzip
-
 	# 只接受 100MB 以内的请求体；与 UPLOAD_MAX_BYTES 保持一致。
 	request_body {
 		max_size 100MB
 	}
+
+	handle_path {$BASE_PATH:}/* {
+		import handlers
+	}
+
+	handle {
+		import handlers
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+}
+
+# 站点内部路由：无论前缀是否被剥掉，路径都以 /api、/<bucket>、/assets 开头。
+(handlers) {
+	# 媒体走 RustFS 已是压缩格式，避免对视频/图片做二次压缩。
+	@compressible not path /{$S3_BUCKET:storage}/*
+	encode @compressible zstd gzip
 
 	# 访问日志默认关闭：GET /api/sso/jwt 的 token 在查询串中，
 	# 避免 Caddy 访问日志记录 token；后端 Uvicorn 访问日志已做脱敏。
@@ -45,14 +68,6 @@
 
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
-
-	header {
-		-Server
-		X-Content-Type-Options nosniff
-		X-Frame-Options DENY
-		Referrer-Policy strict-origin-when-cross-origin
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-	}
 }
 
 # 站点地址由 deploy/.env 的 SITE_ADDRESS 提供（域名或裸 IP，不带 scheme / 端口）。
