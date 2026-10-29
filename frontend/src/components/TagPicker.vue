@@ -1,76 +1,77 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { IconPlus, IconX } from '@tabler/icons-vue'
-import type { TagSummary } from '@/api/types'
+import { IconPlus, IconX } from '@tabler/icons-vue';
+import { computed, ref } from 'vue';
+
+import type { TagSummary } from '@/api/types';
 
 const props = withDefaults(
   defineProps<{
-    modelValue: string[]
-    suggestions?: TagSummary[]
-    max?: number
-    disabled?: boolean
+    modelValue: string[];
+    suggestions?: TagSummary[];
+    max?: number;
+    disabled?: boolean;
   }>(),
   {
     suggestions: () => [],
     max: 5,
     disabled: false,
   },
-)
+);
 
-const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>();
 
-const draft = ref('')
-const error = ref('')
+const draft = ref('');
+const error = ref('');
 
 const available = computed(() => {
-  const selected = new Set(props.modelValue.map((name) => name.toLocaleLowerCase()))
-  return props.suggestions.filter((tag) => !selected.has(tag.name.toLocaleLowerCase()))
-})
+  const selected = new Set(props.modelValue.map((name) => name.toLocaleLowerCase()));
+  return props.suggestions.filter((tag) => !selected.has(tag.name.toLocaleLowerCase()));
+});
 
 function clean(value: string): string {
-  return value.trim().replace(/^#+/, '').replace(/\s+/g, ' ')
+  return value.trim().replace(/^#+/, '').replace(/\s+/g, ' ');
 }
 
 function addTag(raw: string): void {
-  if (props.disabled) return
-  const name = clean(raw)
+  if (props.disabled) return;
+  const name = clean(raw);
   if (!name) {
-    draft.value = ''
-    return
+    draft.value = '';
+    return;
   }
   if (name.length > 24) {
-    error.value = '单个标签不能超过 24 个字符'
-    return
+    error.value = '单个标签不能超过 24 个字符';
+    return;
   }
   if (props.modelValue.some((item) => item.toLocaleLowerCase() === name.toLocaleLowerCase())) {
-    draft.value = ''
-    error.value = ''
-    return
+    draft.value = '';
+    error.value = '';
+    return;
   }
   if (props.modelValue.length >= props.max) {
-    error.value = `最多添加 ${props.max} 个标签`
-    return
+    error.value = `最多添加 ${props.max} 个标签`;
+    return;
   }
-  emit('update:modelValue', [...props.modelValue, name])
-  draft.value = ''
-  error.value = ''
+  emit('update:modelValue', [...props.modelValue, name]);
+  draft.value = '';
+  error.value = '';
 }
 
 function removeTag(name: string): void {
   emit(
     'update:modelValue',
     props.modelValue.filter((item) => item !== name),
-  )
+  );
 }
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Enter' || event.key === ',') {
-    event.preventDefault()
-    addTag(draft.value)
-    return
+    event.preventDefault();
+    addTag(draft.value);
+    return;
   }
   if (event.key === 'Backspace' && !draft.value && props.modelValue.length) {
-    removeTag(props.modelValue[props.modelValue.length - 1])
+    removeTag(props.modelValue[props.modelValue.length - 1]);
   }
 }
 </script>

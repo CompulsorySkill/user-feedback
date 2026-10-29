@@ -1,75 +1,76 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { IconLoader2, IconRefresh, IconShieldCheck, IconTrash } from '@tabler/icons-vue'
-import { listAuditLogs, runUploadCleanup } from '@/api/audit'
-import { ApiError } from '@/api/client'
-import type { AuditLogItem, UploadCleanupResult } from '@/api/types'
-import { AUDIT_ACTIONS, auditActionLabel, formatAuditDetail } from '@/utils/audit'
-import { formatDateTime } from '@/utils/date'
+import { IconLoader2, IconRefresh, IconShieldCheck, IconTrash } from '@tabler/icons-vue';
+import { onMounted, ref } from 'vue';
 
-const PAGE_SIZE = 30
+import { listAuditLogs, runUploadCleanup } from '@/api/audit';
+import { ApiError } from '@/api/client';
+import type { AuditLogItem, UploadCleanupResult } from '@/api/types';
+import { AUDIT_ACTIONS, auditActionLabel, formatAuditDetail } from '@/utils/audit';
+import { formatDateTime } from '@/utils/date';
 
-const logs = ref<AuditLogItem[]>([])
-const nextCursor = ref<number | null>(null)
-const loading = ref(true)
-const loadingMore = ref(false)
-const errorMessage = ref('')
-const actionFilter = ref('')
-const runningCleanup = ref(false)
-const cleanupResult = ref<UploadCleanupResult | null>(null)
+const PAGE_SIZE = 30;
+
+const logs = ref<AuditLogItem[]>([]);
+const nextCursor = ref<number | null>(null);
+const loading = ref(true);
+const loadingMore = ref(false);
+const errorMessage = ref('');
+const actionFilter = ref('');
+const runningCleanup = ref(false);
+const cleanupResult = ref<UploadCleanupResult | null>(null);
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    const page = await listAuditLogs({ limit: PAGE_SIZE, action: actionFilter.value || null })
-    logs.value = page.items
-    nextCursor.value = page.next_cursor ? Number(page.next_cursor) : null
+    const page = await listAuditLogs({ limit: PAGE_SIZE, action: actionFilter.value || null });
+    logs.value = page.items;
+    nextCursor.value = page.next_cursor ? Number(page.next_cursor) : null;
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '加载审计日志失败。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载审计日志失败。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadMore(): Promise<void> {
-  if (!nextCursor.value || loadingMore.value) return
-  loadingMore.value = true
+  if (!nextCursor.value || loadingMore.value) return;
+  loadingMore.value = true;
   try {
     const page = await listAuditLogs({
       limit: PAGE_SIZE,
       before_id: nextCursor.value,
       action: actionFilter.value || null,
-    })
-    const seen = new Set(logs.value.map((item) => item.id))
-    logs.value = [...logs.value, ...page.items.filter((item) => !seen.has(item.id))]
-    nextCursor.value = page.next_cursor ? Number(page.next_cursor) : null
+    });
+    const seen = new Set(logs.value.map((item) => item.id));
+    logs.value = [...logs.value, ...page.items.filter((item) => !seen.has(item.id))];
+    nextCursor.value = page.next_cursor ? Number(page.next_cursor) : null;
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '加载更多失败。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载更多失败。';
   } finally {
-    loadingMore.value = false
+    loadingMore.value = false;
   }
 }
 
 async function cleanup(dryRun: boolean): Promise<void> {
-  if (runningCleanup.value) return
+  if (runningCleanup.value) return;
   if (!dryRun && !window.confirm('将删除超过保留期且未被任何反馈引用的上传对象，确认执行？')) {
-    return
+    return;
   }
-  runningCleanup.value = true
-  cleanupResult.value = null
-  errorMessage.value = ''
+  runningCleanup.value = true;
+  cleanupResult.value = null;
+  errorMessage.value = '';
   try {
-    cleanupResult.value = await runUploadCleanup({ dryRun })
-    await load()
+    cleanupResult.value = await runUploadCleanup({ dryRun });
+    await load();
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '清理失败，请稍后重试。'
+    errorMessage.value = error instanceof ApiError ? error.message : '清理失败，请稍后重试。';
   } finally {
-    runningCleanup.value = false
+    runningCleanup.value = false;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>

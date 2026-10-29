@@ -1,42 +1,43 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { createPost, listBoards } from '@/api/boards'
-import { listBuiltinTags } from '@/api/tags'
-import type { Board, TagSummary } from '@/api/types'
-import PostEditor from '@/components/PostEditor.vue'
-import TagPicker from '@/components/TagPicker.vue'
-import { useAuthStore } from '@/stores/auth'
-import type { JSONContent } from '@/types/content'
+import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
+import { createPost, listBoards } from '@/api/boards';
+import { ApiError } from '@/api/client';
+import { listBuiltinTags } from '@/api/tags';
+import type { Board, TagSummary } from '@/api/types';
+import PostEditor from '@/components/PostEditor.vue';
+import TagPicker from '@/components/TagPicker.vue';
+import { useAuthStore } from '@/stores/auth';
+import type { JSONContent } from '@/types/content';
 
-const boards = ref<Board[]>([])
-const board = ref<Board | null>(null)
-const boardSlug = ref('')
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+
+const boards = ref<Board[]>([]);
+const board = ref<Board | null>(null);
+const boardSlug = ref('');
 const selectableBoards = computed(() =>
   boards.value.filter(
     (item) => item.allow_guest_posting || auth.isAuthenticated || item.slug === board.value?.slug,
   ),
-)
+);
 const canPost = computed(() =>
   Boolean(board.value && (board.value.allow_guest_posting || auth.isAuthenticated)),
-)
-const loading = ref(true)
-const loadError = ref('')
-const title = ref('')
-const tags = ref<string[]>([])
-const tagSuggestions = ref<TagSummary[]>([])
-const nickname = ref('')
-const attachEnvironment = ref(true)
-const editorRef = ref<InstanceType<typeof PostEditor> | null>(null)
-const uploading = ref(false)
-const submitting = ref(false)
-const submitError = ref('')
+);
+const loading = ref(true);
+const loadError = ref('');
+const title = ref('');
+const tags = ref<string[]>([]);
+const tagSuggestions = ref<TagSummary[]>([]);
+const nickname = ref('');
+const attachEnvironment = ref(true);
+const editorRef = ref<InstanceType<typeof PostEditor> | null>(null);
+const uploading = ref(false);
+const submitting = ref(false);
+const submitError = ref('');
 
 function collectEnvironment() {
   return {
@@ -45,68 +46,68 @@ function collectEnvironment() {
     language: navigator.language,
     viewport: `${window.innerWidth}×${window.innerHeight}`,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  }
+  };
 }
 
 async function loadTags(): Promise<void> {
   try {
-    tagSuggestions.value = await listBuiltinTags()
+    tagSuggestions.value = await listBuiltinTags();
   } catch {
-    tagSuggestions.value = []
+    tagSuggestions.value = [];
   }
 }
 
 async function load(): Promise<void> {
-  loading.value = true
-  loadError.value = ''
+  loading.value = true;
+  loadError.value = '';
   try {
-    boards.value = await listBoards()
-    const routed = String(route.params.slug ?? '')
+    boards.value = await listBoards();
+    const routed = String(route.params.slug ?? '');
     // 看板页进来沿用 URL；否则默认第一个可访客发布的看板。
     const initial = routed
       ? boards.value.find((item) => item.slug === routed)
-      : (boards.value.find((item) => item.allow_guest_posting) ?? boards.value[0])
+      : (boards.value.find((item) => item.allow_guest_posting) ?? boards.value[0]);
     if (!initial) {
-      loadError.value = routed ? '看板不存在或未公开。' : '还没有可发布的看板。'
-      return
+      loadError.value = routed ? '看板不存在或未公开。' : '还没有可发布的看板。';
+      return;
     }
-    board.value = initial
-    boardSlug.value = initial.slug
+    board.value = initial;
+    boardSlug.value = initial.slug;
   } catch (error) {
     loadError.value =
       error instanceof ApiError
         ? error.status === 404
           ? '看板不存在或未公开。'
           : error.message
-        : '加载失败，请稍后重试。'
+        : '加载失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 watch(boardSlug, (slug) => {
-  const next = boards.value.find((item) => item.slug === slug)
-  if (!next) return
-  board.value = next
-  void router.replace({ name: 'new-post-board', params: { slug } })
-})
+  const next = boards.value.find((item) => item.slug === slug);
+  if (!next) return;
+  board.value = next;
+  void router.replace({ name: 'new-post-board', params: { slug } });
+});
 
 async function submit(): Promise<void> {
-  if (submitting.value || uploading.value || !board.value || !canPost.value) return
+  if (submitting.value || uploading.value || !board.value || !canPost.value) return;
 
-  const trimmedTitle = title.value.trim()
+  const trimmedTitle = title.value.trim();
   if (!trimmedTitle) {
-    submitError.value = '请填写标题'
-    return
+    submitError.value = '请填写标题';
+    return;
   }
-  const content = editorRef.value?.getJSON()
+  const content = editorRef.value?.getJSON();
   if (!content || editorRef.value?.isEmpty()) {
-    submitError.value = '请填写正文'
-    return
+    submitError.value = '请填写正文';
+    return;
   }
 
-  submitting.value = true
-  submitError.value = ''
+  submitting.value = true;
+  submitError.value = '';
   try {
     const created = await createPost(board.value.slug, {
       title: trimmedTitle,
@@ -114,19 +115,19 @@ async function submit(): Promise<void> {
       anonymous_name: nickname.value.trim() || null,
       environment: attachEnvironment.value ? collectEnvironment() : null,
       tags: tags.value,
-    })
-    await router.push(`/post/${created.id}`)
+    });
+    await router.push(`/post/${created.id}`);
   } catch (error) {
-    submitError.value = error instanceof ApiError ? error.message : '发布失败，请稍后重试。'
+    submitError.value = error instanceof ApiError ? error.message : '发布失败，请稍后重试。';
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 
 onMounted(() => {
-  void load()
-  void loadTags()
-})
+  void load();
+  void loadTags();
+});
 </script>
 
 <template>

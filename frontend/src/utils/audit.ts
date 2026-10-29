@@ -12,17 +12,17 @@ export const AUDIT_ACTIONS: Array<{ value: string; label: string }> = [
   { value: 'changelog.publish', label: '发布更新日志' },
   { value: 'changelog.unpublish', label: '撤回更新日志' },
   { value: 'upload.cleanup', label: '清理上传对象' },
-]
+];
 
-const ACTION_LABELS = new Map(AUDIT_ACTIONS.map((item) => [item.value, item.label]))
+const ACTION_LABELS = new Map(AUDIT_ACTIONS.map((item) => [item.value, item.label]));
 
 export function auditActionLabel(action: string): string {
-  return ACTION_LABELS.get(action) ?? action
+  return ACTION_LABELS.get(action) ?? action;
 }
 
 export function formatAuditDetail(detail: Record<string, unknown> | null): string {
-  if (!detail) return ''
+  if (!detail) return '';
   return Object.entries(detail)
     .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
-    .join(' · ')
+    .join(' · ');
 }

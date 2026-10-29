@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { storageUrl } from '@/composables/useStorageUrl'
-import { attrNumber, attrString, type JSONContent, type JSONMark } from '@/types/content'
+import { computed } from 'vue';
+
+import { storageUrl } from '@/composables/useStorageUrl';
+import { attrNumber, attrString, type JSONContent, type JSONMark } from '@/types/content';
 
 /**
  * 只读富文本渲染：白名单节点逐层渲染，未知节点仅保留子节点。
  * 全程使用插值，不注入 HTML，避免 XSS。
  */
-const props = defineProps<{ node: JSONContent }>()
+const props = defineProps<{ node: JSONContent }>();
 
-const children = computed(() => props.node.content ?? [])
-const marks = computed<JSONMark[]>(() => props.node.marks ?? [])
-const markTypes = computed(() => new Set(marks.value.map((mark) => mark.type)))
+const children = computed(() => props.node.content ?? []);
+const marks = computed<JSONMark[]>(() => props.node.marks ?? []);
+const markTypes = computed(() => new Set(marks.value.map((mark) => mark.type)));
 
 const linkHref = computed(() => {
-  const href = marks.value.find((mark) => mark.type === 'link')?.attrs?.href
-  return typeof href === 'string' && /^https?:\/\//i.test(href) ? href : null
-})
+  const href = marks.value.find((mark) => mark.type === 'link')?.attrs?.href;
+  return typeof href === 'string' && /^https?:\/\//i.test(href) ? href : null;
+});
 
 const markClasses = computed(() => ({
   'rt-bold': markTypes.value.has('bold'),
@@ -24,19 +25,19 @@ const markClasses = computed(() => ({
   'rt-strike': markTypes.value.has('strike'),
   'rt-underline': markTypes.value.has('underline'),
   'rt-inline-code': markTypes.value.has('code'),
-}))
+}));
 
-const headingLevel = computed(() => Math.min(Math.max(attrNumber(props.node, 'level', 2), 1), 6))
-const listStart = computed(() => attrNumber(props.node, 'start', 1))
-const imageSrc = computed(() => attrString(props.node, 'src'))
-const imageAlt = computed(() => attrString(props.node, 'alt') ?? '')
-const imageTitle = computed(() => attrString(props.node, 'title'))
-const videoSrc = computed(() => attrString(props.node, 'src'))
-const videoPoster = computed(() => attrString(props.node, 'poster'))
+const headingLevel = computed(() => Math.min(Math.max(attrNumber(props.node, 'level', 2), 1), 6));
+const listStart = computed(() => attrNumber(props.node, 'start', 1));
+const imageSrc = computed(() => attrString(props.node, 'src'));
+const imageAlt = computed(() => attrString(props.node, 'alt') ?? '');
+const imageTitle = computed(() => attrString(props.node, 'title'));
+const videoSrc = computed(() => attrString(props.node, 'src'));
+const videoPoster = computed(() => attrString(props.node, 'poster'));
 
 function collectText(node: JSONContent): string {
-  const own = node.text ?? ''
-  return own + (node.content ?? []).map(collectText).join('')
+  const own = node.text ?? '';
+  return own + (node.content ?? []).map(collectText).join('');
 }
 </script>
 

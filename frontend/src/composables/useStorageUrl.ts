@@ -1,15 +1,15 @@
-import { appBase } from '@/config/base'
+import { appBase } from '@/config/base';
 
 // 兜底用运行时前缀；启动后会用 /v1/site 的 storage_prefix（含 BASE_PATH）覆盖。
-let storagePrefix = `${appBase()}/storage/`
+let storagePrefix = `${appBase()}/storage/`;
 
 /**
  * 媒体前缀由后端 `GET /v1/site` 的 `storage_prefix` 提供（等于 S3_BUCKET），
  * 启动时设置一次；Caddy 把该前缀原样反代给 RustFS（path-style 签名）。
  */
 export function setStoragePrefix(prefix: string): void {
-  const normalized = prefix.trim().replace(/^\/+|\/+$/g, '')
-  if (normalized) storagePrefix = `/${normalized}/`
+  const normalized = prefix.trim().replace(/^\/+|\/+$/g, '');
+  if (normalized) storagePrefix = `/${normalized}/`;
 }
 
 /**
@@ -18,7 +18,7 @@ export function setStoragePrefix(prefix: string): void {
  */
 export function storageUrl(src: string): string {
   if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:')) {
-    return src
+    return src;
   }
-  return `${storagePrefix}${src.replace(/^\/+/, '')}`
+  return `${storagePrefix}${src.replace(/^\/+/, '')}`;
 }

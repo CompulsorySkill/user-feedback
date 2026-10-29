@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { TagRef } from '@/api/types'
+import type { TagRef } from '@/api/types';
 
-defineProps<{ tags: TagRef[] }>()
+defineProps<{ tags: TagRef[] }>();
 </script>
 
 <template>

@@ -1,7 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { appBase } from '@/config/base'
-import { site } from '@/config/site'
-import { useAuthStore } from '@/stores/auth'
+import { createRouter, createWebHistory } from 'vue-router';
+
+import { appBase } from '@/config/base';
+import { site } from '@/config/site';
+import { useAuthStore } from '@/stores/auth';
 
 const router = createRouter({
   history: createWebHistory(appBase() || '/'),
@@ -92,16 +93,16 @@ const router = createRouter({
     },
   ],
   scrollBehavior: () => ({ top: 0 }),
-})
+});
 
 // 管理员入口对非管理员返回 404，避免暴露管理功能存在。
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAdmin) return true
-  const auth = useAuthStore()
-  if (!auth.me) await auth.hydrate()
-  if (!auth.isAdmin) return { name: 'not-found' }
-  return true
-})
+  if (!to.meta.requiresAdmin) return true;
+  const auth = useAuthStore();
+  if (!auth.me) await auth.hydrate();
+  if (!auth.isAdmin) return { name: 'not-found' };
+  return true;
+});
 
 router.afterEach((to) => {
   const titles: Record<string, string> = {
@@ -120,9 +121,9 @@ router.afterEach((to) => {
     'changelog-new': '新建更新日志',
     'changelog-edit': '编辑更新日志',
     'not-found': '页面不存在',
-  }
-  const label = typeof to.name === 'string' ? titles[to.name] : undefined
-  document.title = label ? `${label} · ${site.name}` : site.name
-})
+  };
+  const label = typeof to.name === 'string' ? titles[to.name] : undefined;
+  document.title = label ? `${label} · ${site.name}` : site.name;
+});
 
-export default router
+export default router;

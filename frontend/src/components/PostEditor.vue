@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { EditorContent, useEditor } from '@tiptap/vue-3'
-import StarterKit from '@tiptap/starter-kit'
-import Placeholder from '@tiptap/extension-placeholder'
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
@@ -17,26 +13,31 @@ import {
   IconQuote,
   IconStrikethrough,
   IconVideo,
-} from '@tabler/icons-vue'
-import { StorageImage, VideoNode } from '@/editor/extensions'
-import { useUpload } from '@/composables/useUpload'
-import type { JSONContent } from '@/types/content'
-import { imageFilesFromClipboard } from '@/utils/clipboard'
+} from '@tabler/icons-vue';
+import Placeholder from '@tiptap/extension-placeholder';
+import StarterKit from '@tiptap/starter-kit';
+import { EditorContent, useEditor } from '@tiptap/vue-3';
+import { computed, ref, watch } from 'vue';
+
+import { useUpload } from '@/composables/useUpload';
+import { StorageImage, VideoNode } from '@/editor/extensions';
+import type { JSONContent } from '@/types/content';
+import { imageFilesFromClipboard } from '@/utils/clipboard';
 
 const props = withDefaults(
   defineProps<{
-    scope?: 'post' | 'changelog'
-    initialContent?: JSONContent | null
+    scope?: 'post' | 'changelog';
+    initialContent?: JSONContent | null;
   }>(),
   { scope: 'post', initialContent: null },
-)
+);
 
 const emit = defineEmits<{
-  'update:json': [value: JSONContent]
-  'update:uploading': [value: boolean]
-}>()
+  'update:json': [value: JSONContent];
+  'update:uploading': [value: boolean];
+}>();
 
-const { uploading, error: uploadError, upload } = useUpload()
+const { uploading, error: uploadError, upload } = useUpload();
 
 const editor = useEditor({
   content: props.initialContent ?? { type: 'doc', content: [{ type: 'paragraph' }] },
@@ -55,74 +56,74 @@ const editor = useEditor({
     },
     // 粘贴剪贴板里的截图 / 图片时，阻止默认的 base64 嵌入，改走直传。
     handlePaste: (_view, event) => {
-      const files = imageFilesFromClipboard(event.clipboardData)
-      if (files.length === 0) return false
-      event.preventDefault()
-      void pasteImages(files)
-      return true
+      const files = imageFilesFromClipboard(event.clipboardData);
+      if (files.length === 0) return false;
+      event.preventDefault();
+      void pasteImages(files);
+      return true;
     },
   },
   onCreate: ({ editor: instance }) => emit('update:json', instance.getJSON()),
   onUpdate: ({ editor: instance }) => emit('update:json', instance.getJSON()),
-})
+});
 
-watch(uploading, (value) => emit('update:uploading', value))
+watch(uploading, (value) => emit('update:uploading', value));
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const pendingPurpose = ref<'image' | 'video'>('image')
+const fileInput = ref<HTMLInputElement | null>(null);
+const pendingPurpose = ref<'image' | 'video'>('image');
 
 const uploadingLabel = computed(() =>
   pendingPurpose.value === 'image' ? '图片上传中…' : '视频上传中…',
-)
+);
 
 function pickFile(purpose: 'image' | 'video'): void {
-  pendingPurpose.value = purpose
-  fileInput.value?.click()
+  pendingPurpose.value = purpose;
+  fileInput.value?.click();
 }
 
 function insertMedia(file: File, purpose: 'image' | 'video', key: string): void {
-  if (!editor.value) return
+  if (!editor.value) return;
   if (purpose === 'image') {
-    editor.value.chain().focus().setImage({ src: key, alt: file.name }).run()
+    editor.value.chain().focus().setImage({ src: key, alt: file.name }).run();
   } else {
     editor.value
       .chain()
       .focus()
       .insertContent({ type: 'video', attrs: { src: key, poster: null } })
-      .run()
+      .run();
   }
 }
 
 async function pasteImages(files: File[]): Promise<void> {
-  const purpose = `${props.scope}_image` as 'post_image' | 'changelog_image'
+  const purpose = `${props.scope}_image` as 'post_image' | 'changelog_image';
   // 逐张上传，保证插入顺序与粘贴顺序一致。
   for (const file of files) {
-    const key = await upload(file, purpose)
-    if (key) insertMedia(file, 'image', key)
+    const key = await upload(file, purpose);
+    if (key) insertMedia(file, 'image', key);
   }
 }
 
 async function onFileChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file || !editor.value) return
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file || !editor.value) return;
 
   const purpose = `${props.scope}_${pendingPurpose.value}` as
     | 'post_image'
     | 'post_video'
     | 'changelog_image'
-    | 'changelog_video'
-  const key = await upload(file, purpose)
-  if (!key) return
+    | 'changelog_video';
+  const key = await upload(file, purpose);
+  if (!key) return;
 
-  insertMedia(file, pendingPurpose.value, key)
+  insertMedia(file, pendingPurpose.value, key);
 }
 
 defineExpose({
   getJSON: (): JSONContent | null => editor.value?.getJSON() ?? null,
   isEmpty: (): boolean => editor.value?.isEmpty ?? true,
-})
+});
 </script>
 
 <template>

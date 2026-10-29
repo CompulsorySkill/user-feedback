@@ -1,58 +1,59 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useStorage } from '@vueuse/core'
-import { IconLoader2, IconThumbUp } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { unvotePost, votePost } from '@/api/posts'
+import { IconLoader2, IconThumbUp } from '@tabler/icons-vue';
+import { useStorage } from '@vueuse/core';
+import { ref } from 'vue';
+
+import { ApiError } from '@/api/client';
+import { unvotePost, votePost } from '@/api/posts';
 
 const props = withDefaults(
   defineProps<{
-    postId: string
-    initialCount: number
-    compact?: boolean
-    disabled?: boolean
+    postId: string;
+    initialCount: number;
+    compact?: boolean;
+    disabled?: boolean;
   }>(),
   { compact: false, disabled: false },
-)
+);
 
-const STORAGE_KEY = 'feedback:voted-posts'
+const STORAGE_KEY = 'feedback:voted-posts';
 
 /** 已投票记录；隐私模式下 useStorage 自动降级为内存 ref，不抛错。 */
-const votedIds = useStorage<string[]>(STORAGE_KEY, [])
+const votedIds = useStorage<string[]>(STORAGE_KEY, []);
 
 /** 存储可能被手工改坏，只信任字符串数组。 */
 function sanitize(ids: unknown): string[] {
-  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [];
 }
 
-const count = ref(props.initialCount)
-const voted = ref(sanitize(votedIds.value).includes(props.postId))
-const pending = ref(false)
-const error = ref('')
+const count = ref(props.initialCount);
+const voted = ref(sanitize(votedIds.value).includes(props.postId));
+const pending = ref(false);
+const error = ref('');
 
 async function toggle(): Promise<void> {
-  if (pending.value || props.disabled) return
+  if (pending.value || props.disabled) return;
 
-  const wasVoted = voted.value
-  const previousCount = count.value
+  const wasVoted = voted.value;
+  const previousCount = count.value;
 
-  pending.value = true
-  error.value = ''
-  voted.value = !wasVoted
-  count.value = Math.max(0, previousCount + (wasVoted ? -1 : 1))
+  pending.value = true;
+  error.value = '';
+  voted.value = !wasVoted;
+  count.value = Math.max(0, previousCount + (wasVoted ? -1 : 1));
 
   try {
-    const result = wasVoted ? await unvotePost(props.postId) : await votePost(props.postId)
-    count.value = result.vote_count
-    voted.value = result.voted
-    const others = sanitize(votedIds.value).filter((id) => id !== props.postId)
-    votedIds.value = result.voted ? [...others, props.postId] : others
+    const result = wasVoted ? await unvotePost(props.postId) : await votePost(props.postId);
+    count.value = result.vote_count;
+    voted.value = result.voted;
+    const others = sanitize(votedIds.value).filter((id) => id !== props.postId);
+    votedIds.value = result.voted ? [...others, props.postId] : others;
   } catch (err) {
-    voted.value = wasVoted
-    count.value = previousCount
-    error.value = err instanceof ApiError ? err.message : '操作失败，请稍后重试'
+    voted.value = wasVoted;
+    count.value = previousCount;
+    error.value = err instanceof ApiError ? err.message : '操作失败，请稍后重试';
   } finally {
-    pending.value = false
+    pending.value = false;
   }
 }
 </script>

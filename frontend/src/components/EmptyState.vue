@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { IconInbox } from '@tabler/icons-vue'
+import { IconInbox } from '@tabler/icons-vue';
 
 defineProps<{
-  title: string
-  description?: string
-}>()
+  title: string;
+  description?: string;
+}>();
 </script>
 
 <template>

@@ -1,93 +1,94 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { getPost } from '@/api/posts'
-import { updatePost } from '@/api/postActions'
-import { listBuiltinTags } from '@/api/tags'
-import type { PostDetail, TagSummary } from '@/api/types'
-import PostEditor from '@/components/PostEditor.vue'
-import TagPicker from '@/components/TagPicker.vue'
-import { useAuthStore } from '@/stores/auth'
-import type { JSONContent } from '@/types/content'
+import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue';
+import { computed, onMounted, ref } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
+import { ApiError } from '@/api/client';
+import { updatePost } from '@/api/postActions';
+import { getPost } from '@/api/posts';
+import { listBuiltinTags } from '@/api/tags';
+import type { PostDetail, TagSummary } from '@/api/types';
+import PostEditor from '@/components/PostEditor.vue';
+import TagPicker from '@/components/TagPicker.vue';
+import { useAuthStore } from '@/stores/auth';
+import type { JSONContent } from '@/types/content';
 
-const post = ref<PostDetail | null>(null)
-const loading = ref(true)
-const loadError = ref('')
-const title = ref('')
-const tags = ref<string[]>([])
-const tagSuggestions = ref<TagSummary[]>([])
-const editorRef = ref<InstanceType<typeof PostEditor> | null>(null)
-const submitting = ref(false)
-const error = ref('')
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+
+const post = ref<PostDetail | null>(null);
+const loading = ref(true);
+const loadError = ref('');
+const title = ref('');
+const tags = ref<string[]>([]);
+const tagSuggestions = ref<TagSummary[]>([]);
+const editorRef = ref<InstanceType<typeof PostEditor> | null>(null);
+const submitting = ref(false);
+const error = ref('');
 
 const canEdit = computed(() => {
-  if (!post.value) return false
-  if (auth.isAdmin) return true
-  return Boolean(post.value.is_author) && post.value.status !== 'closed'
-})
+  if (!post.value) return false;
+  if (auth.isAdmin) return true;
+  return Boolean(post.value.is_author) && post.value.status !== 'closed';
+});
 
 async function load(): Promise<void> {
-  loading.value = true
-  loadError.value = ''
+  loading.value = true;
+  loadError.value = '';
   try {
-    if (!auth.me) await auth.hydrate()
-    post.value = await getPost(String(route.params.id ?? ''))
-    title.value = post.value.title
-    tags.value = post.value.tags.map((tag) => tag.name)
+    if (!auth.me) await auth.hydrate();
+    post.value = await getPost(String(route.params.id ?? ''));
+    title.value = post.value.title;
+    tags.value = post.value.tags.map((tag) => tag.name);
   } catch (err) {
-    loadError.value = err instanceof ApiError ? err.message : '加载失败'
+    loadError.value = err instanceof ApiError ? err.message : '加载失败';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadTags(): Promise<void> {
   try {
-    tagSuggestions.value = await listBuiltinTags()
+    tagSuggestions.value = await listBuiltinTags();
   } catch {
-    tagSuggestions.value = []
+    tagSuggestions.value = [];
   }
 }
 
 async function submit(): Promise<void> {
-  if (!post.value || submitting.value) return
-  const trimmedTitle = title.value.trim()
+  if (!post.value || submitting.value) return;
+  const trimmedTitle = title.value.trim();
   if (!trimmedTitle) {
-    error.value = '请填写标题'
-    return
+    error.value = '请填写标题';
+    return;
   }
-  const content = editorRef.value?.getJSON() as JSONContent | null
+  const content = editorRef.value?.getJSON() as JSONContent | null;
   if (!content || editorRef.value?.isEmpty()) {
-    error.value = '请填写正文'
-    return
+    error.value = '请填写正文';
+    return;
   }
 
-  submitting.value = true
-  error.value = ''
+  submitting.value = true;
+  error.value = '';
   try {
     await updatePost(post.value.id, {
       title: trimmedTitle,
       content,
       tags: tags.value,
-    })
-    await router.push(`/post/${post.value.id}`)
+    });
+    await router.push(`/post/${post.value.id}`);
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : '保存失败，请重试'
+    error.value = err instanceof ApiError ? err.message : '保存失败，请重试';
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 
 onMounted(() => {
-  void load()
-  void loadTags()
-})
+  void load();
+  void loadTags();
+});
 </script>
 
 <template>

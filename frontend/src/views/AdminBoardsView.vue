@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import {
   IconDeviceFloppy,
   IconLoader2,
@@ -8,22 +7,24 @@ import {
   IconRefresh,
   IconTrash,
   IconX,
-} from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { createBoard, deleteBoard, listAdminBoards, updateBoard } from '@/api/boards'
-import type { Board } from '@/api/types'
+} from '@tabler/icons-vue';
+import { onMounted, ref } from 'vue';
+
+import { createBoard, deleteBoard, listAdminBoards, updateBoard } from '@/api/boards';
+import { ApiError } from '@/api/client';
+import type { Board } from '@/api/types';
 
 interface BoardForm {
-  slug: string
-  name: string
-  description: string
-  is_public: boolean
-  allow_guest_posting: boolean
-  allow_guest_voting: boolean
-  allow_guest_commenting: boolean
+  slug: string;
+  name: string;
+  description: string;
+  is_public: boolean;
+  allow_guest_posting: boolean;
+  allow_guest_voting: boolean;
+  allow_guest_commenting: boolean;
 }
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$/
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$/;
 
 function emptyForm(): BoardForm {
   return {
@@ -34,41 +35,41 @@ function emptyForm(): BoardForm {
     allow_guest_posting: true,
     allow_guest_voting: true,
     allow_guest_commenting: true,
-  }
+  };
 }
 
-const boards = ref<Board[]>([])
-const loading = ref(true)
-const errorMessage = ref('')
-const actionError = ref('')
+const boards = ref<Board[]>([]);
+const loading = ref(true);
+const errorMessage = ref('');
+const actionError = ref('');
 
-const formOpen = ref(false)
-const editingId = ref<number | null>(null)
-const form = ref<BoardForm>(emptyForm())
-const saving = ref(false)
-const deletingId = ref<number | null>(null)
+const formOpen = ref(false);
+const editingId = ref<number | null>(null);
+const form = ref<BoardForm>(emptyForm());
+const saving = ref(false);
+const deletingId = ref<number | null>(null);
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    boards.value = await listAdminBoards()
+    boards.value = await listAdminBoards();
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '加载看板失败，请稍后重试。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载看板失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function openCreate(): void {
-  editingId.value = null
-  form.value = emptyForm()
-  formOpen.value = true
-  actionError.value = ''
+  editingId.value = null;
+  form.value = emptyForm();
+  formOpen.value = true;
+  actionError.value = '';
 }
 
 function openEdit(board: Board): void {
-  editingId.value = board.id
+  editingId.value = board.id;
   form.value = {
     slug: board.slug,
     name: board.name,
@@ -77,32 +78,32 @@ function openEdit(board: Board): void {
     allow_guest_posting: board.allow_guest_posting,
     allow_guest_voting: board.allow_guest_voting,
     allow_guest_commenting: board.allow_guest_commenting,
-  }
-  formOpen.value = true
-  actionError.value = ''
+  };
+  formOpen.value = true;
+  actionError.value = '';
 }
 
 function closeForm(): void {
-  formOpen.value = false
-  editingId.value = null
-  actionError.value = ''
+  formOpen.value = false;
+  editingId.value = null;
+  actionError.value = '';
 }
 
 async function save(): Promise<void> {
-  if (saving.value) return
-  actionError.value = ''
-  const slug = form.value.slug.trim().toLowerCase()
-  const name = form.value.name.trim()
+  if (saving.value) return;
+  actionError.value = '';
+  const slug = form.value.slug.trim().toLowerCase();
+  const name = form.value.name.trim();
   if (!SLUG_RE.test(slug) || slug.length < 2) {
-    actionError.value = '标识需为 2–64 位小写字母、数字或中划线，且不能以中划线开头或结尾。'
-    return
+    actionError.value = '标识需为 2–64 位小写字母、数字或中划线，且不能以中划线开头或结尾。';
+    return;
   }
   if (!name) {
-    actionError.value = '请填写看板名称。'
-    return
+    actionError.value = '请填写看板名称。';
+    return;
   }
 
-  saving.value = true
+  saving.value = true;
   const payload = {
     slug,
     name,
@@ -111,43 +112,43 @@ async function save(): Promise<void> {
     allow_guest_posting: form.value.allow_guest_posting,
     allow_guest_voting: form.value.allow_guest_voting,
     allow_guest_commenting: form.value.allow_guest_commenting,
-  }
+  };
   try {
     if (editingId.value === null) {
-      await createBoard(payload)
+      await createBoard(payload);
     } else {
-      await updateBoard(editingId.value, payload)
+      await updateBoard(editingId.value, payload);
     }
-    closeForm()
-    await load()
+    closeForm();
+    await load();
   } catch (error) {
-    actionError.value = error instanceof ApiError ? error.message : '保存失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '保存失败，请稍后重试。';
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function remove(board: Board): Promise<void> {
-  if (deletingId.value !== null) return
+  if (deletingId.value !== null) return;
   const warning =
     board.post_count > 0
       ? `看板「${board.name}」下有 ${board.post_count} 条反馈，删除会一并清理这些反馈、评论与投票，且不可撤销。确认删除？`
-      : `确认删除看板「${board.name}」？此操作不可撤销。`
-  if (!window.confirm(warning)) return
-  deletingId.value = board.id
-  actionError.value = ''
+      : `确认删除看板「${board.name}」？此操作不可撤销。`;
+  if (!window.confirm(warning)) return;
+  deletingId.value = board.id;
+  actionError.value = '';
   try {
-    await deleteBoard(board.id, board.post_count > 0)
-    if (editingId.value === board.id) closeForm()
-    await load()
+    await deleteBoard(board.id, board.post_count > 0);
+    if (editingId.value === board.id) closeForm();
+    await load();
   } catch (error) {
-    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。';
   } finally {
-    deletingId.value = null
+    deletingId.value = null;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>

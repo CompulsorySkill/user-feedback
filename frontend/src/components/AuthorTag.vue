@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { IconUser } from '@tabler/icons-vue'
-import type { PostSummary } from '@/api/types'
-import { authorLabel } from '@/utils/author'
+import { IconUser } from '@tabler/icons-vue';
+import { computed } from 'vue';
 
-const props = defineProps<{ post: PostSummary }>()
+import type { PostSummary } from '@/api/types';
+import { authorLabel } from '@/utils/author';
 
-const label = computed(() => authorLabel(props.post))
+const props = defineProps<{ post: PostSummary }>();
+
+const label = computed(() => authorLabel(props.post));
 </script>
 
 <template>

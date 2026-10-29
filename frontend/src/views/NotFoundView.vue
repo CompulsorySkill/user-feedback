@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconRouteOff } from '@tabler/icons-vue'
+import { IconRouteOff } from '@tabler/icons-vue';
 </script>
 
 <template>

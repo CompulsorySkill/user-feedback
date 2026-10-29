@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import type { Board } from '@/api/types'
+import { RouterLink } from 'vue-router';
+
+import type { Board } from '@/api/types';
 
 defineProps<{
-  boards: Board[]
-  activeSlug?: string | null
-  totalCount: number
-}>()
+  boards: Board[];
+  activeSlug?: string | null;
+  totalCount: number;
+}>();
 </script>
 
 <template>

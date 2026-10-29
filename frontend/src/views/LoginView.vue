@@ -1,121 +1,122 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { IconArrowLeft, IconLoader2, IconLogin } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
+import { IconArrowLeft, IconLoader2, IconLogin } from '@tabler/icons-vue';
+import { computed, onMounted, ref } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+
 import {
   adminLogin,
   devLogin,
   getAuthCapabilities,
   ssoLogin,
   type AuthCapabilities,
-} from '@/api/auth'
-import { useAuthStore } from '@/stores/auth'
+} from '@/api/auth';
+import { ApiError } from '@/api/client';
+import { useAuthStore } from '@/stores/auth';
 
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
 
-const caps = ref<AuthCapabilities | null>(null)
-const loading = ref(true)
-const submitting = ref(false)
-const error = ref('')
+const caps = ref<AuthCapabilities | null>(null);
+const loading = ref(true);
+const submitting = ref(false);
+const error = ref('');
 
-const token = ref('')
-const email = ref('admin@example.com')
-const name = ref('管理员')
-const adminEmail = ref('')
-const adminPassword = ref('')
-const adminName = ref('')
+const token = ref('');
+const email = ref('admin@example.com');
+const name = ref('管理员');
+const adminEmail = ref('');
+const adminPassword = ref('');
+const adminName = ref('');
 
 const redirectTo = computed(() => {
-  const raw = route.query.redirect
-  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return '/'
-  return raw
-})
+  const raw = route.query.redirect;
+  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return '/';
+  return raw;
+});
 
 async function load(): Promise<void> {
-  loading.value = true
+  loading.value = true;
   try {
-    caps.value = await getAuthCapabilities()
-    if (!auth.me) await auth.hydrate()
+    caps.value = await getAuthCapabilities();
+    if (!auth.me) await auth.hydrate();
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loginWithSso(): Promise<void> {
   if (!token.value.trim()) {
-    error.value = '请粘贴 SSO token'
-    return
+    error.value = '请粘贴 SSO token';
+    return;
   }
-  if (submitting.value) return
-  submitting.value = true
-  error.value = ''
+  if (submitting.value) return;
+  submitting.value = true;
+  error.value = '';
   try {
     // POST 提交 token，由后端下发 HttpOnly 会话；token 不进入 URL / 历史记录。
-    const result = await ssoLogin(token.value.trim(), redirectTo.value)
-    await auth.hydrate()
-    await router.replace(result.redirect_to)
+    const result = await ssoLogin(token.value.trim(), redirectTo.value);
+    await auth.hydrate();
+    await router.replace(result.redirect_to);
   } catch (err) {
     error.value =
       err instanceof ApiError
         ? err.status === 401
           ? 'SSO token 无效或已过期'
           : err.message
-        : 'SSO 登录失败'
+        : 'SSO 登录失败';
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 
 function adminLoginError(err: unknown): string {
-  if (!(err instanceof ApiError)) return '管理员登录失败'
-  if (err.status === 401) return '管理员邮箱或密码不正确'
-  if (err.status === 404) return '未配置 ADMIN_EMAILS / ADMIN_PASSWORD，密码登录不可用'
-  return err.message
+  if (!(err instanceof ApiError)) return '管理员登录失败';
+  if (err.status === 401) return '管理员邮箱或密码不正确';
+  if (err.status === 404) return '未配置 ADMIN_EMAILS / ADMIN_PASSWORD，密码登录不可用';
+  return err.message;
 }
 
 async function loginAsAdmin(): Promise<void> {
-  if (!adminEmail.value.trim() || !adminPassword.value || submitting.value) return
-  submitting.value = true
-  error.value = ''
+  if (!adminEmail.value.trim() || !adminPassword.value || submitting.value) return;
+  submitting.value = true;
+  error.value = '';
   try {
     await adminLogin(
       adminEmail.value.trim(),
       adminPassword.value,
       adminName.value.trim() || undefined,
-    )
-    await auth.hydrate()
-    await router.replace(redirectTo.value)
+    );
+    await auth.hydrate();
+    await router.replace(redirectTo.value);
   } catch (err) {
-    error.value = adminLoginError(err)
+    error.value = adminLoginError(err);
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 
 async function loginAsDev(): Promise<void> {
-  if (!email.value.trim() || submitting.value) return
-  submitting.value = true
-  error.value = ''
+  if (!email.value.trim() || submitting.value) return;
+  submitting.value = true;
+  error.value = '';
   try {
-    await devLogin(email.value.trim(), name.value.trim() || undefined)
-    await auth.hydrate()
-    await router.replace(redirectTo.value)
+    await devLogin(email.value.trim(), name.value.trim() || undefined);
+    await auth.hydrate();
+    await router.replace(redirectTo.value);
   } catch (err) {
     error.value =
       err instanceof ApiError
         ? err.status === 404
           ? '当前环境未开启快速登录，请走 SSO'
           : err.message
-        : '登录失败'
+        : '登录失败';
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>

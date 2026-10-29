@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import {
   IconArrowLeft,
   IconEdit,
@@ -8,75 +6,78 @@ import {
   IconMessage,
   IconRefresh,
   IconTrash,
-} from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { deletePost, getPost } from '@/api/posts'
-import type { PostDetail } from '@/api/types'
-import AuthorTag from '@/components/AuthorTag.vue'
-import CommentSection from '@/components/CommentSection.vue'
-import PostStatusControl from '@/components/PostStatusControl.vue'
-import RichTextRenderer from '@/components/RichTextRenderer.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import TagList from '@/components/TagList.vue'
-import VoteButton from '@/components/VoteButton.vue'
-import { useAuthStore } from '@/stores/auth'
-import { formatDate, formatDateTime, formatRelative } from '@/utils/date'
+} from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
-const post = ref<PostDetail | null>(null)
-const loading = ref(true)
-const errorMessage = ref('')
-const deleting = ref(false)
-const actionError = ref('')
+import { ApiError } from '@/api/client';
+import { deletePost, getPost } from '@/api/posts';
+import type { PostDetail } from '@/api/types';
+import AuthorTag from '@/components/AuthorTag.vue';
+import CommentSection from '@/components/CommentSection.vue';
+import PostStatusControl from '@/components/PostStatusControl.vue';
+import RichTextRenderer from '@/components/RichTextRenderer.vue';
+import StatusBadge from '@/components/StatusBadge.vue';
+import TagList from '@/components/TagList.vue';
+import VoteButton from '@/components/VoteButton.vue';
+import { useAuthStore } from '@/stores/auth';
+import { formatDate, formatDateTime, formatRelative } from '@/utils/date';
 
-const isClosed = computed(() => post.value?.status === 'closed')
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+const post = ref<PostDetail | null>(null);
+const loading = ref(true);
+const errorMessage = ref('');
+const deleting = ref(false);
+const actionError = ref('');
+
+const isClosed = computed(() => post.value?.status === 'closed');
 const canEdit = computed(() => {
-  if (!post.value) return false
-  if (auth.isAdmin) return true
-  return post.value.is_author && post.value.status !== 'closed'
-})
+  if (!post.value) return false;
+  if (auth.isAdmin) return true;
+  return post.value.is_author && post.value.status !== 'closed';
+});
 
 function onPostUpdated(updated: PostDetail): void {
-  post.value = updated
+  post.value = updated;
 }
 
 async function removePost(): Promise<void> {
-  if (!post.value || deleting.value) return
-  if (!window.confirm('确认删除这条反馈？其评论与投票会一并删除，且不可恢复。')) return
-  deleting.value = true
-  actionError.value = ''
-  const boardSlug = post.value.board.slug
+  if (!post.value || deleting.value) return;
+  if (!window.confirm('确认删除这条反馈？其评论与投票会一并删除，且不可恢复。')) return;
+  deleting.value = true;
+  actionError.value = '';
+  const boardSlug = post.value.board.slug;
   try {
-    await deletePost(post.value.id)
-    await router.push(`/b/${boardSlug}`)
+    await deletePost(post.value.id);
+    await router.push(`/b/${boardSlug}`);
   } catch (error) {
-    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。';
   } finally {
-    deleting.value = false
+    deleting.value = false;
   }
 }
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
-  post.value = null
+  loading.value = true;
+  errorMessage.value = '';
+  post.value = null;
   try {
-    post.value = await getPost(String(route.params.id ?? ''))
+    post.value = await getPost(String(route.params.id ?? ''));
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError
         ? error.status === 404
           ? '这条反馈不存在或未公开。'
           : error.message
-        : '加载失败，请稍后重试。'
+        : '加载失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
-watch(() => route.params.id, load, { immediate: true })
+watch(() => route.params.id, load, { immediate: true });
 </script>
 
 <template>

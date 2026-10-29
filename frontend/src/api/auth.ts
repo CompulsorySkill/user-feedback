@@ -1,52 +1,52 @@
-import { api } from './client'
+import { api } from './client';
 
 export interface AuthUser {
-  id: number
-  email: string
-  display_name: string | null
-  role: 'user' | 'admin'
+  id: number;
+  email: string;
+  display_name: string | null;
+  role: 'user' | 'admin';
 }
 
 export interface AuthMe {
-  authenticated: boolean
-  is_admin: boolean
-  is_anonymous: boolean
-  user: AuthUser | null
+  authenticated: boolean;
+  is_admin: boolean;
+  is_anonymous: boolean;
+  user: AuthUser | null;
 }
 
 export interface AuthCapabilities {
-  sso: boolean
-  dev_login: boolean
-  admin_login: boolean
+  sso: boolean;
+  dev_login: boolean;
+  admin_login: boolean;
 }
 
 export function getMe(): Promise<AuthMe> {
-  return api.get<AuthMe>('/v1/auth/me')
+  return api.get<AuthMe>('/v1/auth/me');
 }
 
 export function getAuthCapabilities(): Promise<AuthCapabilities> {
-  return api.get<AuthCapabilities>('/v1/auth/capabilities')
+  return api.get<AuthCapabilities>('/v1/auth/capabilities');
 }
 
 export function devLogin(email: string, name?: string): Promise<AuthMe> {
-  return api.post<AuthMe>('/v1/auth/dev-login', { email, name: name || null })
+  return api.post<AuthMe>('/v1/auth/dev-login', { email, name: name || null });
 }
 
 /** 管理员邮箱 + 密码登录；开发与生产均可用（需配置 ADMIN_EMAILS / ADMIN_PASSWORD）。 */
 export function adminLogin(email: string, password: string, name?: string): Promise<AuthMe> {
-  return api.post<AuthMe>('/v1/auth/admin-login', { email, password, name: name || null })
+  return api.post<AuthMe>('/v1/auth/admin-login', { email, password, name: name || null });
 }
 
 export function refreshSession(): Promise<AuthMe> {
-  return api.post<AuthMe>('/v1/auth/refresh')
+  return api.post<AuthMe>('/v1/auth/refresh');
 }
 
 export function logoutSession(): Promise<{ ok: boolean }> {
-  return api.post<{ ok: boolean }>('/v1/auth/logout')
+  return api.post<{ ok: boolean }>('/v1/auth/logout');
 }
 
 export interface SSOLoginResponse {
-  redirect_to: string
+  redirect_to: string;
 }
 
 /** POST 提交 SSO token，避免 token 进入 URL / 浏览器历史。 */
@@ -54,5 +54,5 @@ export function ssoLogin(token: string, returnTo?: string | null): Promise<SSOLo
   return api.post<SSOLoginResponse>('/sso/jwt', {
     token,
     return_to: returnTo ?? null,
-  })
+  });
 }

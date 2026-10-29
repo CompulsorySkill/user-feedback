@@ -1,70 +1,71 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { IconLoader2, IconPlus, IconRefresh, IconTrash } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { createBuiltinTag, deleteTag, listAdminTags } from '@/api/tags'
-import type { TagSummary } from '@/api/types'
+import { IconLoader2, IconPlus, IconRefresh, IconTrash } from '@tabler/icons-vue';
+import { onMounted, ref } from 'vue';
 
-const tags = ref<TagSummary[]>([])
-const loading = ref(true)
-const errorMessage = ref('')
-const actionError = ref('')
-const name = ref('')
-const creating = ref(false)
-const deletingId = ref<number | null>(null)
+import { ApiError } from '@/api/client';
+import { createBuiltinTag, deleteTag, listAdminTags } from '@/api/tags';
+import type { TagSummary } from '@/api/types';
+
+const tags = ref<TagSummary[]>([]);
+const loading = ref(true);
+const errorMessage = ref('');
+const actionError = ref('');
+const name = ref('');
+const creating = ref(false);
+const deletingId = ref<number | null>(null);
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    tags.value = await listAdminTags()
+    tags.value = await listAdminTags();
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '加载标签失败，请稍后重试。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载标签失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function create(): Promise<void> {
-  if (creating.value) return
-  const value = name.value.trim()
+  if (creating.value) return;
+  const value = name.value.trim();
   if (!value) {
-    actionError.value = '请填写标签名称。'
-    return
+    actionError.value = '请填写标签名称。';
+    return;
   }
-  creating.value = true
-  actionError.value = ''
+  creating.value = true;
+  actionError.value = '';
   try {
-    await createBuiltinTag(value)
-    name.value = ''
-    await load()
+    await createBuiltinTag(value);
+    name.value = '';
+    await load();
   } catch (error) {
-    actionError.value = error instanceof ApiError ? error.message : '创建失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '创建失败，请稍后重试。';
   } finally {
-    creating.value = false
+    creating.value = false;
   }
 }
 
 async function remove(tag: TagSummary): Promise<void> {
-  if (deletingId.value !== null) return
+  if (deletingId.value !== null) return;
   const warning =
     tag.post_count > 0
       ? `标签「${tag.name}」正被 ${tag.post_count} 条反馈使用，删除后会从这些反馈上移除。确认删除？`
-      : `确认删除标签「${tag.name}」？`
-  if (!window.confirm(warning)) return
-  deletingId.value = tag.id
-  actionError.value = ''
+      : `确认删除标签「${tag.name}」？`;
+  if (!window.confirm(warning)) return;
+  deletingId.value = tag.id;
+  actionError.value = '';
   try {
-    await deleteTag(tag.id)
-    await load()
+    await deleteTag(tag.id);
+    await load();
   } catch (error) {
-    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。'
+    actionError.value = error instanceof ApiError ? error.message : '删除失败，请稍后重试。';
   } finally {
-    deletingId.value = null
+    deletingId.value = null;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>

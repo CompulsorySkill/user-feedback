@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
 import {
   IconArrowLeft,
   IconDownload,
@@ -8,58 +6,61 @@ import {
   IconFile,
   IconLoader2,
   IconRefresh,
-} from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { getChangelog, publishChangelog, unpublishChangelog } from '@/api/changelogs'
-import type { ChangelogDetail } from '@/api/types'
-import RichTextRenderer from '@/components/RichTextRenderer.vue'
-import { useAuthStore } from '@/stores/auth'
-import { formatDate } from '@/utils/date'
-import { formatBytes } from '@/utils/format'
+} from '@tabler/icons-vue';
+import { ref, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 
-const route = useRoute()
-const auth = useAuthStore()
-const entry = ref<ChangelogDetail | null>(null)
-const loading = ref(true)
-const errorMessage = ref('')
-const pending = ref(false)
+import { getChangelog, publishChangelog, unpublishChangelog } from '@/api/changelogs';
+import { ApiError } from '@/api/client';
+import type { ChangelogDetail } from '@/api/types';
+import RichTextRenderer from '@/components/RichTextRenderer.vue';
+import { useAuthStore } from '@/stores/auth';
+import { formatDate } from '@/utils/date';
+import { formatBytes } from '@/utils/format';
+
+const route = useRoute();
+const auth = useAuthStore();
+const entry = ref<ChangelogDetail | null>(null);
+const loading = ref(true);
+const errorMessage = ref('');
+const pending = ref(false);
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
-  entry.value = null
+  loading.value = true;
+  errorMessage.value = '';
+  entry.value = null;
   try {
-    if (!auth.me) await auth.hydrate()
-    const data = await getChangelog(String(route.params.id ?? ''))
+    if (!auth.me) await auth.hydrate();
+    const data = await getChangelog(String(route.params.id ?? ''));
     // 兼容尚未升级的后端：旧版本详情没有 attachments 字段。
-    entry.value = { ...data, attachments: data.attachments ?? [] }
+    entry.value = { ...data, attachments: data.attachments ?? [] };
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError
         ? error.status === 404
           ? '这条更新日志不存在或尚未发布。'
           : error.message
-        : '加载失败，请稍后重试。'
+        : '加载失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function togglePublish(): Promise<void> {
-  if (!entry.value || pending.value) return
-  pending.value = true
+  if (!entry.value || pending.value) return;
+  pending.value = true;
   try {
     entry.value = entry.value.is_published
       ? await unpublishChangelog(entry.value.id)
-      : await publishChangelog(entry.value.id)
+      : await publishChangelog(entry.value.id);
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '操作失败'
+    errorMessage.value = error instanceof ApiError ? error.message : '操作失败';
   } finally {
-    pending.value = false
+    pending.value = false;
   }
 }
 
-watch(() => route.params.id, load, { immediate: true })
+watch(() => route.params.id, load, { immediate: true });
 </script>
 
 <template>

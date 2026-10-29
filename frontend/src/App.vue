@@ -1,27 +1,28 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { IconMessageCircle } from '@tabler/icons-vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { site } from '@/config/site'
-import { useAuthStore } from '@/stores/auth'
+import { IconMessageCircle } from '@tabler/icons-vue';
+import { onMounted, onUnmounted } from 'vue';
+import { RouterLink, RouterView, useRoute } from 'vue-router';
 
-const auth = useAuthStore()
-const route = useRoute()
+import { site } from '@/config/site';
+import { useAuthStore } from '@/stores/auth';
+
+const auth = useAuthStore();
+const route = useRoute();
 
 function onSessionChanged(): void {
-  void auth.hydrate()
+  void auth.hydrate();
 }
 
 onMounted(() => {
-  window.addEventListener('feedback:auth-refreshed', onSessionChanged)
-  window.addEventListener('feedback:auth-expired', onSessionChanged)
-  void auth.hydrate()
-})
+  window.addEventListener('feedback:auth-refreshed', onSessionChanged);
+  window.addEventListener('feedback:auth-expired', onSessionChanged);
+  void auth.hydrate();
+});
 
 onUnmounted(() => {
-  window.removeEventListener('feedback:auth-refreshed', onSessionChanged)
-  window.removeEventListener('feedback:auth-expired', onSessionChanged)
-})
+  window.removeEventListener('feedback:auth-refreshed', onSessionChanged);
+  window.removeEventListener('feedback:auth-expired', onSessionChanged);
+});
 </script>
 
 <template>

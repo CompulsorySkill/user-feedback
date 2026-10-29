@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { mount } from '@vue/test-utils'
-import CommentNode from '@/components/CommentNode.vue'
-import type { CommentNodeData } from '@/types/comment'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+
+import CommentNode from '@/components/CommentNode.vue';
+import type { CommentNodeData } from '@/types/comment';
 
 const node: CommentNodeData = {
   id: 'comment-1',
@@ -12,26 +13,26 @@ const node: CommentNodeData = {
   is_anonymous: false,
   created_at: '2026-03-01T12:00:00Z',
   children: [],
-}
+};
 
 describe('CommentNode', () => {
   it('shows the exact timestamp as a tooltip', () => {
-    const wrapper = mount(CommentNode, { props: { node, depth: 1 } })
-    expect(wrapper.find('.comment-time').attributes('title')).toContain('2026')
-  })
+    const wrapper = mount(CommentNode, { props: { node, depth: 1 } });
+    expect(wrapper.find('.comment-time').attributes('title')).toContain('2026');
+  });
 
   it('hides the delete action unless canDelete is set', () => {
-    const wrapper = mount(CommentNode, { props: { node, depth: 1 } })
-    expect(wrapper.find('.comment-action-danger').exists()).toBe(false)
-  })
+    const wrapper = mount(CommentNode, { props: { node, depth: 1 } });
+    expect(wrapper.find('.comment-action-danger').exists()).toBe(false);
+  });
 
   it('emits delete with the node when the admin clicks it', async () => {
     const wrapper = mount(CommentNode, {
       props: { node, depth: 1, canDelete: true },
-    })
+    });
 
-    await wrapper.find('.comment-action-danger').trigger('click')
+    await wrapper.find('.comment-action-danger').trigger('click');
 
-    expect(wrapper.emitted('delete')?.[0]).toEqual([node])
-  })
-})
+    expect(wrapper.emitted('delete')?.[0]).toEqual([node]);
+  });
+});

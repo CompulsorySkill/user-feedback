@@ -1,60 +1,61 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
-import { IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { getBoard, listBoards } from '@/api/boards'
-import type { Board } from '@/api/types'
-import BoardSidebar from '@/components/BoardSidebar.vue'
-import PostFeed from '@/components/PostFeed.vue'
-import { useAuthStore } from '@/stores/auth'
+import { IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 
-const route = useRoute()
-const auth = useAuthStore()
+import { getBoard, listBoards } from '@/api/boards';
+import { ApiError } from '@/api/client';
+import type { Board } from '@/api/types';
+import BoardSidebar from '@/components/BoardSidebar.vue';
+import PostFeed from '@/components/PostFeed.vue';
+import { useAuthStore } from '@/stores/auth';
 
-const boards = ref<Board[]>([])
-const board = ref<Board | null>(null)
-const loading = ref(true)
-const errorMessage = ref('')
+const route = useRoute();
+const auth = useAuthStore();
 
-const totalCount = computed(() => boards.value.reduce((sum, item) => sum + item.post_count, 0))
+const boards = ref<Board[]>([]);
+const board = ref<Board | null>(null);
+const loading = ref(true);
+const errorMessage = ref('');
+
+const totalCount = computed(() => boards.value.reduce((sum, item) => sum + item.post_count, 0));
 
 function slug(): string {
-  return String(route.params.slug ?? '')
+  return String(route.params.slug ?? '');
 }
 
 async function loadBoards(): Promise<void> {
   try {
-    boards.value = await listBoards()
+    boards.value = await listBoards();
   } catch {
-    boards.value = []
+    boards.value = [];
   }
 }
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
-  board.value = null
+  loading.value = true;
+  errorMessage.value = '';
+  board.value = null;
   try {
-    board.value = await getBoard(slug())
+    board.value = await getBoard(slug());
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError
         ? error.status === 404
           ? '看板不存在或未公开。'
           : error.message
-        : '加载失败，请稍后重试。'
+        : '加载失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 onMounted(() => {
-  void loadBoards()
-  void load()
-})
+  void loadBoards();
+  void load();
+});
 
-watch(() => route.params.slug, load)
+watch(() => route.params.slug, load);
 </script>
 
 <template>

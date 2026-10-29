@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { IconChevronDown, IconChevronUp, IconCornerUpLeft, IconTrash } from '@tabler/icons-vue'
-import type { CommentNodeData } from '@/types/comment'
-import { formatDateTime, formatRelative } from '@/utils/date'
+import { IconChevronDown, IconChevronUp, IconCornerUpLeft, IconTrash } from '@tabler/icons-vue';
+import { computed, ref } from 'vue';
 
-const props = defineProps<{ node: CommentNodeData; depth: number; canDelete?: boolean }>()
+import type { CommentNodeData } from '@/types/comment';
+import { formatDateTime, formatRelative } from '@/utils/date';
+
+const props = defineProps<{ node: CommentNodeData; depth: number; canDelete?: boolean }>();
 const emit = defineEmits<{
-  reply: [node: CommentNodeData]
-  delete: [node: CommentNodeData]
-}>()
+  reply: [node: CommentNodeData];
+  delete: [node: CommentNodeData];
+}>();
 
-const expanded = ref(props.depth < 2)
-const hasChildren = computed(() => props.node.children.length > 0)
+const expanded = ref(props.depth < 2);
+const hasChildren = computed(() => props.node.children.length > 0);
 const author = computed(() =>
   props.node.is_anonymous ? '匿名用户' : props.node.author_name?.trim() || '用户',
-)
+);
 </script>
 
 <template>

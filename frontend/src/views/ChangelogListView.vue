@@ -1,34 +1,35 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { IconArrowUpRight, IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { listChangelogs } from '@/api/changelogs'
-import type { ChangelogSummary } from '@/api/types'
-import EmptyState from '@/components/EmptyState.vue'
-import { useAuthStore } from '@/stores/auth'
-import { formatDate } from '@/utils/date'
+import { IconArrowUpRight, IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue';
+import { onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 
-const auth = useAuthStore()
-const entries = ref<ChangelogSummary[]>([])
-const loading = ref(true)
-const errorMessage = ref('')
+import { listChangelogs } from '@/api/changelogs';
+import { ApiError } from '@/api/client';
+import type { ChangelogSummary } from '@/api/types';
+import EmptyState from '@/components/EmptyState.vue';
+import { useAuthStore } from '@/stores/auth';
+import { formatDate } from '@/utils/date';
+
+const auth = useAuthStore();
+const entries = ref<ChangelogSummary[]>([]);
+const loading = ref(true);
+const errorMessage = ref('');
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    if (!auth.me) await auth.hydrate()
-    const page = await listChangelogs({ limit: 20, includeDrafts: auth.isAdmin })
-    entries.value = page.items
+    if (!auth.me) await auth.hydrate();
+    const page = await listChangelogs({ limit: 20, includeDrafts: auth.isAdmin });
+    entries.value = page.items;
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : '加载失败，请稍后重试。'
+    errorMessage.value = error instanceof ApiError ? error.message : '加载失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>

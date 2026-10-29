@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { IconChevronDown, IconLock, IconLoader2 } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { updatePostStatus } from '@/api/postActions'
-import type { PostDetail, PostStatus } from '@/api/types'
-import { useAuthStore } from '@/stores/auth'
+import { IconChevronDown, IconLock, IconLoader2 } from '@tabler/icons-vue';
+import { computed, ref } from 'vue';
 
-const props = defineProps<{ post: PostDetail }>()
-const emit = defineEmits<{ updated: [post: PostDetail] }>()
+import { ApiError } from '@/api/client';
+import { updatePostStatus } from '@/api/postActions';
+import type { PostDetail, PostStatus } from '@/api/types';
+import { useAuthStore } from '@/stores/auth';
 
-const auth = useAuthStore()
-const pending = ref(false)
-const error = ref('')
+const props = defineProps<{ post: PostDetail }>();
+const emit = defineEmits<{ updated: [post: PostDetail] }>();
+
+const auth = useAuthStore();
+const pending = ref(false);
+const error = ref('');
 
 const STATUS_OPTIONS: Array<{ value: PostStatus; label: string }> = [
   { value: 'open', label: '待处理' },
@@ -19,27 +20,27 @@ const STATUS_OPTIONS: Array<{ value: PostStatus; label: string }> = [
   { value: 'in_progress', label: '进行中' },
   { value: 'completed', label: '已完成' },
   { value: 'closed', label: '已关闭' },
-]
+];
 
-const isAuthor = computed(() => auth.isAuthenticated && props.post.is_author)
+const isAuthor = computed(() => auth.isAuthenticated && props.post.is_author);
 // 最终权限以后端状态机为准，这里只控制入口显隐。
-const canAuthorClose = computed(() => isAuthor.value && props.post.status !== 'closed')
+const canAuthorClose = computed(() => isAuthor.value && props.post.status !== 'closed');
 
 async function applyStatus(target: PostStatus): Promise<void> {
-  if (pending.value || target === props.post.status) return
+  if (pending.value || target === props.post.status) return;
   if (target === 'closed' && !window.confirm('确认关闭这条反馈？关闭后不能自行重开。')) {
-    return
+    return;
   }
 
-  pending.value = true
-  error.value = ''
+  pending.value = true;
+  error.value = '';
   try {
-    const updated = await updatePostStatus(props.post.id, target)
-    emit('updated', updated)
+    const updated = await updatePostStatus(props.post.id, target);
+    emit('updated', updated);
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : '状态更新失败'
+    error.value = err instanceof ApiError ? err.message : '状态更新失败';
   } finally {
-    pending.value = false
+    pending.value = false;
   }
 }
 </script>

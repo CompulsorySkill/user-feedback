@@ -1,23 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useDebounceFn } from '@vueuse/core'
-import { IconLoader2, IconRefresh, IconSearch, IconX } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { listAllPosts, listBoardPosts, type ListPostsOptions, type PostSort } from '@/api/boards'
-import { listFilterTags } from '@/api/tags'
-import type { PostStatus, PostSummary, TagSummary } from '@/api/types'
-import EmptyState from '@/components/EmptyState.vue'
-import PostCard from '@/components/PostCard.vue'
+import { IconLoader2, IconRefresh, IconSearch, IconX } from '@tabler/icons-vue';
+import { useDebounceFn } from '@vueuse/core';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+import { listAllPosts, listBoardPosts, type ListPostsOptions, type PostSort } from '@/api/boards';
+import { ApiError } from '@/api/client';
+import { listFilterTags } from '@/api/tags';
+import type { PostStatus, PostSummary, TagSummary } from '@/api/types';
+import EmptyState from '@/components/EmptyState.vue';
+import PostCard from '@/components/PostCard.vue';
 import {
   MAX_FILTER_TAGS,
   normalizeSearch,
   normalizeSort,
   normalizeStatus,
   normalizeTags,
-} from '@/utils/postFilters'
+} from '@/utils/postFilters';
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 10;
 
 const STATUS_FILTERS: Array<{ value: PostStatus | ''; label: string }> = [
   { value: '', label: '全部' },
@@ -26,51 +27,51 @@ const STATUS_FILTERS: Array<{ value: PostStatus | ''; label: string }> = [
   { value: 'in_progress', label: '进行中' },
   { value: 'completed', label: '已完成' },
   { value: 'closed', label: '已关闭' },
-]
+];
 const SORT_OPTIONS: Array<{ value: PostSort; label: string }> = [
   { value: 'recent', label: '最近' },
   { value: 'top', label: '最热' },
-]
+];
 
 const props = defineProps<{
-  boardSlug?: string | null
-  showBoard?: boolean
-}>()
+  boardSlug?: string | null;
+  showBoard?: boolean;
+}>();
 
-const route = useRoute()
-const router = useRouter()
+const route = useRoute();
+const router = useRouter();
 
-const posts = ref<PostSummary[]>([])
-const availableTags = ref<TagSummary[]>([])
-const nextCursor = ref<string | null>(null)
-const loading = ref(true)
-const loadingMore = ref(false)
-const errorMessage = ref('')
-const loadMoreError = ref('')
+const posts = ref<PostSummary[]>([]);
+const availableTags = ref<TagSummary[]>([]);
+const nextCursor = ref<string | null>(null);
+const loading = ref(true);
+const loadingMore = ref(false);
+const errorMessage = ref('');
+const loadMoreError = ref('');
 
-const statusFilter = ref<PostStatus | ''>(normalizeStatus(route.query.status))
-const sort = ref<PostSort>(normalizeSort(route.query.sort))
-const tagFilter = ref<string[]>(normalizeTags(route.query.tag))
-const searchQuery = ref(normalizeSearch(route.query.q))
-const searchInput = ref(searchQuery.value)
+const statusFilter = ref<PostStatus | ''>(normalizeStatus(route.query.status));
+const sort = ref<PostSort>(normalizeSort(route.query.sort));
+const tagFilter = ref<string[]>(normalizeTags(route.query.tag));
+const searchQuery = ref(normalizeSearch(route.query.q));
+const searchInput = ref(searchQuery.value);
 
-let loadScheduled = false
+let loadScheduled = false;
 
 const runSearch = useDebounceFn(() => {
-  const value = searchInput.value.trim().slice(0, 100)
-  if (value === searchQuery.value) return
-  searchQuery.value = value
-  syncQuery()
-}, 300)
+  const value = searchInput.value.trim().slice(0, 100);
+  if (value === searchQuery.value) return;
+  searchQuery.value = value;
+  syncQuery();
+}, 300);
 
 /** 切换看板与重置筛选可能在同一 tick 触发，合并为一次请求。 */
 function scheduleLoad(): void {
-  if (loadScheduled) return
-  loadScheduled = true
+  if (loadScheduled) return;
+  loadScheduled = true;
   queueMicrotask(() => {
-    loadScheduled = false
-    void load()
-  })
+    loadScheduled = false;
+    void load();
+  });
 }
 
 const hasFilter = computed(
@@ -79,7 +80,7 @@ const hasFilter = computed(
     sort.value !== 'recent' ||
     tagFilter.value.length > 0 ||
     searchQuery.value !== '',
-)
+);
 
 function options(cursor?: string | null): ListPostsOptions & { board?: string | null } {
   return {
@@ -90,7 +91,7 @@ function options(cursor?: string | null): ListPostsOptions & { board?: string | 
     q: searchQuery.value || null,
     tags: tagFilter.value,
     board: props.boardSlug || null,
-  }
+  };
 }
 
 function fetchPage(
@@ -98,144 +99,144 @@ function fetchPage(
 ): Promise<{ items: PostSummary[]; next_cursor: string | null }> {
   return props.boardSlug
     ? listBoardPosts(props.boardSlug, options(cursor))
-    : listAllPosts(options(cursor))
+    : listAllPosts(options(cursor));
 }
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
-  posts.value = []
-  nextCursor.value = null
+  loading.value = true;
+  errorMessage.value = '';
+  posts.value = [];
+  nextCursor.value = null;
   try {
-    const page = await fetchPage()
-    posts.value = page.items
-    nextCursor.value = page.next_cursor
+    const page = await fetchPage();
+    posts.value = page.items;
+    nextCursor.value = page.next_cursor;
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError
         ? error.status === 404
           ? '看板不存在或未公开。'
           : error.message
-        : '加载失败，请稍后重试。'
+        : '加载失败，请稍后重试。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadMore(): Promise<void> {
-  if (!nextCursor.value || loadingMore.value) return
-  loadingMore.value = true
-  loadMoreError.value = ''
+  if (!nextCursor.value || loadingMore.value) return;
+  loadingMore.value = true;
+  loadMoreError.value = '';
   try {
-    const page = await fetchPage(nextCursor.value)
-    const seen = new Set(posts.value.map((post) => post.id))
-    posts.value = [...posts.value, ...page.items.filter((post) => !seen.has(post.id))]
-    nextCursor.value = page.next_cursor
+    const page = await fetchPage(nextCursor.value);
+    const seen = new Set(posts.value.map((post) => post.id));
+    posts.value = [...posts.value, ...page.items.filter((post) => !seen.has(post.id))];
+    nextCursor.value = page.next_cursor;
   } catch (error) {
-    loadMoreError.value = error instanceof ApiError ? error.message : '加载更多失败，请重试。'
+    loadMoreError.value = error instanceof ApiError ? error.message : '加载更多失败，请重试。';
   } finally {
-    loadingMore.value = false
+    loadingMore.value = false;
   }
 }
 
 function syncQuery(): void {
-  const query: Record<string, string | string[]> = {}
-  if (statusFilter.value) query.status = statusFilter.value
-  if (sort.value !== 'recent') query.sort = sort.value
-  if (tagFilter.value.length) query.tag = tagFilter.value
-  if (searchQuery.value) query.q = searchQuery.value
-  void router.replace({ query })
+  const query: Record<string, string | string[]> = {};
+  if (statusFilter.value) query.status = statusFilter.value;
+  if (sort.value !== 'recent') query.sort = sort.value;
+  if (tagFilter.value.length) query.tag = tagFilter.value;
+  if (searchQuery.value) query.q = searchQuery.value;
+  void router.replace({ query });
 }
 
 function setStatus(value: PostStatus | ''): void {
-  if (statusFilter.value === value) return
-  statusFilter.value = value
-  syncQuery()
+  if (statusFilter.value === value) return;
+  statusFilter.value = value;
+  syncQuery();
 }
 
 function setSort(value: PostSort): void {
-  if (sort.value === value) return
-  sort.value = value
-  syncQuery()
+  if (sort.value === value) return;
+  sort.value = value;
+  syncQuery();
 }
 
 function isTagActive(name: string): boolean {
-  return tagFilter.value.some((tag) => tag.toLocaleLowerCase() === name.toLocaleLowerCase())
+  return tagFilter.value.some((tag) => tag.toLocaleLowerCase() === name.toLocaleLowerCase());
 }
 
 function toggleTag(name: string): void {
   if (isTagActive(name)) {
     tagFilter.value = tagFilter.value.filter(
       (tag) => tag.toLocaleLowerCase() !== name.toLocaleLowerCase(),
-    )
+    );
   } else {
-    if (tagFilter.value.length >= MAX_FILTER_TAGS) return
-    tagFilter.value = [...tagFilter.value, name]
+    if (tagFilter.value.length >= MAX_FILTER_TAGS) return;
+    tagFilter.value = [...tagFilter.value, name];
   }
-  syncQuery()
+  syncQuery();
 }
 
 function onSearchInput(): void {
-  runSearch()
+  runSearch();
 }
 
 function clearSearch(): void {
-  searchInput.value = ''
-  runSearch.cancel()
-  if (!searchQuery.value) return
-  searchQuery.value = ''
-  syncQuery()
+  searchInput.value = '';
+  runSearch.cancel();
+  if (!searchQuery.value) return;
+  searchQuery.value = '';
+  syncQuery();
 }
 
 function clearFilters(): void {
-  statusFilter.value = ''
-  sort.value = 'recent'
-  tagFilter.value = []
-  searchInput.value = ''
-  searchQuery.value = ''
-  syncQuery()
+  statusFilter.value = '';
+  sort.value = 'recent';
+  tagFilter.value = [];
+  searchInput.value = '';
+  searchQuery.value = '';
+  syncQuery();
 }
 
 async function loadTags(): Promise<void> {
   try {
-    const tags = await listFilterTags(props.boardSlug)
+    const tags = await listFilterTags(props.boardSlug);
     // 只有被使用中的标签才值得出现在筛选器里（计数已限定在当前看板）。
-    availableTags.value = tags.filter((tag) => tag.post_count > 0)
+    availableTags.value = tags.filter((tag) => tag.post_count > 0);
   } catch {
     // 标签筛选是增强功能，失败不影响反馈列表。
-    availableTags.value = []
+    availableTags.value = [];
   }
 }
 
 onMounted(() => {
-  void loadTags()
-  void load()
-})
+  void loadTags();
+  void load();
+});
 onUnmounted(() => {
   // 防抖不随组件作用域释放，卸载后仍可能触发一次 syncQuery 改写路由。
-  runSearch.cancel()
-})
+  runSearch.cancel();
+});
 
 watch(
   () => props.boardSlug,
   () => {
-    void loadTags()
-    scheduleLoad()
+    void loadTags();
+    scheduleLoad();
   },
-)
+);
 watch(
   () => [route.query.status, route.query.sort, route.query.tag, route.query.q],
   () => {
-    statusFilter.value = normalizeStatus(route.query.status)
-    sort.value = normalizeSort(route.query.sort)
-    tagFilter.value = normalizeTags(route.query.tag)
-    const query = normalizeSearch(route.query.q)
-    searchQuery.value = query
+    statusFilter.value = normalizeStatus(route.query.status);
+    sort.value = normalizeSort(route.query.sort);
+    tagFilter.value = normalizeTags(route.query.tag);
+    const query = normalizeSearch(route.query.q);
+    searchQuery.value = query;
     // URL 变化（返回/前进/清除筛选）时同步输入框，但不打断正在输入的内容。
-    if (document.activeElement?.tagName !== 'INPUT') searchInput.value = query
-    scheduleLoad()
+    if (document.activeElement?.tagName !== 'INPUT') searchInput.value = query;
+    scheduleLoad();
   },
-)
+);
 </script>
 
 <template>

@@ -1,12 +1,13 @@
-import { fileURLToPath, URL } from 'node:url'
-import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
+import { fileURLToPath, URL } from 'node:url';
+
+import vue from '@vitejs/plugin-vue';
+import { defineConfig } from 'vite';
 
 // 本地开发：/api 反代后端；媒体前缀（默认 /storage，可随 S3_BUCKET 改）反代本机 RustFS。
 // 子路径前缀是容器启动期注入的（见 docker-entrypoint.sh），构建产物本身与前缀无关。
-const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8000'
-const storageTarget = process.env.VITE_STORAGE_PROXY_TARGET ?? 'http://127.0.0.1:9000'
-const storagePrefix = process.env.S3_BUCKET ?? 'storage'
+const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8000';
+const storageTarget = process.env.VITE_STORAGE_PROXY_TARGET ?? 'http://127.0.0.1:9000';
+const storagePrefix = process.env.S3_BUCKET ?? 'storage';
 
 export default defineConfig({
   plugins: [vue()],
@@ -30,4 +31,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

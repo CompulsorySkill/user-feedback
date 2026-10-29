@@ -1,12 +1,13 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 100,
-  "semi": false,
+  "semi": true,
   "singleQuote": true,
   "trailingComma": "all",
   "arrowParens": "always",
   "bracketSpacing": true,
   "vueIndentScriptAndStyle": false,
-  "sortPackageJson": false,
+  "sortImports":true,
+  "sortPackageJson": true,
   "ignorePatterns": ["dist/**", "node_modules/**"]
 }

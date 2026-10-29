@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    __FEEDBACK_BASE__?: string
+    __FEEDBACK_BASE__?: string;
   }
 }
 
@@ -9,5 +9,5 @@ declare global {
  * 根部署为 ""，子路径部署为 "/feedback"。镜像构建期不再需要指定。
  */
 export function appBase(): string {
-  return (window.__FEEDBACK_BASE__ ?? '').replace(/\/+$/, '')
+  return (window.__FEEDBACK_BASE__ ?? '').replace(/\/+$/, '');
 }

@@ -1,95 +1,96 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { IconLoader2, IconRefresh, IconSend, IconX } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { createComment, deleteComment, listComments, type CommentItem } from '@/api/comments'
-import CommentNode from '@/components/CommentNode.vue'
-import { useAuthStore } from '@/stores/auth'
-import type { CommentNodeData } from '@/types/comment'
+import { IconLoader2, IconRefresh, IconSend, IconX } from '@tabler/icons-vue';
+import { computed, onMounted, ref } from 'vue';
 
-const props = defineProps<{ postId: string; closed: boolean }>()
-const emit = defineEmits<{ count: [number] }>()
+import { ApiError } from '@/api/client';
+import { createComment, deleteComment, listComments, type CommentItem } from '@/api/comments';
+import CommentNode from '@/components/CommentNode.vue';
+import { useAuthStore } from '@/stores/auth';
+import type { CommentNodeData } from '@/types/comment';
 
-const auth = useAuthStore()
+const props = defineProps<{ postId: string; closed: boolean }>();
+const emit = defineEmits<{ count: [number] }>();
 
-const items = ref<CommentItem[]>([])
-const loading = ref(true)
-const error = ref('')
-const submitting = ref(false)
-const draft = ref('')
-const replyTo = ref<CommentNodeData | null>(null)
+const auth = useAuthStore();
+
+const items = ref<CommentItem[]>([]);
+const loading = ref(true);
+const error = ref('');
+const submitting = ref(false);
+const draft = ref('');
+const replyTo = ref<CommentNodeData | null>(null);
 
 const tree = computed<CommentNodeData[]>(() => {
-  const nodes = new Map<string, CommentNodeData>()
+  const nodes = new Map<string, CommentNodeData>();
   for (const item of items.value) {
-    nodes.set(item.id, { ...item, children: [] })
+    nodes.set(item.id, { ...item, children: [] });
   }
-  const roots: CommentNodeData[] = []
+  const roots: CommentNodeData[] = [];
   for (const node of nodes.values()) {
     if (node.parent_id && nodes.has(node.parent_id)) {
-      nodes.get(node.parent_id)!.children.push(node)
+      nodes.get(node.parent_id)!.children.push(node);
     } else {
-      roots.push(node)
+      roots.push(node);
     }
   }
-  return roots
-})
+  return roots;
+});
 
 const replyLabel = computed(() => {
-  if (!replyTo.value) return ''
-  return replyTo.value.is_anonymous ? '匿名用户' : replyTo.value.author_name?.trim() || '用户'
-})
+  if (!replyTo.value) return '';
+  return replyTo.value.is_anonymous ? '匿名用户' : replyTo.value.author_name?.trim() || '用户';
+});
 
 async function load(): Promise<void> {
-  loading.value = true
-  error.value = ''
+  loading.value = true;
+  error.value = '';
   try {
-    const response = await listComments(props.postId)
-    items.value = response.items
-    emit('count', response.items.length)
+    const response = await listComments(props.postId);
+    items.value = response.items;
+    emit('count', response.items.length);
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : '评论加载失败'
+    error.value = err instanceof ApiError ? err.message : '评论加载失败';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function startReply(node: CommentNodeData): void {
-  replyTo.value = node
-  document.querySelector<HTMLTextAreaElement>('.comment-form textarea')?.focus()
+  replyTo.value = node;
+  document.querySelector<HTMLTextAreaElement>('.comment-form textarea')?.focus();
 }
 
 async function submit(): Promise<void> {
-  const content = draft.value.trim()
-  if (!content || submitting.value) return
+  const content = draft.value.trim();
+  if (!content || submitting.value) return;
 
-  submitting.value = true
-  error.value = ''
+  submitting.value = true;
+  error.value = '';
   try {
     await createComment(props.postId, {
       content,
       parent_id: replyTo.value?.id ?? null,
-    })
-    draft.value = ''
-    replyTo.value = null
-    await load()
+    });
+    draft.value = '';
+    replyTo.value = null;
+    await load();
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : '评论失败，请稍后重试'
+    error.value = err instanceof ApiError ? err.message : '评论失败，请稍后重试';
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
 }
 
-onMounted(load)
+onMounted(load);
 
 async function removeComment(node: CommentNodeData): Promise<void> {
-  if (!window.confirm('确认删除这条评论？其下的回复会一并删除。')) return
-  error.value = ''
+  if (!window.confirm('确认删除这条评论？其下的回复会一并删除。')) return;
+  error.value = '';
   try {
-    await deleteComment(props.postId, node.id)
-    await load()
+    await deleteComment(props.postId, node.id);
+    await load();
   } catch (err) {
-    error.value = err instanceof ApiError ? err.message : '删除失败，请稍后重试'
+    error.value = err instanceof ApiError ? err.message : '删除失败，请稍后重试';
   }
 }
 </script>

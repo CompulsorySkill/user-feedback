@@ -6,29 +6,29 @@
  * - 刷新失败则广播 `feedback:auth-expired`，由 App 重新水合为匿名状态。
  */
 
-import { appBase } from '@/config/base'
+import { appBase } from '@/config/base';
 
 // 接口跟着部署前缀走：根部署 /api，子路径部署 /feedback/api。
-const API_BASE = `${appBase()}/api`
+const API_BASE = `${appBase()}/api`;
 
 export interface ApiErrorPayload {
-  detail: unknown
-  code: string
+  detail: unknown;
+  code: string;
 }
 
 export class ApiError extends Error {
-  status: number
-  code: string
+  status: number;
+  code: string;
 
   constructor(status: number, code: string, message: string) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.code = code
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
   }
 }
 
-let refreshPromise: Promise<boolean> | null = null
+let refreshPromise: Promise<boolean> | null = null;
 
 function refreshAccessToken(): Promise<boolean> {
   if (!refreshPromise) {
@@ -40,25 +40,25 @@ function refreshAccessToken(): Promise<boolean> {
       .then((response) => response.ok)
       .catch(() => false)
       .finally(() => {
-        refreshPromise = null
-      })
+        refreshPromise = null;
+      });
   }
-  return refreshPromise
+  return refreshPromise;
 }
 
 async function parseError(response: Response): Promise<ApiError> {
-  let payload: ApiErrorPayload | null = null
+  let payload: ApiErrorPayload | null = null;
   try {
-    payload = (await response.json()) as ApiErrorPayload
+    payload = (await response.json()) as ApiErrorPayload;
   } catch {
-    payload = null
+    payload = null;
   }
 
-  const code = payload?.code ?? `HTTP_${response.status}`
-  const detail = payload?.detail
+  const code = payload?.code ?? `HTTP_${response.status}`;
+  const detail = payload?.detail;
   const message =
-    typeof detail === 'string' && detail.length > 0 ? detail : `${code}（${response.status}）`
-  return new ApiError(response.status, code, message)
+    typeof detail === 'string' && detail.length > 0 ? detail : `${code}（${response.status}）`;
+  return new ApiError(response.status, code, message);
 }
 
 async function request<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
@@ -70,27 +70,27 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...init.headers,
     },
-  })
+  });
 
-  const sessionExpired = response.headers.get('X-Session-Expired') === '1'
+  const sessionExpired = response.headers.get('X-Session-Expired') === '1';
   if (!retried && sessionExpired && !path.startsWith('/v1/auth/refresh')) {
-    const refreshed = await refreshAccessToken()
+    const refreshed = await refreshAccessToken();
     if (refreshed) {
-      window.dispatchEvent(new Event('feedback:auth-refreshed'))
-      return request<T>(path, init, true)
+      window.dispatchEvent(new Event('feedback:auth-refreshed'));
+      return request<T>(path, init, true);
     }
-    window.dispatchEvent(new Event('feedback:auth-expired'))
+    window.dispatchEvent(new Event('feedback:auth-expired'));
   }
 
   if (!response.ok) {
-    throw await parseError(response)
+    throw await parseError(response);
   }
 
   if (response.status === 204) {
-    return undefined as T
+    return undefined as T;
   }
-  const text = await response.text()
-  return (text ? JSON.parse(text) : undefined) as T
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export const api = {
@@ -106,4 +106,4 @@ export const api = {
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-}
+};

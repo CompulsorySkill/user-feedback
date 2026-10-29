@@ -1,33 +1,34 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue'
-import { ApiError } from '@/api/client'
-import { listBoards } from '@/api/boards'
-import type { Board } from '@/api/types'
-import BoardSidebar from '@/components/BoardSidebar.vue'
-import PostFeed from '@/components/PostFeed.vue'
+import { IconLoader2, IconPlus, IconRefresh } from '@tabler/icons-vue';
+import { computed, onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 
-const boards = ref<Board[]>([])
-const loading = ref(true)
-const errorMessage = ref('')
+import { listBoards } from '@/api/boards';
+import { ApiError } from '@/api/client';
+import type { Board } from '@/api/types';
+import BoardSidebar from '@/components/BoardSidebar.vue';
+import PostFeed from '@/components/PostFeed.vue';
 
-const totalCount = computed(() => boards.value.reduce((sum, item) => sum + item.post_count, 0))
+const boards = ref<Board[]>([]);
+const loading = ref(true);
+const errorMessage = ref('');
+
+const totalCount = computed(() => boards.value.reduce((sum, item) => sum + item.post_count, 0));
 
 async function load(): Promise<void> {
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = '';
   try {
-    boards.value = await listBoards()
+    boards.value = await listBoards();
   } catch (error) {
     errorMessage.value =
-      error instanceof ApiError ? error.message : '无法加载看板，请确认后端已启动。'
+      error instanceof ApiError ? error.message : '无法加载看板，请确认后端已启动。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
-onMounted(load)
+onMounted(load);
 </script>
 
 <template>
