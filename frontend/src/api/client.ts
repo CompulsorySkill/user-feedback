@@ -6,8 +6,10 @@
  * - 刷新失败则广播 `feedlog:auth-expired`，由 App 重新水合为匿名状态。
  */
 
-// 子路径部署时 Vite base 为 /<BASE_PATH>/，接口跟着走同一前缀。
-const API_BASE = `${import.meta.env.BASE_URL}api`.replaceAll('//', '/')
+import { appBase } from '@/config/base'
+
+// 接口跟着部署前缀走：根部署 /api，子路径部署 /feedback/api。
+const API_BASE = `${appBase()}/api`
 
 export interface ApiErrorPayload {
   detail: unknown

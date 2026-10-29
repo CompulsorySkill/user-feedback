@@ -10,5 +10,8 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": ["dist/**"]
+  "ignorePatterns": ["dist/**"],
+  "rules": {
+    "eslint/no-underscore-dangle": ["warn", { "allow": ["__FEEDLOG_BASE__"] }]
+  }
 }

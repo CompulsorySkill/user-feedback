@@ -87,9 +87,6 @@ services:
     image: ${FRONTEND_IMAGE:-feedback-frontend:local}
     build:
       context: ../frontend
-      args:
-        # 子路径部署：与 .env 的 BASE_PATH 对应，如 /feedback/。仅本机构建生效。
-        VITE_BASE: ${VITE_BASE:-/}
     restart: unless-stopped
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in deploy/.env}

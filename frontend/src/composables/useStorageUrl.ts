@@ -1,5 +1,7 @@
-// 兜底用构建期 base；启动后会用 /v1/site 的 storage_prefix（含 BASE_PATH）覆盖。
-let storagePrefix = `${import.meta.env.BASE_URL}storage/`.replaceAll('//', '/')
+import { appBase } from '@/config/base'
+
+// 兜底用运行时前缀；启动后会用 /v1/site 的 storage_prefix（含 BASE_PATH）覆盖。
+let storagePrefix = `${appBase()}/storage/`
 
 /**
  * 媒体前缀由后端 `GET /v1/site` 的 `storage_prefix` 提供（等于 S3_BUCKET），

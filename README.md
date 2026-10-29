@@ -101,7 +101,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 - 只有推送 `v*` Git tag 才触发 Actions 构建：生成 `1.0.0`、`1.0`、`sha-<commit>` 和 `latest`（预发布 tag 不更新 `latest`）。**普通 push 到 `main` 不触发构建**，生产建议固定 `1.0.0`。
 - 迁移在 backend 启动命令中执行；多副本时应拆成独立的一次性任务。
 - 数据卷：`postgres-data`、`rustfs-data`、`caddy-data`（证书）、`caddy-config`。
-- 子路径部署（如 `https://example.com/feedback/`）需同时设 `BASE_PATH` / `VITE_BASE` / `PUBLIC_ORIGIN` 并本机构建镜像，见 [docs/deploy.md](docs/deploy.md)。
+- 子路径部署（如 `https://example.com/feedback/`）只需设 `BASE_PATH` + `PUBLIC_ORIGIN`，前缀在容器启动时注入，镜像通用；见 [docs/deploy.md](docs/deploy.md)。
 - 当前开发机没有 Docker Engine，Compose/Caddyfile 已做静态校验，首次部署请按 [docs/deploy.md](docs/deploy.md) 的验收清单在目标机执行。
 
 ## 分阶段进度
