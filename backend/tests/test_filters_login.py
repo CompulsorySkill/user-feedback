@@ -93,7 +93,7 @@ async def test_dev_login_merges_anonymous_post(
         "SELECT author_id, anonymous_token FROM posts WHERE title='登录前的匿名帖'"
     ).fetchone()
     assert row == (user_id, None)
-    assert "feedlog_anonymous" not in client.cookies
+    assert "feedback_anonymous" not in client.cookies
 
 
 # --------------------------------------------------------------------------- #

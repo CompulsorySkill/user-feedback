@@ -3,7 +3,7 @@
  * 会话续期：
  * - 后端发现 access cookie 失效时会在响应头返回 `X-Session-Expired: 1`；
  * - 这里尝试一次 `/auth/refresh`（并发请求共享同一个 Promise），成功后重放原请求；
- * - 刷新失败则广播 `feedlog:auth-expired`，由 App 重新水合为匿名状态。
+ * - 刷新失败则广播 `feedback:auth-expired`，由 App 重新水合为匿名状态。
  */
 
 import { appBase } from '@/config/base'
@@ -76,10 +76,10 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
   if (!retried && sessionExpired && !path.startsWith('/v1/auth/refresh')) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
-      window.dispatchEvent(new Event('feedlog:auth-refreshed'))
+      window.dispatchEvent(new Event('feedback:auth-refreshed'))
       return request<T>(path, init, true)
     }
-    window.dispatchEvent(new Event('feedlog:auth-expired'))
+    window.dispatchEvent(new Event('feedback:auth-expired'))
   }
 
   if (!response.ok) {

@@ -11,7 +11,7 @@
 | 身份 | 来源 | 能做什么 |
 |---|---|---|
 | 未识别 | 无 cookie | 只读公开内容 |
-| 匿名 | 首次写操作签发 `feedlog_anonymous`（HttpOnly 签名 cookie） | 发帖 / 投票 / 评论（受看板匿名开关限制）、上传 |
+| 匿名 | 首次写操作签发 `feedback_anonymous`（HttpOnly 签名 cookie） | 发帖 / 投票 / 评论（受看板匿名开关限制）、上传 |
 | 登录用户 | SSO 签发 access + refresh cookie | 匿名全部能力 + 编辑/关闭自己的反馈 |
 | 管理员 | `ADMIN_EMAILS` 命中的登录用户 | 状态任意流转、编辑任意反馈、更新日志全部写操作 |
 

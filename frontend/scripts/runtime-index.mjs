@@ -4,9 +4,9 @@ import { readFileSync, writeFileSync } from 'node:fs'
 
 const file = new URL('../dist/index.html', import.meta.url)
 const html = readFileSync(file, 'utf8')
-const marker = "<script>window.__FEEDLOG_BASE__='__BASE__';</script>"
+const marker = "<script>window.__FEEDBACK_BASE__='__BASE__';</script>"
 
-if (html.includes('__FEEDLOG_BASE__')) {
+if (html.includes('__FEEDBACK_BASE__')) {
   throw new Error('dist/index.html 已包含运行时注入标记，重复构建？')
 }
 if (!html.includes('</head>')) {

@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "1.0.5"
-description = "FeedLog-like feedback system backend"
+description = "User feedback system backend"
 readme = "README.md"
 requires-python = ">=3.12, <3.13"
 dependencies = [

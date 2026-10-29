@@ -50,8 +50,8 @@ async def test_post_sso_login_sets_session(client: AsyncClient, auth_env) -> Non
 
     assert response.status_code == 200
     assert response.json() == {"redirect_to": "/b/product"}
-    assert "feedlog_access" in client.cookies
-    assert "feedlog_refresh" in client.cookies
+    assert "feedback_access" in client.cookies
+    assert "feedback_refresh" in client.cookies
     assert (await client.get("/api/v1/auth/me")).json()["is_admin"] is True
 
 
@@ -65,7 +65,7 @@ async def test_post_sso_login_rejects_invalid_token(
 
     assert response.status_code == 401
     assert response.json()["code"] == "INVALID_SSO_TOKEN"
-    assert "feedlog_access" not in client.cookies
+    assert "feedback_access" not in client.cookies
 
 
 async def test_post_sso_login_validates_return_to(
@@ -102,9 +102,9 @@ async def test_merge_failure_does_not_block_get_login(
     )
 
     assert response.status_code == 302
-    assert "feedlog_access" in client.cookies
+    assert "feedback_access" in client.cookies
     # 合并失败保留匿名 cookie，账号仍是登录态
-    assert "feedlog_anonymous" in client.cookies
+    assert "feedback_anonymous" in client.cookies
     assert (await client.get("/api/v1/auth/me")).json()["authenticated"] is True
     assert sqlite_conn.execute(
         "SELECT author_id FROM posts WHERE title='匿名帖'"
@@ -131,16 +131,16 @@ async def test_merge_failure_does_not_block_dev_login(
 
     assert response.status_code == 200
     assert response.json()["authenticated"] is True
-    assert "feedlog_anonymous" in client.cookies
+    assert "feedback_anonymous" in client.cookies
 
 
 async def test_session_expired_header(client: AsyncClient, auth_env) -> None:
-    client.cookies.set("feedlog_access", "not-a-valid-jwt")
+    client.cookies.set("feedback_access", "not-a-valid-jwt")
     expired = await client.get("/api/v1/auth/me")
 
     assert expired.headers.get("x-session-expired") == "1"
 
-    client.cookies.delete("feedlog_access")
+    client.cookies.delete("feedback_access")
     await client.get(
         "/api/sso/jwt", params={"token": sso_token(), "return_to": "/"}, follow_redirects=False
     )

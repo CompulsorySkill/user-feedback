@@ -40,7 +40,7 @@ describe('api client', () => {
 
   it('refreshes an expired session and replays the request once', async () => {
     const refreshed = vi.fn()
-    window.addEventListener('feedlog:auth-refreshed', refreshed)
+    window.addEventListener('feedback:auth-refreshed', refreshed)
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -62,12 +62,12 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(String(fetchMock.mock.calls[1][0])).toContain('/v1/auth/refresh')
     expect(refreshed).toHaveBeenCalledTimes(1)
-    window.removeEventListener('feedlog:auth-refreshed', refreshed)
+    window.removeEventListener('feedback:auth-refreshed', refreshed)
   })
 
   it('downgrades to anonymous when refresh fails', async () => {
     const expired = vi.fn()
-    window.addEventListener('feedlog:auth-expired', expired)
+    window.addEventListener('feedback:auth-expired', expired)
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -84,6 +84,6 @@ describe('api client', () => {
 
     await expect(api.get('/v1/posts')).rejects.toBeInstanceOf(ApiError)
     expect(expired).toHaveBeenCalledTimes(1)
-    window.removeEventListener('feedlog:auth-expired', expired)
+    window.removeEventListener('feedback:auth-expired', expired)
   })
 })

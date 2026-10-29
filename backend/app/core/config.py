@@ -29,7 +29,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "FeedLog"
+    app_name: str = "Feedback"
     app_version: str = "1.0.5"
     environment: str = "development"
 
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
 
     # 匿名身份 cookie 与 presign 有效期。
-    anonymous_cookie_name: str = "feedlog_anonymous"
+    anonymous_cookie_name: str = "feedback_anonymous"
     anonymous_cookie_max_age: int = 60 * 60 * 24 * 180
     presign_expires_seconds: int = 600
 

@@ -30,7 +30,7 @@ TEST_SESSION_SECRET = "test-session-secret-0123456789abcdef012345"
 @pytest.fixture(autouse=True)
 def isolated_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "environment", "development")
-    monkeypatch.setattr(settings, "app_name", "FeedLog")
+    monkeypatch.setattr(settings, "app_name", "Feedback")
     monkeypatch.setattr(settings, "sso_secrets", [TEST_SSO_SECRET])
     monkeypatch.setattr(settings, "session_jwt_secret", TEST_SESSION_SECRET)
     monkeypatch.setattr(settings, "admin_emails", "")

@@ -1,4 +1,4 @@
-"""SSO HS256 JWT 登录：GET 跳转（FeedLog 兼容）+ POST 换取会话。"""
+"""SSO HS256 JWT 登录：GET 跳转 + POST 换取会话。"""
 
 from __future__ import annotations
 

@@ -13,8 +13,8 @@ from fastapi import Response
 from app.core.config import settings
 from app.core.errors import AppException
 
-ACCESS_COOKIE = "feedlog_access"
-REFRESH_COOKIE = "feedlog_refresh"
+ACCESS_COOKIE = "feedback_access"
+REFRESH_COOKIE = "feedback_refresh"
 ANONYMOUS_COOKIE = settings.anonymous_cookie_name
 
 

@@ -3,7 +3,7 @@ import { getSiteInfo } from '@/api/site'
 import { setStoragePrefix } from '@/composables/useStorageUrl'
 
 /** 站点名称由后端读取 ENV / deploy/.env 的 APP_NAME，构建期无需注入。 */
-export const site = reactive({ name: 'FeedLog' })
+export const site = reactive({ name: 'Feedback' })
 
 export async function loadSiteName(): Promise<void> {
   try {

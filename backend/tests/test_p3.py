@@ -59,8 +59,8 @@ async def test_sso_login_creates_user_and_session(
 
     assert response.status_code == 302
     assert response.headers["location"] == "/b/product"
-    assert "feedlog_access" in client.cookies
-    assert "feedlog_refresh" in client.cookies
+    assert "feedback_access" in client.cookies
+    assert "feedback_refresh" in client.cookies
 
     me = await client.get("/api/v1/auth/me")
     body = me.json()
@@ -101,7 +101,7 @@ async def test_invalid_sso_token_degrades_to_anonymous(client: AsyncClient) -> N
 
     assert response.status_code == 302
     assert response.headers["location"] == "/b/product"
-    assert "feedlog_access" not in client.cookies
+    assert "feedback_access" not in client.cookies
     assert (await client.get("/api/v1/auth/me")).json()["authenticated"] is False
 
 
@@ -117,7 +117,7 @@ async def test_expired_sso_token_degrades_to_anonymous(client: AsyncClient) -> N
     )
 
     assert response.status_code == 302
-    assert "feedlog_access" not in client.cookies
+    assert "feedback_access" not in client.cookies
 
 
 async def test_sso_redirect_respects_base_path(
@@ -155,13 +155,13 @@ async def test_malicious_return_to_falls_back_to_root(
 
 async def test_refresh_rotates_access_token(client: AsyncClient) -> None:
     await login(client, "alice@example.com")
-    old_access = client.cookies.get("feedlog_access")
+    old_access = client.cookies.get("feedback_access")
 
     response = await client.post("/api/v1/auth/refresh")
 
     assert response.status_code == 200
     assert response.json()["authenticated"] is True
-    assert client.cookies.get("feedlog_access") != old_access
+    assert client.cookies.get("feedback_access") != old_access
     assert (await client.get("/api/v1/auth/me")).json()["authenticated"] is True
 
 
@@ -210,7 +210,7 @@ async def test_login_merges_anonymous_posts_and_votes(
         (uuid.UUID(post_id).hex,),
     ).fetchone()
     assert vote_row == (user_id, None)
-    assert "feedlog_anonymous" not in client.cookies
+    assert "feedback_anonymous" not in client.cookies
 
 
 # --------------------------------------------------------------------------- #

@@ -14,7 +14,7 @@ const props = withDefaults(
   { compact: false, disabled: false },
 )
 
-const STORAGE_KEY = 'feedlog:voted-posts'
+const STORAGE_KEY = 'feedback:voted-posts'
 
 function readVoted(): Set<string> {
   try {

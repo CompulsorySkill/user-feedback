@@ -13,14 +13,14 @@ function onSessionChanged(): void {
 }
 
 onMounted(() => {
-  window.addEventListener('feedlog:auth-refreshed', onSessionChanged)
-  window.addEventListener('feedlog:auth-expired', onSessionChanged)
+  window.addEventListener('feedback:auth-refreshed', onSessionChanged)
+  window.addEventListener('feedback:auth-expired', onSessionChanged)
   void auth.hydrate()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('feedlog:auth-refreshed', onSessionChanged)
-  window.removeEventListener('feedlog:auth-expired', onSessionChanged)
+  window.removeEventListener('feedback:auth-refreshed', onSessionChanged)
+  window.removeEventListener('feedback:auth-expired', onSessionChanged)
 })
 </script>
 

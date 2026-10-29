@@ -12,6 +12,6 @@
   },
   "ignorePatterns": ["dist/**"],
   "rules": {
-    "eslint/no-underscore-dangle": ["warn", { "allow": ["__FEEDLOG_BASE__"] }]
+    "eslint/no-underscore-dangle": ["warn", { "allow": ["__FEEDBACK_BASE__"] }]
   }
 }
