@@ -50,6 +50,12 @@ const router = createRouter({
       meta: { requiresAdmin: true },
     },
     {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('@/views/AdminUsersView.vue'),
+      meta: { requiresAdmin: true },
+    },
+    {
       path: '/admin/audit',
       name: 'admin-audit',
       component: () => import('@/views/AdminAuditView.vue'),
@@ -114,6 +120,7 @@ router.afterEach((to) => {
     'post-edit': '编辑反馈',
     'admin-boards': '看板管理',
     'admin-tags': '标签管理',
+    'admin-users': '用户管理',
     'admin-audit': '审计日志',
     login: '登录',
     changelog: '更新日志',

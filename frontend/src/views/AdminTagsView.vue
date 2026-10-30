@@ -110,14 +110,14 @@ onMounted(load);
       </button>
     </div>
 
-    <div v-else class="tag-admin-list">
-      <div v-for="tag in tags" :key="tag.id" class="tag-admin-item">
-        <div class="tag-admin-main">
+    <div v-else class="admin-list">
+      <div v-for="tag in tags" :key="tag.id" class="admin-item">
+        <div class="admin-item-main">
           <span class="tag-pill">{{ tag.name }}</span>
           <span v-if="tag.is_builtin" class="admin-badge">内置</span>
           <span v-else class="anon-badge">用户创建</span>
         </div>
-        <span class="tag-admin-count">{{ tag.post_count }} 条反馈</span>
+        <span class="admin-item-count">{{ tag.post_count }} 条反馈</span>
         <button
           class="button button-ghost button-small button-danger"
           type="button"
@@ -130,7 +130,7 @@ onMounted(load);
         </button>
       </div>
 
-      <p v-if="tags.length === 0" class="tag-admin-empty">还没有标签，先添加一个内置标签吧。</p>
+      <p v-if="tags.length === 0" class="admin-empty">还没有标签，先添加一个内置标签吧。</p>
     </div>
   </div>
 </template>

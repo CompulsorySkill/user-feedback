@@ -10,6 +10,7 @@ import './styles/write-path.css';
 import './styles/typography.css';
 import './styles/tags.css';
 import './styles/audit.css';
+import './styles/admin.css';
 import './styles/attachments.css';
 
 async function bootstrap(): Promise<void> {

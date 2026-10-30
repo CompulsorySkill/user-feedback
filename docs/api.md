@@ -28,6 +28,7 @@
 | 评论 | ❌ | 看板 `allow_guest_commenting` | ✅ | ✅ |
 | 编辑自己的反馈 / 标签 | ❌ | ❌（匿名无作者身份） | 非 closed 时 ✅ | ✅（含 closed） |
 | 变更状态 | ❌ | ❌ | 仅单向关闭自己的反馈 | 任意流转（含重开） |
+| 查看用户目录 | ❌ | ❌ | ❌ | ✅ |
 | 维护内置标签 | ❌ | ❌ | ❌ | ✅ |
 | 查看审计日志 / 清理上传对象 | ❌ | ❌ | ❌ | ✅ |
 | 更新日志写 / 发布 | ❌ | ❌ | ❌ | ✅ |
@@ -175,7 +176,36 @@ keyset 分页。响应：
 - `dry_run=true` 只返回可清理数量，不删除任何对象；
 - 也可用 CLI `python -m scripts.cleanup_uploads` 执行并写入 `upload.cleanup` 审计记录。
 
-## 9. 审计日志
+## 9. 用户目录
+
+`GET /api/v1/admin/users?limit=30&before_id=&q=&role=`（管理员）
+
+```json
+{
+  "items": [
+    {
+      "id": 3,
+      "email": "alice@example.com",
+      "display_name": "Alice",
+      "role": "user",
+      "sso_provider": "sso",
+      "post_count": 7,
+      "comment_count": 2,
+      "created_at": "2026-04-01T12:00:00+00:00"
+    }
+  ],
+  "next_cursor": "3"
+}
+```
+
+- **只读**：账号由 SSO 首次登录时 JIT 创建；角色每次登录按 `ADMIN_EMAILS` 重算，
+  因此不提供改角色 / 停用 / 删除接口（界面上改也会被下次登录覆盖）。
+- 只覆盖登录过的账号；匿名身份的反馈（`author_id IS NULL`）不计入任何人的统计。
+- `q` 同时匹配 `email` 与 `display_name`（`%` `_` `\` 按字面转义）；`role` 只接受 `user` / `admin`。
+- 分页为 `id` 倒序 keyset：`before_id` 传上一页 `next_cursor`，`next_cursor` 为 `null` 表示没有更多。
+- `post_count` / `comment_count` 统计该账号已关联的反馈与评论，含未公开看板。
+
+## 10. 审计日志
 
 `GET /api/v1/admin/audit-logs?limit=50&before_id=&action=`（管理员）
 
@@ -204,7 +234,7 @@ keyset 分页。响应：
 - `action` 精确筛选；`before_id` 为上一页最后一条的 `id`；按 `id` 倒序。
 - 审计写入失败 best-effort：记录服务端日志，不回滚已提交的业务操作。
 
-## 10. 端点一览
+## 11. 端点一览
 
 | 方法 | 路径 | 权限 |
 |---|---|---|
@@ -216,6 +246,7 @@ keyset 分页。响应：
 | GET | `/v1/tags` | 公开；内置标签（`include_custom=true` 含用户标签，`board=<slug>` 限定计数范围） |
 | GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
 | GET | `/v1/admin/audit-logs` | 管理员；审计日志 |
+| GET | `/v1/admin/users` | 管理员；用户目录（只读，`q=` / `role=` / `before_id=`） |
 | POST | `/v1/admin/uploads/cleanup` | 管理员；清理未引用上传对象 |
 | POST | `/v1/admin/tags` | 管理员；新增内置标签 |
 | DELETE | `/v1/admin/tags/{id}` | 管理员；删除标签并解除帖子关联 |
@@ -244,7 +275,7 @@ keyset 分页。响应：
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。
 
-## 11. 会话续期
+## 12. 会话续期
 
 access token 过期（默认 15 分钟）时，携带旧 access cookie 的响应会附加
 `X-Session-Expired: 1`。前端收到后调用 `POST /v1/auth/refresh` 并重放原请求一次，

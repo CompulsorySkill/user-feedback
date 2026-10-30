@@ -116,6 +116,17 @@ export interface AuditLogItem {
   created_at: string;
 }
 
+export interface AdminUserItem {
+  id: number;
+  email: string;
+  display_name: string | null;
+  role: 'user' | 'admin';
+  sso_provider: string | null;
+  post_count: number;
+  comment_count: number;
+  created_at: string;
+}
+
 export interface UploadCleanupResult {
   dry_run: boolean;
   grace_hours: number;

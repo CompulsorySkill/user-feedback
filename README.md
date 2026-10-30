@@ -135,6 +135,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | DELETE | `/api/v1/admin/tags/{id}` | 删除标签并从所有反馈移除（管理员） |
 | GET | `/api/v1/posts?limit=&cursor=` | 全部公开看板的反馈聚合列表；支持 `board=`、`status=`、`sort=`、`q=`、重复 `tag=` |
 | GET | `/api/v1/admin/audit-logs?limit=&before_id=&action=` | 管理操作审计日志（管理员，按 id 倒序） |
+| GET | `/api/v1/admin/users?limit=&before_id=&q=&role=` | 用户目录（管理员，只读；账号由 SSO 首登创建） |
 | POST | `/api/v1/admin/uploads/cleanup?dry_run=&grace_hours=` | 清理超期未引用上传对象（管理员，可预演） |
 | GET | `/api/v1/admin/boards` | 看板列表（管理员，含未公开） |
 | POST / PATCH / DELETE | `/api/v1/admin/boards[/{id}]` | 新建 / 修改 / 删除看板（管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除） |
