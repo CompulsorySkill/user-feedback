@@ -99,3 +99,66 @@ access 过期后不会中断操作：后端在响应头返回 `X-Session-Expired
 
 匿名合并失败（数据库异常等）不会阻断登录：系统记录日志、保留匿名 cookie 与未合并数据，
 会话正常签发；可排查后让用户重新登录完成合并。
+
+## 9. TypeScript 签发示例（对接方）
+
+用 [`jose`](https://github.com/panva/jose) 签发 HS256 token（Node 18+ / Edge Runtime 均可）：
+
+```ts
+import { SignJWT } from 'jose';
+
+// 与反馈系统 SSO_SECRETS 中某一项完全一致：64 位 hex 字符串，按 UTF-8 直接使用。
+const ssoSecret = process.env.SSO_SECRET;
+if (!ssoSecret) throw new Error('缺少 SSO_SECRET');
+const key = new TextEncoder().encode(ssoSecret);
+
+/** 生成 5 分钟有效的 SSO token；email 由服务端从当前会话取，绝不回填前端传入值。 */
+export async function mintSsoToken(email: string, name?: string): Promise<string> {
+  // 反馈系统对缺 @ 的 email 返回 400/降级匿名，先在这里挡住。
+  if (!email.includes('@')) throw new Error(`email 不合法: ${email}`);
+  return new SignJWT({ email, ...(name ? { name: name.slice(0, 128) } : {}) })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('5m')
+    .sign(key);
+}
+
+/** return_to 只允许站内相对路径，非法值会导致反馈系统静默回退默认页。 */
+function safeReturnTo(input: string | null | undefined): string {
+  if (!input) return '/';
+  return input.startsWith('/') && !input.startsWith('//') && !input.startsWith('/\\')
+    ? input
+    : '/';
+}
+
+/** 登录跳转：302 到反馈系统，由它校验 token 并下发自己的 HttpOnly 会话 cookie。 */
+export async function buildFeedbackLoginUrl(params: {
+  origin: string;           // 如 https://feedback.example.com（不带子路径）
+  basePath?: string;        // 子路径部署时传 'feedback'，同 deploy/.env 的 BASE_PATH
+  email: string;
+  name?: string;
+  returnTo?: string;
+}): Promise<string> {
+  const basePath = params.basePath?.replace(/^\/+|\/+$/g, '');
+  const base = `${params.origin.replace(/\/+$/, '')}${basePath ? `/${basePath}` : ''}`;
+  const token = await mintSsoToken(params.email, params.name);
+  const url = new URL(`${base}/api/sso/jwt`);
+  url.searchParams.set('token', token);
+  url.searchParams.set('return_to', safeReturnTo(params.returnTo));
+  return url.toString();
+}
+
+// 用法（产品 A 的登录成功回调里）：
+// response.redirect(
+//   await buildFeedbackLoginUrl({ origin: 'https://feedback.example.com', email, name, returnTo: '/b/product' }),
+// );
+```
+
+要点：
+
+- 密钥只存在于服务端；token 不落库、不进前端 bundle，有效期控制在 5 分钟内。
+- `email` 必须来自产品 A 自己的会话校验结果，不能由请求参数透传（否则等于任意人可登录）。
+- 不要在 token 里放 `role` / `is_admin`：反馈系统一律忽略，角色由它自己的 `ADMIN_EMAILS` 计算。
+- 若坚持走 `POST /api/sso/jwt` 让 token 不进 URL，需由产品 A 后端转发请求并把响应中的
+  `Set-Cookie`（access + refresh）原样回传给浏览器；跳转路径则不需要这层代理。
+- 校验签名侧用 `jose.jwtVerify(token, key, { algorithms: ['HS256'] })` 自测即可，
+  密钥轮换顺序见第 4 节。
