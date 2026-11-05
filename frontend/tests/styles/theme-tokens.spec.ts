@@ -52,4 +52,33 @@ describe('style.css 主题基线', () => {
       expect(semantic, `--${alias} → --${target}`).toContain(target);
     }
   });
+
+  it('@theme inline 只指向 shadcn 语义变量（反向指到别名会让 bg-accent/text-border 取错色）', () => {
+    const semantic = [
+      'background',
+      'foreground',
+      'card',
+      'card-foreground',
+      'popover',
+      'popover-foreground',
+      'primary',
+      'primary-foreground',
+      'secondary',
+      'secondary-foreground',
+      'muted',
+      'muted-foreground',
+      'accent',
+      'accent-foreground',
+      'destructive',
+      'border',
+      'input',
+      'ring',
+    ];
+    const themeBlock = css.slice(css.indexOf('@theme inline'), css.indexOf('@layer base'));
+    const tokens = [...themeBlock.matchAll(/^\s{2}--color-([a-z-]+):\s*var\(--([a-z-]+)\);/gm)];
+    expect(tokens.length).toBeGreaterThanOrEqual(18);
+    for (const [, name, target] of tokens) {
+      expect(semantic, `--color-${name} → --${target}`).toContain(target);
+    }
+  });
 });

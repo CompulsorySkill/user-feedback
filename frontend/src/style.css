@@ -122,8 +122,12 @@ p {
 }
 
 a {
-  color: inherit;
   text-decoration: none;
+}
+
+/* 按钮样式的链接（shadcn buttonVariants）颜色交给 utility，不被这条全局规则吃掉 */
+a:not([data-slot='button']) {
+  color: inherit;
 }
 
 code {
@@ -1393,10 +1397,10 @@ h6.rt-heading {
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--brand);
+  --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-border: var(--line);
+  --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --radius-sm: calc(var(--radius) * 0.6);
