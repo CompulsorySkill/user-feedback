@@ -1,0 +1,31 @@
+<script setup lang="ts">
+import { IconChevronDown } from '@tabler/icons-vue';
+import { reactiveOmit } from '@vueuse/core';
+import { cn } from 'cn';
+import type { SelectScrollDownButtonProps } from 'reka-ui';
+import { SelectScrollDownButton, useForwardProps } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+
+const props = defineProps<SelectScrollDownButtonProps & { class?: HTMLAttributes['class'] }>();
+
+const delegatedProps = reactiveOmit(props, 'class');
+
+const forwardedProps = useForwardProps(delegatedProps);
+</script>
+
+<template>
+  <SelectScrollDownButton
+    data-slot="select-scroll-down-button"
+    v-bind="forwardedProps"
+    :class="
+      cn(
+        'bg-popover z-10 flex cursor-default items-center justify-center py-1 [&_svg:not([class*=size-])]:size-3.5',
+        props.class,
+      )
+    "
+  >
+    <slot>
+      <IconChevronDown />
+    </slot>
+  </SelectScrollDownButton>
+</template>
