@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { updatePostStatus } from '@/api/postActions';
 import type { PostDetail, PostStatus } from '@/api/types';
+import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 
@@ -75,17 +76,18 @@ async function applyStatus(target: PostStatus): Promise<void> {
       <IconLoader2 v-if="pending" class="spin" :size="15" :stroke-width="2" />
     </template>
 
-    <button
+    <Button
       v-else-if="canAuthorClose"
       type="button"
-      class="button button-ghost button-small"
       :disabled="pending"
       @click="applyStatus('closed')"
+      variant="ghost"
+      size="lg"
     >
       <IconLoader2 v-if="pending" class="spin" :size="15" :stroke-width="2" />
       <IconLock v-else :size="15" :stroke-width="2" />
       关闭反馈
-    </button>
+    </Button>
 
     <span v-if="error" class="status-error">{{ error }}</span>
   </div>

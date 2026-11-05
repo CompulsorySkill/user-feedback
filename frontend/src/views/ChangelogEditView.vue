@@ -21,6 +21,7 @@ import {
 import { ApiError } from '@/api/client';
 import type { ChangelogAttachmentInput } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
+import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 import { useUpload } from '@/composables/useUpload';
 import type { JSONContent } from '@/types/content';
@@ -211,16 +212,17 @@ onMounted(load);
           <span class="field-label">附件</span>
           <div class="attachment-picker">
             <input ref="attachmentInput" type="file" multiple hidden @change="addAttachments" />
-            <button
+            <Button
               type="button"
-              class="button button-ghost button-small"
               :disabled="attachmentUploading || attachments.length >= MAX_ATTACHMENTS"
               @click="attachmentInput?.click()"
+              variant="ghost"
+              size="lg"
             >
               <IconLoader2 v-if="attachmentUploading" class="spin" :size="14" :stroke-width="2" />
               <IconPaperclip v-else :size="14" :stroke-width="2" />
               {{ attachmentUploading ? '上传中…' : '添加附件' }}
-            </button>
+            </Button>
             <span class="attachment-hint">
               任意类型文件，单个不超过 100MB，最多 {{ MAX_ATTACHMENTS }} 个
             </span>
@@ -253,34 +255,37 @@ onMounted(load);
         <p v-if="error" class="inline-error">{{ error }}</p>
 
         <div class="compose-actions">
-          <button
+          <Button
             v-if="editingId"
             type="button"
-            class="button button-ghost button-danger"
             :disabled="submitting"
             @click="remove"
+            variant="destructive"
+            size="lg"
           >
             删除
-          </button>
+          </Button>
           <div class="compose-buttons">
-            <button
+            <Button
               v-if="editingId"
               type="button"
-              class="button button-ghost"
               :disabled="submitting"
               @click="togglePublish"
+              variant="ghost"
+              size="lg"
             >
               {{ published ? '撤回发布' : '发布' }}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              class="button button-primary"
               :disabled="submitting || uploading || attachmentUploading"
+              variant="default"
+              size="lg"
             >
               <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               保存
-            </button>
+            </Button>
           </div>
         </div>
       </form>

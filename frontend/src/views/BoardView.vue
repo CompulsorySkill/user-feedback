@@ -8,6 +8,7 @@ import { ApiError } from '@/api/client';
 import type { Board } from '@/api/types';
 import BoardSidebar from '@/components/BoardSidebar.vue';
 import PostFeed from '@/components/PostFeed.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -83,7 +84,8 @@ watch(() => route.params.slug, load);
           <RouterLink
             v-if="board.allow_guest_posting || auth.isAuthenticated"
             :to="`/b/${board.slug}/new`"
-            class="button button-primary"
+            data-slot="button"
+            :class="buttonVariants({ variant: 'default', size: 'lg' })"
           >
             <IconPlus :size="16" :stroke-width="2" />
             发布反馈
@@ -96,9 +98,9 @@ watch(() => route.params.slug, load);
 
     <div v-else class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
   </div>
 </template>

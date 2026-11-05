@@ -13,6 +13,7 @@ import { onMounted, ref } from 'vue';
 import { createBoard, deleteBoard, listAdminBoards, updateBoard } from '@/api/boards';
 import { ApiError } from '@/api/client';
 import type { Board } from '@/api/types';
+import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 
 const confirm = useConfirm();
@@ -162,10 +163,10 @@ onMounted(load);
         <h1>看板管理</h1>
         <p class="hero-lead">新增、编辑或删除看板；删除看板会连带清理其反馈、评论与投票。</p>
       </div>
-      <button class="button button-primary" type="button" @click="openCreate">
+      <Button type="button" @click="openCreate" variant="default" size="lg">
         <IconPlus :size="16" :stroke-width="2" />
         新建看板
-      </button>
+      </Button>
     </header>
 
     <div v-if="actionError" class="inline-error admin-action-error">
@@ -232,12 +233,12 @@ onMounted(load);
       <div class="compose-actions">
         <span class="board-admin-hint">未公开看板不会出现在前台列表，但管理员仍可直接访问。</span>
         <div class="compose-buttons">
-          <button class="button button-ghost" type="button" @click="closeForm">取消</button>
-          <button class="button button-primary" type="submit" :disabled="saving">
+          <Button type="button" @click="closeForm" variant="ghost" size="lg">取消</Button>
+          <Button type="submit" :disabled="saving" variant="default" size="lg">
             <IconLoader2 v-if="saving" class="spin" :size="16" :stroke-width="2" />
             <IconDeviceFloppy v-else :size="16" :stroke-width="2" />
             保存
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -248,9 +249,9 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <div v-else class="board-admin-list">
@@ -270,20 +271,21 @@ onMounted(load);
           </div>
         </div>
         <div class="board-admin-actions">
-          <button class="button button-ghost button-small" type="button" @click="openEdit(board)">
+          <Button type="button" @click="openEdit(board)" variant="ghost" size="lg">
             <IconPencil :size="14" :stroke-width="2" /> 编辑
-          </button>
-          <button
-            class="button button-ghost button-small button-danger"
+          </Button>
+          <Button
             type="button"
             :disabled="deletingId !== null"
             :title="board.post_count > 0 ? '删除看板并级联清理其反馈' : '删除看板'"
             @click="remove(board)"
+            variant="destructive"
+            size="lg"
           >
             <IconLoader2 v-if="deletingId === board.id" class="spin" :size="14" :stroke-width="2" />
             <IconTrash v-else :size="14" :stroke-width="2" />
             删除
-          </button>
+          </Button>
         </div>
       </article>
 

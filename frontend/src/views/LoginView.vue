@@ -11,6 +11,7 @@ import {
   type AuthCapabilities,
 } from '@/api/auth';
 import { ApiError } from '@/api/client';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -141,8 +142,13 @@ onMounted(load);
         <span v-if="auth.isAdmin" class="admin-badge">管理员</span>
       </p>
       <div class="login-actions">
-        <RouterLink :to="redirectTo" class="button button-primary">继续</RouterLink>
-        <button type="button" class="button button-ghost" @click="auth.logout()">退出登录</button>
+        <RouterLink
+          :to="redirectTo"
+          data-slot="button"
+          :class="buttonVariants({ variant: 'default', size: 'lg' })"
+          >继续</RouterLink
+        >
+        <Button type="button" @click="auth.logout()" variant="ghost" size="lg">退出登录</Button>
       </div>
     </div>
 
@@ -160,16 +166,17 @@ onMounted(load);
           rows="4"
           placeholder="粘贴 SSO 签发的 JWT"
         ></textarea>
-        <button
-          class="button button-primary"
+        <Button
           type="button"
           :disabled="submitting"
           @click="loginWithSso"
+          variant="default"
+          size="lg"
         >
           <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
           <IconLogin v-else :size="16" :stroke-width="2" />
           使用 SSO token 登录
-        </button>
+        </Button>
       </section>
 
       <section v-if="caps?.admin_login" class="login-card">
@@ -186,15 +193,16 @@ onMounted(load);
           <span class="field-label">显示名（可选，留空将沿用账号已有昵称）</span>
           <input v-model="adminName" class="field-input" maxlength="128" />
         </label>
-        <button
-          class="button button-primary"
+        <Button
           type="button"
           :disabled="submitting"
           @click="loginAsAdmin"
+          variant="default"
+          size="lg"
         >
           <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
           进入管理员后台
-        </button>
+        </Button>
       </section>
 
       <section v-if="caps?.dev_login" class="login-card">
@@ -211,15 +219,10 @@ onMounted(load);
           <span class="field-label">显示名（可选）</span>
           <input v-model="name" class="field-input" maxlength="128" />
         </label>
-        <button
-          class="button button-ghost"
-          type="button"
-          :disabled="submitting"
-          @click="loginAsDev"
-        >
+        <Button type="button" :disabled="submitting" @click="loginAsDev" variant="ghost" size="lg">
           <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
           快速登录
-        </button>
+        </Button>
       </section>
     </div>
 

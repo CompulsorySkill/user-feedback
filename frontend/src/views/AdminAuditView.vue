@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue';
 import { listAuditLogs, runUploadCleanup } from '@/api/audit';
 import { ApiError } from '@/api/client';
 import type { AuditLogItem, UploadCleanupResult } from '@/api/types';
+import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 import { AUDIT_ACTIONS, auditActionLabel, formatAuditDetail } from '@/utils/audit';
 import { formatDateTime } from '@/utils/date';
@@ -93,27 +94,29 @@ onMounted(load);
         </p>
       </div>
       <div class="audit-actions">
-        <button
-          class="button button-ghost"
+        <Button
           type="button"
           :disabled="runningCleanup"
           title="统计可清理对象，不删除任何数据"
           @click="cleanup(true)"
+          variant="ghost"
+          size="lg"
         >
           <IconLoader2 v-if="runningCleanup" class="spin" :size="16" :stroke-width="2" />
           <IconShieldCheck v-else :size="16" :stroke-width="2" />
           预演清理
-        </button>
-        <button
-          class="button button-ghost button-danger"
+        </Button>
+        <Button
           type="button"
           :disabled="runningCleanup"
           @click="cleanup(false)"
+          variant="destructive"
+          size="lg"
         >
           <IconLoader2 v-if="runningCleanup" class="spin" :size="16" :stroke-width="2" />
           <IconTrash v-else :size="16" :stroke-width="2" />
           清理上传对象
-        </button>
+        </Button>
       </div>
     </header>
 
@@ -136,9 +139,9 @@ onMounted(load);
           </option>
         </select>
       </label>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="14" :stroke-width="2" /> 刷新
-      </button>
+      </Button>
     </div>
 
     <p v-if="loading" class="loading-line">
@@ -147,9 +150,9 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <div v-else class="audit-list">
@@ -173,10 +176,10 @@ onMounted(load);
       <p v-if="logs.length === 0" class="audit-empty">还没有审计记录。</p>
 
       <div v-if="nextCursor" class="load-more">
-        <button class="button button-ghost" type="button" :disabled="loadingMore" @click="loadMore">
+        <Button type="button" :disabled="loadingMore" @click="loadMore" variant="ghost" size="lg">
           <IconLoader2 v-if="loadingMore" class="spin" :size="16" :stroke-width="2" />
           {{ loadingMore ? '加载中…' : '加载更多' }}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

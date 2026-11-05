@@ -9,6 +9,7 @@ import { listBuiltinTags } from '@/api/tags';
 import type { Board, TagSummary } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import TagPicker from '@/components/TagPicker.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth';
 import type { JSONContent } from '@/types/content';
 
@@ -204,16 +205,22 @@ onMounted(() => {
             附带浏览器 / 操作系统信息
           </label>
           <div class="compose-buttons">
-            <RouterLink :to="`/b/${board.slug}`" class="button button-ghost">取消</RouterLink>
-            <button
-              class="button button-primary"
+            <RouterLink
+              :to="`/b/${board.slug}`"
+              data-slot="button"
+              :class="buttonVariants({ variant: 'ghost', size: 'lg' })"
+              >取消</RouterLink
+            >
+            <Button
               type="submit"
               :disabled="submitting || uploading || !canPost"
+              variant="default"
+              size="lg"
             >
               <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

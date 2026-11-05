@@ -95,22 +95,7 @@ samp {
   font-size: var(--fs-caption);
 }
 
-/* 控件统一尺寸 */
-
-.button,
-.button-small {
-  height: var(--control-height);
-  min-width: 88px;
-  padding: 0 18px;
-  font-size: var(--fs-body);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.button-small {
-  min-width: 88px;
-  padding: 0 14px;
-}
+/* 控件统一尺寸（按钮已迁到 src/components/ui/button，此处只管旧表单控件） */
 
 .field-input,
 .login-token,

@@ -8,6 +8,7 @@ import { ApiError } from '@/api/client';
 import type { Board } from '@/api/types';
 import BoardSidebar from '@/components/BoardSidebar.vue';
 import PostFeed from '@/components/PostFeed.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 
 const boards = ref<Board[]>([]);
 const loading = ref(true);
@@ -39,9 +40,9 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button type="button" class="button button-ghost button-small" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <div v-else class="board-layout" :class="{ 'board-layout-single': !boards.length }">
@@ -57,7 +58,11 @@ onMounted(load);
               <span>{{ boards.length }} 个看板</span>
             </div>
           </div>
-          <RouterLink to="/new" class="button button-primary">
+          <RouterLink
+            to="/new"
+            data-slot="button"
+            :class="buttonVariants({ variant: 'default', size: 'lg' })"
+          >
             <IconPlus :size="16" :stroke-width="2" />
             发布反馈
           </RouterLink>

@@ -13,7 +13,7 @@
   max-width: 660px;
 }
 
-.board-header > .button {
+.board-header > [data-slot='button'] {
   flex: none;
   margin-top: 4px;
 }
@@ -427,11 +427,6 @@
   color: var(--text);
 }
 
-.button-danger {
-  color: var(--error);
-  border-color: var(--error-soft);
-}
-
 .page-header-row {
   display: flex;
   align-items: flex-start;
@@ -439,7 +434,7 @@
   gap: 24px;
 }
 
-.page-header-row > .button {
+.page-header-row > [data-slot='button'] {
   flex: none;
   margin-top: 6px;
 }
@@ -854,7 +849,7 @@
   margin-top: 16px;
 }
 
-.empty-state .button {
+.empty-state [data-slot='button'] {
   margin-top: 16px;
 }
 

@@ -191,6 +191,9 @@ uv run alembic check
   --line/--line-strong`，**不要在别处就地重定义这些变量**；深色取值写在同一文件的
   `.dark` 块里。
 - 破坏性操作（删除 / 关闭）用 `useConfirm()` + `ConfirmDialog`，不要再用 `window.confirm`。
+- 按钮统一用 `@/components/ui/button`：尺寸用 `size="lg"`（32px），旧的 `.button`
+  系列 class 已删除；需要按钮外观的链接用 `buttonVariants({ variant, size })` 作 `:class`
+  并同时加 `data-slot="button"`（布局选择器靠它）。
 - 已确认的布局约定：
   - 搜索框与最近 / 最热排序在同一行，字号一致；
   - 状态筛选与标签筛选的标签对齐；

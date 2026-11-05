@@ -10,6 +10,7 @@ import { listBuiltinTags } from '@/api/tags';
 import type { PostDetail, TagSummary } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import TagPicker from '@/components/TagPicker.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth';
 import type { JSONContent } from '@/types/content';
 
@@ -134,12 +135,17 @@ onMounted(() => {
         <div class="compose-actions">
           <span class="muted">当前状态：{{ post.status }}</span>
           <div class="compose-buttons">
-            <RouterLink :to="`/post/${post.id}`" class="button button-ghost">取消</RouterLink>
-            <button class="button button-primary" type="submit" :disabled="submitting">
+            <RouterLink
+              :to="`/post/${post.id}`"
+              data-slot="button"
+              :class="buttonVariants({ variant: 'ghost', size: 'lg' })"
+              >取消</RouterLink
+            >
+            <Button type="submit" :disabled="submitting" variant="default" size="lg">
               <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               保存修改
-            </button>
+            </Button>
           </div>
         </div>
       </form>

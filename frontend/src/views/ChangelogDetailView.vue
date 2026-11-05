@@ -14,6 +14,7 @@ import { getChangelog, publishChangelog, unpublishChangelog } from '@/api/change
 import { ApiError } from '@/api/client';
 import type { ChangelogDetail } from '@/api/types';
 import RichTextRenderer from '@/components/RichTextRenderer.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth';
 import { formatDate } from '@/utils/date';
 import { formatBytes } from '@/utils/format';
@@ -78,19 +79,24 @@ watch(() => route.params.id, load, { immediate: true });
         <span v-if="!entry.is_published" class="anon-badge">草稿（仅管理员可见）</span>
         <span v-else class="muted">已发布</span>
         <div class="detail-admin-actions">
-          <RouterLink :to="`/changelog/${entry.id}/edit`" class="button button-ghost button-small">
+          <RouterLink
+            :to="`/changelog/${entry.id}/edit`"
+            data-slot="button"
+            :class="buttonVariants({ variant: 'ghost', size: 'lg' })"
+          >
             <IconEdit :size="14" :stroke-width="2" />
             编辑
           </RouterLink>
-          <button
+          <Button
             type="button"
-            class="button button-ghost button-small"
             :disabled="pending"
             @click="togglePublish"
+            variant="ghost"
+            size="lg"
           >
             <IconLoader2 v-if="pending" class="spin" :size="14" :stroke-width="2" />
             {{ entry.is_published ? '撤回发布' : '发布' }}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -131,9 +137,9 @@ watch(() => route.params.id, load, { immediate: true });
 
     <div v-else class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
   </div>
 </template>

@@ -19,6 +19,7 @@ import PostStatusControl from '@/components/PostStatusControl.vue';
 import RichTextRenderer from '@/components/RichTextRenderer.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import TagList from '@/components/TagList.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import VoteButton from '@/components/VoteButton.vue';
 import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
@@ -124,22 +125,24 @@ watch(() => route.params.id, load, { immediate: true });
             <RouterLink
               v-if="canEdit"
               :to="`/post/${post.id}/edit`"
-              class="button button-ghost button-small"
+              data-slot="button"
+              :class="buttonVariants({ variant: 'ghost', size: 'lg' })"
             >
               <IconEdit :size="15" :stroke-width="2" />
               编辑反馈
             </RouterLink>
-            <button
+            <Button
               v-if="auth.isAdmin"
               type="button"
-              class="button button-ghost button-small button-danger"
               :disabled="deleting"
               @click="removePost"
+              variant="destructive"
+              size="lg"
             >
               <IconLoader2 v-if="deleting" class="spin" :size="15" :stroke-width="2" />
               <IconTrash v-else :size="15" :stroke-width="2" />
               删除反馈
-            </button>
+            </Button>
           </div>
           <p v-if="actionError" class="inline-error">{{ actionError }}</p>
         </header>
@@ -191,9 +194,9 @@ watch(() => route.params.id, load, { immediate: true });
 
     <div v-else class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
   </div>
 </template>

@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { createBuiltinTag, deleteTag, listAdminTags } from '@/api/tags';
 import type { TagSummary } from '@/api/types';
+import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 
 const confirm = useConfirm();
@@ -91,11 +92,11 @@ onMounted(load);
             maxlength="24"
             placeholder="例如：功能请求、性能、文档"
           />
-          <button class="button button-primary" type="submit" :disabled="creating">
+          <Button type="submit" :disabled="creating" variant="default" size="lg">
             <IconLoader2 v-if="creating" class="spin" :size="16" :stroke-width="2" />
             <IconPlus v-else :size="16" :stroke-width="2" />
             添加
-          </button>
+          </Button>
         </div>
         <span class="tag-hint">最多 24 个字符；同名标签会复用已有定义并转为内置。</span>
       </div>
@@ -108,9 +109,9 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <div v-else class="admin-list">
@@ -121,16 +122,17 @@ onMounted(load);
           <span v-else class="anon-badge">用户创建</span>
         </div>
         <span class="admin-item-count">{{ tag.post_count }} 条反馈</span>
-        <button
-          class="button button-ghost button-small button-danger"
+        <Button
           type="button"
           :disabled="deletingId !== null"
           @click="remove(tag)"
+          variant="destructive"
+          size="lg"
         >
           <IconLoader2 v-if="deletingId === tag.id" class="spin" :size="14" :stroke-width="2" />
           <IconTrash v-else :size="14" :stroke-width="2" />
           删除
-        </button>
+        </Button>
       </div>
 
       <p v-if="tags.length === 0" class="admin-empty">还没有标签，先添加一个内置标签吧。</p>

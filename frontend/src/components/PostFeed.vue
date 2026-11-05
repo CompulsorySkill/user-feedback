@@ -10,6 +10,7 @@ import { listFilterTags } from '@/api/tags';
 import type { PostStatus, PostSummary, TagSummary } from '@/api/types';
 import EmptyState from '@/components/EmptyState.vue';
 import PostCard from '@/components/PostCard.vue';
+import { Button } from '@/components/ui/button';
 import {
   MAX_FILTER_TAGS,
   normalizeSearch,
@@ -321,9 +322,9 @@ watch(
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <div v-else-if="posts.length === 0" class="empty-wrap">
@@ -339,14 +340,9 @@ watch(
                 : '该看板暂时没有公开的反馈内容。'
         "
       >
-        <button
-          v-if="hasFilter"
-          class="button button-ghost button-small"
-          type="button"
-          @click="clearFilters"
-        >
+        <Button v-if="hasFilter" type="button" @click="clearFilters" variant="ghost" size="lg">
           清除筛选
-        </button>
+        </Button>
       </EmptyState>
     </div>
 
@@ -354,16 +350,17 @@ watch(
       <PostCard v-for="post in posts" :key="post.id" :post="post" :show-board="showBoard" />
 
       <div class="load-more">
-        <button
+        <Button
           v-if="nextCursor"
-          class="button button-ghost"
           type="button"
           :disabled="loadingMore"
           @click="loadMore"
+          variant="ghost"
+          size="lg"
         >
           <IconLoader2 v-if="loadingMore" class="spin" :size="16" :stroke-width="2" />
           {{ loadingMore ? '加载中…' : '加载更多' }}
-        </button>
+        </Button>
         <span v-else class="list-end">已经到底了</span>
         <p v-if="loadMoreError" class="inline-error">{{ loadMoreError }}</p>
       </div>

@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import type { AdminUserItem } from '@/api/types';
 import { listAdminUsers } from '@/api/users';
+import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/utils/date';
 
 const PAGE_SIZE = 30;
@@ -96,12 +97,12 @@ onMounted(load);
           <option value="user">普通用户</option>
         </select>
       </label>
-      <button class="button button-primary" type="submit">
+      <Button type="submit" variant="default" size="lg">
         <IconSearch :size="16" :stroke-width="2" /> 搜索
-      </button>
-      <button class="button button-ghost button-small" type="button" @click="reset">
+      </Button>
+      <Button type="button" @click="reset" variant="ghost" size="lg">
         <IconRefresh :size="14" :stroke-width="2" /> 重置
-      </button>
+      </Button>
     </form>
 
     <p v-if="loading" class="loading-line">
@@ -110,9 +111,9 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <div v-else class="admin-list">
@@ -133,10 +134,10 @@ onMounted(load);
       </p>
 
       <div v-if="nextCursor" class="load-more">
-        <button class="button button-ghost" type="button" :disabled="loadingMore" @click="loadMore">
+        <Button type="button" :disabled="loadingMore" @click="loadMore" variant="ghost" size="lg">
           <IconLoader2 v-if="loadingMore" class="spin" :size="16" :stroke-width="2" />
           {{ loadingMore ? '加载中…' : '加载更多' }}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

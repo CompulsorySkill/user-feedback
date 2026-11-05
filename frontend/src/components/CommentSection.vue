@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { createComment, deleteComment, listComments, type CommentItem } from '@/api/comments';
 import CommentNode from '@/components/CommentNode.vue';
+import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 import type { CommentNodeData } from '@/types/comment';
@@ -145,15 +146,11 @@ async function removeComment(node: CommentNodeData): Promise<void> {
       ></textarea>
       <div class="comment-form-foot">
         <span class="muted">{{ draft.length }} / 2000</span>
-        <button
-          type="submit"
-          class="button button-primary button-small"
-          :disabled="submitting || !draft.trim()"
-        >
+        <Button type="submit" :disabled="submitting || !draft.trim()" variant="default" size="lg">
           <IconLoader2 v-if="submitting" class="spin" :size="14" :stroke-width="2" />
           <IconSend v-else :size="14" :stroke-width="2" />
           发表评论
-        </button>
+        </Button>
       </div>
       <p v-if="error" class="inline-error">{{ error }}</p>
     </form>

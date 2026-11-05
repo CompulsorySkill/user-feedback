@@ -7,6 +7,7 @@ import { listChangelogs } from '@/api/changelogs';
 import { ApiError } from '@/api/client';
 import type { ChangelogSummary } from '@/api/types';
 import EmptyState from '@/components/EmptyState.vue';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth';
 import { formatDate } from '@/utils/date';
 
@@ -40,7 +41,12 @@ onMounted(load);
         <h1>更新日志</h1>
         <p class="hero-lead">每个版本做了什么，都在这里。仅展示已发布内容。</p>
       </div>
-      <RouterLink v-if="auth.isAdmin" to="/changelog/new" class="button button-primary">
+      <RouterLink
+        v-if="auth.isAdmin"
+        to="/changelog/new"
+        data-slot="button"
+        :class="buttonVariants({ variant: 'default', size: 'lg' })"
+      >
         <IconPlus :size="16" :stroke-width="2" />
         新建更新日志
       </RouterLink>
@@ -52,9 +58,9 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <button class="button button-ghost button-small" type="button" @click="load">
+      <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
-      </button>
+      </Button>
     </div>
 
     <EmptyState
