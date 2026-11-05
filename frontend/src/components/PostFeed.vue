@@ -4,26 +4,45 @@ import { useDebounceFn } from '@vueuse/core';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { listAllPosts, listBoardPosts, type ListPostsOptions, type PostSort } from '@/api/boards';
+import {
+  listAllPosts,
+  listBoardPosts,
+  listPostAuthors,
+  type ListPostsOptions,
+  type PostSort,
+} from '@/api/boards';
 import { ApiError } from '@/api/client';
 import { listFilterTags } from '@/api/tags';
-import type { PostStatus, PostSummary, TagSummary } from '@/api/types';
+import type { AuthorFacet, PostStatus, PostSummary, TagSummary } from '@/api/types';
 import EmptyState from '@/components/EmptyState.vue';
+import FilterCombobox from '@/components/FilterCombobox.vue';
 import PostCard from '@/components/PostCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  MAX_FILTER_TAGS,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  normalizeAuthor,
   normalizeSearch,
   normalizeSort,
-  normalizeStatus,
+  normalizeStatuses,
   normalizeTags,
 } from '@/utils/postFilters';
 
 const PAGE_SIZE = 10;
 
-const STATUS_FILTERS: Array<{ value: PostStatus | ''; label: string }> = [
-  { value: '', label: '全部' },
+interface FilterOption {
+  value: string;
+  label: string;
+  hint?: string | number;
+}
+
+const STATUS_FILTERS: FilterOption[] = [
   { value: 'open', label: '待处理' },
   { value: 'planned', label: '已计划' },
   { value: 'in_progress', label: '进行中' },
@@ -45,26 +64,45 @@ const router = useRouter();
 
 const posts = ref<PostSummary[]>([]);
 const availableTags = ref<TagSummary[]>([]);
+const authors = ref<AuthorFacet[]>([]);
 const nextCursor = ref<string | null>(null);
 const loading = ref(true);
 const loadingMore = ref(false);
 const errorMessage = ref('');
 const loadMoreError = ref('');
 
-const statusFilter = ref<PostStatus | ''>(normalizeStatus(route.query.status));
+const statusFilter = ref<PostStatus[]>(normalizeStatuses(route.query.status));
 const sort = ref<PostSort>(normalizeSort(route.query.sort));
 const tagFilter = ref<string[]>(normalizeTags(route.query.tag));
+const authorFilter = ref<string | null>(normalizeAuthor(route.query.author));
 const searchQuery = ref(normalizeSearch(route.query.q));
 const searchInput = ref(searchQuery.value);
 
+const tagOptions = computed<FilterOption[]>(() =>
+  availableTags.value.map((tag) => ({
+    value: tag.name,
+    label: tag.name,
+    hint: tag.post_count,
+  })),
+);
+const authorOptions = computed<FilterOption[]>(() =>
+  authors.value.map((author) => ({
+    value: author.name,
+    label: author.name,
+    hint: author.post_count,
+  })),
+);
+
 let loadScheduled = false;
 
-const runSearch = useDebounceFn(() => {
+function applySearch(): void {
   const value = searchInput.value.trim().slice(0, 100);
   if (value === searchQuery.value) return;
   searchQuery.value = value;
   syncQuery();
-}, 300);
+}
+
+const runSearch = useDebounceFn(applySearch, 300);
 
 /** 切换看板与重置筛选可能在同一 tick 触发，合并为一次请求。 */
 function scheduleLoad(): void {
@@ -78,9 +116,10 @@ function scheduleLoad(): void {
 
 const hasFilter = computed(
   () =>
-    statusFilter.value !== '' ||
+    statusFilter.value.length > 0 ||
     sort.value !== 'recent' ||
     tagFilter.value.length > 0 ||
+    authorFilter.value !== null ||
     searchQuery.value !== '',
 );
 
@@ -88,7 +127,8 @@ function options(cursor?: string | null): ListPostsOptions & { board?: string | 
   return {
     limit: PAGE_SIZE,
     cursor: cursor ?? null,
-    status: statusFilter.value || null,
+    status: statusFilter.value,
+    author: authorFilter.value,
     sort: sort.value,
     q: searchQuery.value || null,
     tags: tagFilter.value,
@@ -143,43 +183,51 @@ async function loadMore(): Promise<void> {
 
 function syncQuery(): void {
   const query: Record<string, string | string[]> = {};
-  if (statusFilter.value) query.status = statusFilter.value;
+  if (statusFilter.value.length) query.status = statusFilter.value;
+  if (authorFilter.value) query.author = authorFilter.value;
   if (sort.value !== 'recent') query.sort = sort.value;
   if (tagFilter.value.length) query.tag = tagFilter.value;
   if (searchQuery.value) query.q = searchQuery.value;
   void router.replace({ query });
 }
 
-function setStatus(value: PostStatus | ''): void {
-  if (statusFilter.value === value) return;
-  statusFilter.value = value;
+function setStatuses(values: string[]): void {
+  const next = normalizeStatuses(values) as PostStatus[];
+  if (next.join() === statusFilter.value.join()) return;
+  statusFilter.value = next;
   syncQuery();
 }
 
-function setSort(value: PostSort): void {
-  if (sort.value === value) return;
-  sort.value = value;
+function setTags(values: string[]): void {
+  // 超过 5 个的部分由 normalizeTags 截断（后端同样只接受 5 个）。
+  const next = normalizeTags(values);
+  if (next.join() === tagFilter.value.join()) return;
+  tagFilter.value = next;
   syncQuery();
 }
 
-function isTagActive(name: string): boolean {
-  return tagFilter.value.some((tag) => tag.toLocaleLowerCase() === name.toLocaleLowerCase());
+function setAuthor(values: string[]): void {
+  const next = normalizeAuthor(values[0]);
+  if (next === authorFilter.value) return;
+  authorFilter.value = next;
+  syncQuery();
 }
 
-function toggleTag(name: string): void {
-  if (isTagActive(name)) {
-    tagFilter.value = tagFilter.value.filter(
-      (tag) => tag.toLocaleLowerCase() !== name.toLocaleLowerCase(),
-    );
-  } else {
-    if (tagFilter.value.length >= MAX_FILTER_TAGS) return;
-    tagFilter.value = [...tagFilter.value, name];
-  }
+function setSort(value: unknown): void {
+  const next = normalizeSort(value);
+  if (sort.value === next) return;
+  sort.value = next;
   syncQuery();
 }
 
 function onSearchInput(): void {
   runSearch();
+}
+
+/** 输入框右侧的搜索按钮：跳过防抖立刻查一次。 */
+function submitSearch(): void {
+  runSearch.cancel();
+  applySearch();
 }
 
 function clearSearch(): void {
@@ -191,9 +239,10 @@ function clearSearch(): void {
 }
 
 function clearFilters(): void {
-  statusFilter.value = '';
+  statusFilter.value = [];
   sort.value = 'recent';
   tagFilter.value = [];
+  authorFilter.value = null;
   searchInput.value = '';
   searchQuery.value = '';
   syncQuery();
@@ -210,8 +259,18 @@ async function loadTags(): Promise<void> {
   }
 }
 
+async function loadAuthors(): Promise<void> {
+  try {
+    authors.value = await listPostAuthors(props.boardSlug);
+  } catch {
+    // 作者筛选同属增强功能，失败只是下拉为空。
+    authors.value = [];
+  }
+}
+
 onMounted(() => {
   void loadTags();
+  void loadAuthors();
   void load();
 });
 onUnmounted(() => {
@@ -223,15 +282,17 @@ watch(
   () => props.boardSlug,
   () => {
     void loadTags();
+    void loadAuthors();
     scheduleLoad();
   },
 );
 watch(
-  () => [route.query.status, route.query.sort, route.query.tag, route.query.q],
+  () => [route.query.status, route.query.sort, route.query.tag, route.query.q, route.query.author],
   () => {
-    statusFilter.value = normalizeStatus(route.query.status);
+    statusFilter.value = normalizeStatuses(route.query.status);
     sort.value = normalizeSort(route.query.sort);
     tagFilter.value = normalizeTags(route.query.tag);
+    authorFilter.value = normalizeAuthor(route.query.author);
     const query = normalizeSearch(route.query.q);
     searchQuery.value = query;
     // URL 变化（返回/前进/清除筛选）时同步输入框，但不打断正在输入的内容。
@@ -243,17 +304,17 @@ watch(
 
 <template>
   <section class="board-main">
-    <div class="search-row">
+    <div class="filter-bar">
       <div class="search-box">
-        <IconSearch class="search-icon" :size="16" :stroke-width="2" />
         <Input
           v-model="searchInput"
           type="search"
           maxlength="100"
           placeholder="搜索标题或摘要…"
           aria-label="搜索反馈"
-          class="h-7 pl-8 pr-8"
+          class="h-8 pr-8"
           @input="onSearchInput"
+          @keydown.enter.prevent="submitSearch"
         />
         <button
           v-if="searchInput"
@@ -265,56 +326,56 @@ watch(
           <IconX :size="14" :stroke-width="2" />
         </button>
       </div>
-
-      <div class="sort-group" role="group" aria-label="排序">
-        <button
-          v-for="item in SORT_OPTIONS"
-          :key="item.value"
-          type="button"
-          class="sort-button"
-          :class="{ 'is-active': sort === item.value }"
-          @click="setSort(item.value)"
-        >
-          {{ item.label }}
-        </button>
-      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-lg"
+        aria-label="搜索"
+        @click="submitSearch"
+      >
+        <IconSearch :size="16" :stroke-width="2" />
+      </Button>
     </div>
 
-    <div class="list-toolbar">
-      <div class="filter-with-label">
-        <span class="filter-label">状态</span>
-        <div class="filter-group" role="group" aria-label="状态筛选">
-          <button
-            v-for="item in STATUS_FILTERS"
-            :key="item.label"
-            type="button"
-            class="filter-chip"
-            :class="{ 'is-active': statusFilter === item.value }"
-            @click="setStatus(item.value)"
-          >
+    <div class="filter-bar filter-bar-options">
+      <FilterCombobox
+        label="状态"
+        multiple
+        :model-value="statusFilter"
+        :options="STATUS_FILTERS"
+        @update:model-value="setStatuses"
+      />
+      <FilterCombobox
+        label="标签"
+        multiple
+        :model-value="tagFilter"
+        :options="tagOptions"
+        search-placeholder="搜索标签…"
+        @update:model-value="setTags"
+      />
+
+      <span class="filter-bar-spacer" />
+
+      <FilterCombobox
+        label="用户"
+        :model-value="authorFilter ? [authorFilter] : []"
+        :options="authorOptions"
+        search-placeholder="搜索用户…"
+        @update:model-value="setAuthor"
+      />
+      <Select :model-value="sort" @update:model-value="setSort">
+        <SelectTrigger size="lg" aria-label="排序">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="item in SORT_OPTIONS" :key="item.value" :value="item.value">
             {{ item.label }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="availableTags.length" class="tag-filter" role="group" aria-label="标签筛选">
-      <span class="filter-label">标签</span>
-      <div class="filter-group">
-        <button
-          v-for="tag in availableTags"
-          :key="tag.id"
-          type="button"
-          class="filter-chip"
-          :class="{ 'is-active': isTagActive(tag.name) }"
-          :disabled="!isTagActive(tag.name) && tagFilter.length >= MAX_FILTER_TAGS"
-          :title="`${tag.name} · ${tag.post_count} 条反馈`"
-          @click="toggleTag(tag.name)"
-        >
-          {{ tag.name }}
-          <span class="tag-filter-count">{{ tag.post_count }}</span>
-        </button>
-      </div>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Button v-if="hasFilter" type="button" variant="ghost" size="lg" @click="clearFilters">
+        重置
+      </Button>
     </div>
 
     <p v-if="loading" class="loading-line">
@@ -335,7 +396,7 @@ watch(
           searchQuery
             ? `没有找到匹配「${searchQuery}」的反馈，试试其他关键词。`
             : hasFilter
-              ? '试试切换状态、标签或排序，或清除筛选。'
+              ? '试试切换状态、标签、用户或排序，或清除筛选。'
               : showBoard
                 ? '所有看板暂时都没有公开的反馈内容。'
                 : '该看板暂时没有公开的反馈内容。'

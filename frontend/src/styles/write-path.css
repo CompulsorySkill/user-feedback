@@ -611,113 +611,27 @@
 
 /* ---------- 列表筛选 / 排序 / 登录 / 编辑入口 ---------- */
 
-.list-toolbar {
+/* ---------- 列表筛选栏（两行：搜索 / 筛选项） ---------- */
+
+.filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-bar .search-box {
+  flex: 0 1 420px;
+  margin-bottom: 0;
+}
+
+.filter-bar-options {
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
 
-.filter-with-label {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.filter-label {
-  flex: none;
-  line-height: var(--control-height-sm);
-  color: var(--text-subtle);
-  white-space: nowrap;
-}
-
-.filter-group {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.filter-chip {
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text-muted);
-  font: inherit;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background 0.15s ease;
-}
-
-.filter-chip:hover {
-  border-color: var(--line-strong);
-  color: var(--text);
-}
-
-.filter-chip.is-active {
-  border-color: var(--brand);
-  background: var(--brand-soft);
-  color: var(--brand);
-  font-weight: 550;
-}
-
-.sort-group {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 9px;
-  border: 1px solid var(--line);
-  background: var(--surface-muted);
-}
-
-.sort-button {
-  padding: 4px 12px;
-  border-radius: 7px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  cursor: pointer;
-}
-
-.sort-button.is-active {
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 550;
-  box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
-}
-
-.tag-filter {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: -4px 0 18px;
-}
-
-.tag-filter .filter-group {
-  min-width: 0;
-}
-
-.tag-filter .filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.tag-filter .filter-chip:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.tag-filter-count {
-  color: inherit;
-  opacity: 0.65;
-  font-variant-numeric: tabular-nums;
+.filter-bar-spacer {
+  flex: 1 1 auto;
 }
 
 .post-detail-actions {

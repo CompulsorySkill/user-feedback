@@ -39,6 +39,12 @@ export interface TagSummary extends TagRef {
   post_count: number;
 }
 
+/** 筛选器作者候选：登录作者显示名或匿名昵称。 */
+export interface AuthorFacet {
+  name: string;
+  post_count: number;
+}
+
 export interface PostSummary {
   id: string;
   board_slug: string;

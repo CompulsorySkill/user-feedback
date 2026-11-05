@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   listAllPosts: vi.fn(),
   listBoardPosts: vi.fn(),
   listFilterTags: vi.fn(),
+  listPostAuthors: vi.fn(),
 }));
 
 vi.mock('vue-router', () => ({
@@ -18,12 +19,14 @@ vi.mock('vue-router', () => ({
 vi.mock('@/api/boards', () => ({
   listAllPosts: mocks.listAllPosts,
   listBoardPosts: mocks.listBoardPosts,
+  listPostAuthors: mocks.listPostAuthors,
 }));
 vi.mock('@/api/tags', () => ({ listFilterTags: mocks.listFilterTags }));
 vi.mock('@/components/PostCard.vue', () => ({
   default: { template: '<div class="post-card-stub" />' },
 }));
 
+import FilterCombobox from '@/components/FilterCombobox.vue';
 import PostFeed from '@/components/PostFeed.vue';
 
 const post: PostSummary = {
@@ -56,17 +59,36 @@ describe('PostFeed tag filter', () => {
     mocks.listAllPosts.mockResolvedValue({ items: [post], next_cursor: null });
     mocks.listBoardPosts.mockResolvedValue({ items: [post], next_cursor: null });
     mocks.listFilterTags.mockResolvedValue([tag]);
+    mocks.listPostAuthors.mockResolvedValue([{ name: '林小满', post_count: 2 }]);
   });
 
-  it('loads posts and toggles a tag into the URL', async () => {
+  it('writes the selected tags into the URL', async () => {
     const wrapper = mount(PostFeed);
     await flushPromises();
 
     expect(mocks.listAllPosts).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
 
-    await wrapper.find('.tag-filter .filter-chip').trigger('click');
+    // 第二个筛选器是标签，选项来自 listFilterTags（含计数）。
+    const tagBox = wrapper.findAllComponents(FilterCombobox)[1];
+    expect(tagBox.props('options')).toEqual([{ value: 'Bug', label: 'Bug', hint: 2 }]);
+    tagBox.vm.$emit('update:modelValue', ['Bug']);
 
     expect(mocks.replace).toHaveBeenCalledWith({ query: { tag: ['Bug'] } });
+    wrapper.unmount();
+  });
+
+  it('writes multiple statuses and the author into the URL', async () => {
+    const wrapper = mount(PostFeed);
+    await flushPromises();
+
+    // 顺序：状态、标签、用户。
+    const [statusBox, , authorBox] = wrapper.findAllComponents(FilterCombobox);
+    statusBox.vm.$emit('update:modelValue', ['open', 'planned']);
+    authorBox.vm.$emit('update:modelValue', ['林小满']);
+
+    expect(mocks.replace).toHaveBeenLastCalledWith({
+      query: { status: ['open', 'planned'], author: '林小满' },
+    });
     wrapper.unmount();
   });
 

@@ -1,7 +1,15 @@
 import { buildPostQuery, type PostQueryOptions, type PostSort } from '@/utils/postFilters';
 
 import { api } from './client';
-import type { Board, BoardInput, Page, PostCreateInput, PostDetail, PostSummary } from './types';
+import type {
+  AuthorFacet,
+  Board,
+  BoardInput,
+  Page,
+  PostCreateInput,
+  PostDetail,
+  PostSummary,
+} from './types';
 
 export type { PostSort };
 
@@ -29,6 +37,12 @@ export function listAllPosts(
   options: ListPostsOptions & { board?: string | null } = {},
 ): Promise<Page<PostSummary>> {
   return api.get<Page<PostSummary>>(`/v1/posts?${buildPostQuery(options)}`);
+}
+
+/** 根页面筛选器：作者候选（显示名 + 匿名昵称）。 */
+export function listPostAuthors(boardSlug?: string | null): Promise<AuthorFacet[]> {
+  const query = boardSlug ? `?board=${encodeURIComponent(boardSlug)}` : '';
+  return api.get<AuthorFacet[]>(`/v1/posts/authors${query}`);
 }
 
 export function createPost(slug: string, input: PostCreateInput): Promise<PostDetail> {

@@ -933,30 +933,6 @@ h6.rt-heading {
   min-width: 0;
 }
 
-.search-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.search-row .search-box {
-  flex: 0 1 480px;
-  margin-bottom: 0;
-}
-
-.search-row .sort-group {
-  flex: none;
-  height: 28px;
-  padding: 2px;
-}
-
-.search-row .sort-button {
-  height: 100%;
-  padding: 0 12px;
-}
-
 .search-box {
   position: relative;
   max-width: 480px;
@@ -966,15 +942,6 @@ h6.rt-heading {
 /* 搜索框自带清除按钮，隐藏浏览器原生那个 */
 input[type='search']::-webkit-search-cancel-button {
   display: none;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-subtle);
-  pointer-events: none;
 }
 
 .search-clear {

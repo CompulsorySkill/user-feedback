@@ -112,7 +112,7 @@ onMounted(load);
       <Button type="submit" variant="default" size="lg">
         <IconSearch :size="16" :stroke-width="2" /> 搜索
       </Button>
-      <Button type="button" @click="reset" variant="ghost" size="lg">
+      <Button type="button" @click="reset" variant="outline" size="lg">
         <IconRefresh :size="14" :stroke-width="2" /> 重置
       </Button>
     </form>
@@ -123,7 +123,7 @@ onMounted(load);
 
     <div v-else-if="errorMessage" class="inline-error">
       <span>{{ errorMessage }}</span>
-      <Button type="button" @click="load" variant="ghost" size="lg">
+      <Button type="button" @click="load" variant="outline" size="lg">
         <IconRefresh :size="15" :stroke-width="2" /> 重试
       </Button>
     </div>
