@@ -34,7 +34,6 @@ samp {
 .anon-badge,
 .admin-badge,
 .identity,
-.service-strip,
 .changelog-date,
 .status-badge,
 .filter-chip,
@@ -49,11 +48,8 @@ samp {
 .env-panel,
 .env-grid,
 .board-meta > span,
-.board-card-foot,
-.board-policy,
 .post-card-foot,
 .post-excerpt,
-.board-card p,
 .changelog-body p,
 .rt-figure figcaption,
 .login-title,
@@ -66,7 +62,6 @@ samp {
 .reply-chip,
 .editor-uploading,
 .editor-error,
-.service-meta,
 .status-error,
 .empty-description,
 .empty-title,
@@ -86,10 +81,7 @@ samp {
 .attachment-meta,
 .tag-pill,
 .tag-hint,
-.tag-error,
-.tag-suggestion,
-.tag-admin-count,
-.tag-admin-empty {
+.tag-suggestion {
   font-size: var(--fs-caption);
 }
 

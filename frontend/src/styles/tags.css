@@ -94,10 +94,6 @@
   color: var(--text-subtle);
 }
 
-.tag-error {
-  color: var(--error);
-}
-
 .post-card-tags {
   margin-top: 8px;
 }
