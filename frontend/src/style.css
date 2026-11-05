@@ -52,7 +52,7 @@
   --shadow: 0 1px 2px rgb(16 24 40 / 4%), 0 12px 32px -18px rgb(16 24 40 / 18%);
   --mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
 
-  /* 全站仅 3 个字号：标题 32 / 正文 16 / 次要信息 13 */
+  /* 旧页面排版用的尺寸档（新组件走 shadcn 自带规格，不用这几个） */
   --fs-display: 32px;
   --fs-body: 16px;
   --fs-caption: 13px;
@@ -68,29 +68,28 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #101216;
-    --foreground: #eef1f6;
-    --card: #181b21;
-    --popover: #181b21;
-    --secondary: #14171c;
-    --muted: #14171c;
-    --muted-foreground: #a4acba;
-    --accent: #23203c;
-    --accent-foreground: #8f8bff;
-    --primary: #8f8bff;
-    --primary-foreground: #101216;
-    --destructive: #fca5a5;
-    --border: #2a2f39;
-    --input: #38404e;
-    --ring: #8f8bff;
-    --text-subtle: #7b8494;
-    --ok: #4ade80;
-    --ok-soft: #14291d;
-    --error-soft: #2d1717;
-    --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 18px 40px -24px rgb(0 0 0 / 60%);
-  }
+/* 深色模式由 useDark() 切换 html.dark，默认跟随系统 */
+.dark {
+  --background: #101216;
+  --foreground: #eef1f6;
+  --card: #181b21;
+  --popover: #181b21;
+  --secondary: #14171c;
+  --muted: #14171c;
+  --muted-foreground: #a4acba;
+  --accent: #23203c;
+  --accent-foreground: #8f8bff;
+  --primary: #8f8bff;
+  --primary-foreground: #101216;
+  --destructive: #fca5a5;
+  --border: #2a2f39;
+  --input: #38404e;
+  --ring: #8f8bff;
+  --text-subtle: #7b8494;
+  --ok: #4ade80;
+  --ok-soft: #14291d;
+  --error-soft: #2d1717;
+  --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 18px 40px -24px rgb(0 0 0 / 60%);
 }
 
 *,
@@ -213,6 +212,23 @@ code {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: calc(var(--radius) * 0.6);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .identity {

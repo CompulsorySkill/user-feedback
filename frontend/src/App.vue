@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { IconMessageCircle } from '@tabler/icons-vue';
+import { IconMessageCircle, IconMoon, IconSun } from '@tabler/icons-vue';
+import { useDark, useToggle } from '@vueuse/core';
 import { defineAsyncComponent, onMounted, onUnmounted } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 
@@ -11,6 +12,8 @@ const ConfirmDialog = defineAsyncComponent(() => import('@/components/ConfirmDia
 
 const auth = useAuthStore();
 const route = useRoute();
+const isDark = useDark();
+const toggleDark = useToggle(isDark);
 
 function onSessionChanged(): void {
   void auth.hydrate();
@@ -49,6 +52,16 @@ onUnmounted(() => {
         </nav>
 
         <div class="header-meta">
+          <button
+            type="button"
+            class="theme-toggle"
+            :aria-label="isDark ? '切换到浅色模式' : '切换到深色模式'"
+            :title="isDark ? '切换到浅色模式' : '切换到深色模式'"
+            @click="toggleDark()"
+          >
+            <IconSun v-if="isDark" :size="18" />
+            <IconMoon v-else :size="18" />
+          </button>
           <template v-if="auth.isAuthenticated">
             <span class="identity">{{ auth.displayName }}</span>
             <span v-if="auth.isAdmin" class="admin-badge">ADMIN</span>

@@ -20,6 +20,11 @@ describe('style.css 主题基线', () => {
     expect(css).toMatch(/--font-sans:\s*'Noto Sans'/);
   });
 
+  it('深色取值只在 .dark 块里，不再用 media query（否则手动切换失效）', () => {
+    expect(css).not.toContain('prefers-color-scheme');
+    expect(css).toMatch(/^\.dark \{/m);
+  });
+
   it('旧样式别名只指向 shadcn 变量，不自我引用', () => {
     const semantic = [
       'background',

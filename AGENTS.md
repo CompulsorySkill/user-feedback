@@ -188,8 +188,8 @@ uv run alembic check
 - 颜色只有一个真源：`src/style.css` 的 `:root` 里那组 shadcn 语义变量
   （`--background/--foreground/--card/--primary/--border/--input/--ring/--radius` …）。
   旧样式改用别名 `--bg/--surface/--surface-muted/--text/--text-muted/--brand/--brand-soft/
-  --line/--line-strong`，**不要在别处就地重定义这些变量**；深色模式在
-  `prefers-color-scheme` 块里覆盖同一组 shadcn 变量。
+  --line/--line-strong`，**不要在别处就地重定义这些变量**；深色取值写在同一文件的
+  `.dark` 块里。
 - 破坏性操作（删除 / 关闭）用 `useConfirm()` + `ConfirmDialog`，不要再用 `window.confirm`。
 - 已确认的布局约定：
   - 搜索框与最近 / 最热排序在同一行，字号一致；
@@ -198,14 +198,8 @@ uv run alembic check
   - **不要重新引入全站页脚**（站点底部品牌 / 版权条）；帖子详情的操作区
     `post-detail-foot` 不在此列。
 - 桌面端优先，不新增移动端断点或触屏交互。
-- 支持系统深色模式（`prefers-color-scheme`），新增颜色走上面的 CSS 变量。
-  - 搜索框与最近 / 最热排序在同一行，字号一致；
-  - 状态筛选与标签筛选的标签对齐；
-  - 保持统一页面宽度与 `scrollbar-gutter: stable`，避免长短页切换时跳动；
-  - **不要重新引入全站页脚**（站点底部品牌 / 版权条）；帖子详情的操作区
-    `post-detail-foot` 不在此列。
-- 桌面端优先，不新增移动端断点或触屏交互。
-- 支持系统深色模式（`prefers-color-scheme`），新增颜色优先用 `style.css` 中的 CSS 变量。
+- 深色模式：`useDark()`（VueUse）切 `html.dark`，默认跟随系统、手动切换记在 localStorage；
+  新增颜色走上面的 CSS 变量，不要在 `.dark` 之外再写一套。
 
 ### 5.3 前端测试
 
