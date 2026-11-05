@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Sequence
 from typing import Literal
 
-from sqlalchemy import Select, and_, delete, or_, select, tuple_
+from sqlalchemy import Select, and_, delete, func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import Cursor, TopCursor
@@ -36,7 +36,8 @@ class PostRepository:
         board_slug: str | None = None,
         limit: int,
         sort: PostSort = "recent",
-        status: str | None = None,
+        statuses: Sequence[str] | None = None,
+        author: str | None = None,
         query: str | None = None,
         tag_normalized: Sequence[str] | None = None,
         cursor: Cursor | None = None,
@@ -47,8 +48,10 @@ class PostRepository:
             stmt = stmt.where(Post.board_id == board_id)
         if board_slug is not None:
             stmt = stmt.where(Board.slug == board_slug)
-        if status is not None:
-            stmt = stmt.where(Post.status == status)
+        if statuses:
+            stmt = stmt.where(Post.status.in_(list(statuses)))
+        if author:
+            stmt = stmt.where(or_(User.display_name == author, Post.anonymous_name == author))
         if query:
             escaped = (
                 query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -101,7 +104,8 @@ class PostRepository:
         *,
         limit: int,
         sort: PostSort = "recent",
-        status: str | None = None,
+        statuses: Sequence[str] | None = None,
+        author: str | None = None,
         query: str | None = None,
         tag_normalized: Sequence[str] | None = None,
         cursor: Cursor | None = None,
@@ -111,7 +115,8 @@ class PostRepository:
             board_id=board_id,
             limit=limit,
             sort=sort,
-            status=status,
+            statuses=statuses,
+            author=author,
             query=query,
             tag_normalized=tag_normalized,
             cursor=cursor,
@@ -123,7 +128,8 @@ class PostRepository:
         *,
         limit: int,
         sort: PostSort = "recent",
-        status: str | None = None,
+        statuses: Sequence[str] | None = None,
+        author: str | None = None,
         query: str | None = None,
         board_slug: str | None = None,
         tag_normalized: Sequence[str] | None = None,
@@ -135,12 +141,31 @@ class PostRepository:
             board_slug=board_slug,
             limit=limit,
             sort=sort,
-            status=status,
+            statuses=statuses,
+            author=author,
             query=query,
             tag_normalized=tag_normalized,
             cursor=cursor,
             top_cursor=top_cursor,
         )
+
+    async def author_facets(
+        self, *, board_slug: str | None = None
+    ) -> list[tuple[str, int]]:
+        """筛选器候选：登录作者显示名与匿名昵称合并计数，只统计公开看板。"""
+        name = func.coalesce(User.display_name, Post.anonymous_name)
+        stmt = (
+            select(name, func.count())
+            .select_from(Post)
+            .join(Board, Board.id == Post.board_id)
+            .outerjoin(User, User.id == Post.author_id)
+            .where(Board.is_public.is_(True), name.is_not(None))
+            .group_by(name)
+            .order_by(func.count().desc(), name)
+        )
+        if board_slug:
+            stmt = stmt.where(Board.slug == board_slug)
+        return [(row[0], row[1]) for row in (await self.session.execute(stmt)).all()]
 
     async def get_with_board(
         self, post_id: uuid.UUID

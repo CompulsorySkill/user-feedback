@@ -182,6 +182,7 @@ def insert_post(
     excerpt: str = "",
     status: str = "open",
     author_id: int | None = None,
+    anonymous_name: str | None = None,
     vote_count: int = 0,
     comment_count: int = 0,
 ) -> str:
@@ -192,8 +193,8 @@ def insert_post(
     stamp = sqlite_timestamp(created_at)
     conn.execute(
         "INSERT INTO posts (id, board_id, title, content, excerpt, status,"
-        " author_id, vote_count, comment_count, created_at, updated_at)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        " author_id, anonymous_name, vote_count, comment_count, created_at,"
+        " updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             post_id.hex,
             board_id,
@@ -202,6 +203,7 @@ def insert_post(
             excerpt,
             status,
             author_id,
+            anonymous_name,
             vote_count,
             comment_count,
             stamp,

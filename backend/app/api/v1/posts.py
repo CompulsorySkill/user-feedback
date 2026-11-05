@@ -21,7 +21,9 @@ from app.core.identity import AuthenticatedUser
 from app.schemas.common import Page
 from app.schemas.comment import CommentCreateRequest, CommentItem, CommentList
 from app.schemas.post import (
+    AuthorFacet,
     PostDetail,
+    PostStatus,
     PostStatusUpdate,
     PostSummary,
     PostUpdateRequest,
@@ -34,11 +36,12 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 LimitQuery = Annotated[int, Query(ge=1, le=100, description="每页条数")]
 CursorQuery = Annotated[str | None, Query(description="上一页返回的 next_cursor")]
 StatusQuery = Annotated[
+    list[PostStatus] | None,
+    Query(description="按状态筛选，可重复传参 status=；多个状态为 OR"),
+]
+AuthorQuery = Annotated[
     str | None,
-    Query(
-        pattern="^(open|planned|in_progress|completed|closed)$",
-        description="按状态筛选",
-    ),
+    Query(min_length=1, max_length=120, description="按作者显示名或匿名昵称筛选"),
 ]
 SortQuery = Annotated[
     str,
@@ -68,16 +71,29 @@ async def list_posts(
     q: SearchQuery = None,
     board: BoardQuery = None,
     tag: TagQuery = None,
+    author: AuthorQuery = None,
 ) -> Page[PostSummary]:
     return await service.list_all(
         limit=limit,
         cursor_raw=cursor,
         status=status,
+        author=author,
         sort=sort,
         query=q,
         board_slug=board,
         tags=tag,
     )
+
+
+@router.get(
+    "/authors",
+    response_model=list[AuthorFacet],
+    summary="反馈作者候选（筛选器用）",
+)
+async def list_authors(
+    service: PostServiceDep, board: BoardQuery = None
+) -> list[AuthorFacet]:
+    return await service.list_authors(board_slug=board)
 
 
 @router.get("/{post_id}", response_model=PostDetail, summary="反馈详情")

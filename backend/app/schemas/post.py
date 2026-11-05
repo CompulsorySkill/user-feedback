@@ -51,6 +51,13 @@ class PostDetail(PostSummary):
     is_author: bool = False
 
 
+class AuthorFacet(BaseModel):
+    """筛选器用的作者候选：登录作者显示名或匿名昵称。"""
+
+    name: str
+    post_count: int
+
+
 class PostCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     content: dict[str, Any]

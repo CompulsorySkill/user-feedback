@@ -27,6 +27,7 @@ from app.repositories.uploads import UploadRepository
 from app.schemas.board import BoardRef
 from app.schemas.common import Page
 from app.schemas.post import (
+    AuthorFacet,
     ClientEnvironment,
     PostCreateRequest,
     PostDetail,
@@ -132,7 +133,8 @@ class PostService:
         *,
         limit: int,
         cursor_raw: str | None,
-        status: str | None = None,
+        status: list[str] | None = None,
+        author: str | None = None,
         sort: str = "recent",
         query: str | None = None,
         tags: list[str] | None = None,
@@ -147,7 +149,8 @@ class PostService:
                 board.id,
                 limit=size,
                 sort=order,
-                status=status,
+                statuses=status,
+                author=author,
                 query=query,
                 tag_normalized=tag_normalized,
                 **kwargs,
@@ -162,7 +165,8 @@ class PostService:
         *,
         limit: int,
         cursor_raw: str | None,
-        status: str | None = None,
+        status: list[str] | None = None,
+        author: str | None = None,
         sort: str = "recent",
         query: str | None = None,
         board_slug: str | None = None,
@@ -179,7 +183,8 @@ class PostService:
             return await self.posts.list_all(
                 limit=size,
                 sort=order,
-                status=status,
+                statuses=status,
+                author=author,
                 query=query,
                 board_slug=board_slug,
                 tag_normalized=tag_normalized,
@@ -189,6 +194,12 @@ class PostService:
         return await self._paginate(
             fetch, limit=limit, cursor_raw=cursor_raw, sort=sort
         )
+
+    async def list_authors(
+        self, *, board_slug: str | None = None
+    ) -> list[AuthorFacet]:
+        rows = await self.posts.author_facets(board_slug=board_slug)
+        return [AuthorFacet(name=name, post_count=count) for name, count in rows]
 
     async def get(self, post_id: uuid.UUID, viewer: Identity = None) -> PostDetail:
         row = await self.posts.get_with_board(post_id)

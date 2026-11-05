@@ -63,18 +63,30 @@
   （筛选器 badge 因此与当前看板一致，不再显示全站计数）。
 - 删除标签会从所有反馈上移除关联，但不会删除反馈本身。
 
-### 标签筛选
+### 列表筛选参数
 
-反馈列表（`/posts` 与 `/boards/{slug}/posts`）支持重复查询参数 `tag=`：
+反馈列表（`/posts` 与 `/boards/{slug}/posts`）的筛选参数可组合，全部为可选：
 
 ```http
-GET /api/v1/posts?tag=Bug&tag=%E6%80%A7%E8%83%BD&sort=recent
+GET /api/v1/posts?status=open&status=planned&tag=Bug&author=Alice&sort=top&q=崩溃
 ```
 
-- 标签名按 `casefold` 匹配，大小写不敏感；最多同时选 5 个，超过返回 `400 TAG_LIMIT`。
-- 多个标签之间是 **OR**（命中任一标签即返回），可与 `status`、`q`、`sort`、`board` 组合。
-- 不存在的标签返回空列表，不报错。
-- 切换筛选条件时必须丢弃旧 `cursor`。
+- `status=` 可重复，多个状态之间是 **OR**；取值仅限 `open|planned|in_progress|completed|closed`，
+  非法取值返回 `422`。
+- `tag=` 可重复，标签名按 `casefold` 匹配，最多 5 个，超过返回 `400 TAG_LIMIT`；多个标签之间是 **OR**。
+- `author=` 精确匹配**登录作者的显示名**或**匿名昵称**（两者同一命名空间，匿名帖不带 `author_id`）。
+- 不存在的标签 / 作者返回空列表，不报错。
+- 切换任一筛选条件时必须丢弃旧 `cursor`。
+
+### 作者候选
+
+```http
+GET /api/v1/posts/authors?board=product
+```
+
+返回 `[{ name, post_count }]`，供列表筛选器下拉使用：登录作者的显示名与匿名昵称合并去重，
+`post_count` 只统计公开看板（带 `board=` 时只统计该看板），按使用量降序。该接口不返回
+`author_id`，也不提供匿名帖与账号的对应关系。
 
 ## 5. 更新日志语义
 
@@ -253,7 +265,8 @@ keyset 分页。响应：
 | POST | `/v1/admin/uploads/cleanup` | 管理员；清理未引用上传对象 |
 | POST | `/v1/admin/tags` | 管理员；新增内置标签 |
 | DELETE | `/v1/admin/tags/{id}` | 管理员；删除标签并解除帖子关联 |
-| GET | `/v1/posts` | 公开；全部公开看板聚合，支持 `board=`、`status=`、`sort=`、`q=`、`tag=` |
+| GET | `/v1/posts` | 公开；全部公开看板聚合，支持 `board=`、`status=`（可重复）、`author=`、`sort=`、`q=`、`tag=`（可重复） |
+| GET | `/v1/posts/authors` | 公开；作者候选（显示名 + 匿名昵称 + `post_count`），支持 `board=` |
 | GET | `/v1/admin/boards` | 管理员 |
 | POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
 | GET | `/v1/posts/{id}` | 公开（返回 `is_author`） |

@@ -15,22 +15,23 @@ from app.api.deps import (
 )
 from app.schemas.board import BoardSummary
 from app.schemas.common import Page
-from app.schemas.post import PostCreateRequest, PostDetail, PostSummary
+from app.schemas.post import PostCreateRequest, PostDetail, PostStatus, PostSummary
 
 router = APIRouter(prefix="/boards", tags=["boards"])
 
 LimitQuery = Annotated[int, Query(ge=1, le=100, description="每页条数")]
 CursorQuery = Annotated[str | None, Query(description="上一页返回的 next_cursor")]
 StatusQuery = Annotated[
-    str | None,
-    Query(
-        pattern="^(open|planned|in_progress|completed|closed)$",
-        description="按状态筛选",
-    ),
+    list[PostStatus] | None,
+    Query(description="按状态筛选，可重复传参 status=；多个状态为 OR"),
 ]
 SortQuery = Annotated[
     str,
     Query(pattern="^(recent|top)$", description="recent=最近，top=最热（投票最多）"),
+]
+AuthorQuery = Annotated[
+    str | None,
+    Query(min_length=1, max_length=120, description="按作者显示名或匿名昵称筛选"),
 ]
 SearchQuery = Annotated[
     str | None,
@@ -66,12 +67,14 @@ async def list_board_posts(
     sort: SortQuery = "recent",
     q: SearchQuery = None,
     tag: TagQuery = None,
+    author: AuthorQuery = None,
 ) -> Page[PostSummary]:
     return await service.list_for_board(
         slug,
         limit=limit,
         cursor_raw=cursor,
         status=status,
+        author=author,
         sort=sort,
         query=q,
         tags=tag,
