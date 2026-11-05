@@ -14,8 +14,10 @@ defineOptions({
 const props = withDefaults(
   defineProps<SelectContentProps & { class?: HTMLAttributes['class'] }>(),
   {
-    position: 'item-aligned',
+    // 本地改动（重新拉取组件后需保留）：item-aligned 会盖住触发器，bodyLock 会锁掉页面滚动。
+    position: 'popper',
     align: 'center',
+    bodyLock: false,
   },
 );
 const emits = defineEmits<SelectContentEmits>();

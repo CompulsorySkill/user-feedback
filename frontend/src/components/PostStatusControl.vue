@@ -75,7 +75,7 @@ async function applyStatus(target: PostStatus): Promise<void> {
         <SelectTrigger aria-label="修改反馈状态">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent position="popper">
+        <SelectContent>
           <SelectItem v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">
             {{ option.label }}
           </SelectItem>
