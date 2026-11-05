@@ -621,7 +621,8 @@
 }
 
 .filter-bar .search-box {
-  flex: 0 1 420px;
+  flex: 1 1 auto;
+  max-width: none;
   margin-bottom: 0;
 }
 
