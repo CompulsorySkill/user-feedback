@@ -12,6 +12,7 @@ import {
 } from '@/api/auth';
 import { ApiError } from '@/api/client';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
@@ -183,15 +184,15 @@ onMounted(load);
         <h2>管理员登录</h2>
         <label class="field">
           <span class="field-label">管理员邮箱</span>
-          <input v-model="adminEmail" class="field-input" type="email" maxlength="320" />
+          <Input v-model="adminEmail" type="email" maxlength="320" />
         </label>
         <label class="field">
           <span class="field-label">密码</span>
-          <input v-model="adminPassword" class="field-input" type="password" maxlength="128" />
+          <Input v-model="adminPassword" type="password" maxlength="128" />
         </label>
         <label class="field">
           <span class="field-label">显示名（可选，留空将沿用账号已有昵称）</span>
-          <input v-model="adminName" class="field-input" maxlength="128" />
+          <Input v-model="adminName" maxlength="128" />
         </label>
         <Button
           type="button"
@@ -213,11 +214,11 @@ onMounted(load);
         </p>
         <label class="field">
           <span class="field-label">邮箱</span>
-          <input v-model="email" class="field-input" type="email" maxlength="320" />
+          <Input v-model="email" type="email" maxlength="320" />
         </label>
         <label class="field">
           <span class="field-label">显示名（可选）</span>
-          <input v-model="name" class="field-input" maxlength="128" />
+          <Input v-model="name" maxlength="128" />
         </label>
         <Button
           type="button"

@@ -93,25 +93,6 @@
   color: var(--text-muted);
 }
 
-.field-input {
-  width: 100%;
-  padding: 11px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface-muted);
-  color: var(--text);
-  font: inherit;
-  outline: none;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.field-input:focus {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
-}
-
 .compose-actions {
   display: flex;
   align-items: center;

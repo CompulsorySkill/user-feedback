@@ -87,16 +87,12 @@ samp {
 
 /* 控件统一尺寸（按钮已迁到 src/components/ui/button，此处只管旧表单控件） */
 
-.field-input,
 .login-token,
-.comment-form textarea,
-.search-input {
+.comment-form textarea {
   font-size: var(--fs-body);
 }
 
-.field-input,
-.login-token,
-.search-input {
+.login-token {
   height: 44px;
 }
 

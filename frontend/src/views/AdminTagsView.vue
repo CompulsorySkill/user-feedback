@@ -6,6 +6,7 @@ import { ApiError } from '@/api/client';
 import { createBuiltinTag, deleteTag, listAdminTags } from '@/api/tags';
 import type { TagSummary } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/composables/useConfirm';
 
 const confirm = useConfirm();
@@ -86,12 +87,7 @@ onMounted(load);
       <div class="field">
         <span class="field-label">新增内置标签</span>
         <div class="tag-admin-input">
-          <input
-            v-model="name"
-            class="field-input"
-            maxlength="24"
-            placeholder="例如：功能请求、性能、文档"
-          />
+          <Input v-model="name" maxlength="24" placeholder="例如：功能请求、性能、文档" />
           <Button type="submit" :disabled="creating" variant="default" size="lg">
             <IconLoader2 v-if="creating" class="spin" :size="16" :stroke-width="2" />
             <IconPlus v-else :size="16" :stroke-width="2" />

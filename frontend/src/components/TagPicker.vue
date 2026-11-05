@@ -3,6 +3,7 @@ import { IconPlus, IconX } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
 import type { TagSummary } from '@/api/types';
+import { Input } from '@/components/ui/input';
 
 const props = withDefaults(
   defineProps<{
@@ -93,9 +94,8 @@ function onKeydown(event: KeyboardEvent): void {
       </span>
     </div>
 
-    <input
+    <Input
       v-model="draft"
-      class="field-input"
       type="text"
       maxlength="24"
       aria-label="添加标签"

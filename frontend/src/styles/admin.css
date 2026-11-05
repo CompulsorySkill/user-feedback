@@ -19,10 +19,6 @@
   white-space: nowrap;
 }
 
-.admin-filter .field-input {
-  min-width: 200px;
-}
-
 .admin-list {
   display: flex;
   flex-direction: column;

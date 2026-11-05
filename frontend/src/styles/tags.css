@@ -53,12 +53,6 @@
   gap: 6px;
 }
 
-.tag-picker .field-input:disabled {
-  background: var(--surface-muted);
-  color: var(--text-subtle);
-  cursor: not-allowed;
-}
-
 .tag-suggestions {
   display: flex;
   align-items: center;
@@ -114,6 +108,6 @@
   gap: 10px;
 }
 
-.tag-admin-input .field-input {
+.tag-admin-input [data-slot='input'] {
   flex: 1;
 }

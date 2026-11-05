@@ -14,6 +14,7 @@ import { createBoard, deleteBoard, listAdminBoards, updateBoard } from '@/api/bo
 import { ApiError } from '@/api/client';
 import type { Board } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/composables/useConfirm';
 
 const confirm = useConfirm();
@@ -184,19 +185,13 @@ onMounted(load);
       <div class="board-admin-fields">
         <label class="field">
           <span class="field-label">标识（slug）</span>
-          <input
-            v-model="form.slug"
-            class="field-input"
-            maxlength="64"
-            placeholder="product"
-            autocomplete="off"
-          />
+          <Input v-model="form.slug" maxlength="64" placeholder="product" autocomplete="off" />
           <span class="board-admin-hint">用于地址 /b/&lt;slug&gt;，仅小写字母、数字与中划线。</span>
         </label>
 
         <label class="field">
           <span class="field-label">名称</span>
-          <input v-model="form.name" class="field-input" maxlength="128" placeholder="功能建议" />
+          <Input v-model="form.name" maxlength="128" placeholder="功能建议" />
         </label>
       </div>
 

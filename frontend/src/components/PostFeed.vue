@@ -11,6 +11,7 @@ import type { PostStatus, PostSummary, TagSummary } from '@/api/types';
 import EmptyState from '@/components/EmptyState.vue';
 import PostCard from '@/components/PostCard.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   MAX_FILTER_TAGS,
   normalizeSearch,
@@ -245,13 +246,13 @@ watch(
     <div class="search-row">
       <div class="search-box">
         <IconSearch class="search-icon" :size="16" :stroke-width="2" />
-        <input
+        <Input
           v-model="searchInput"
-          class="search-input"
           type="search"
           maxlength="100"
           placeholder="搜索标题或摘要…"
           aria-label="搜索反馈"
+          class="h-7 pl-8 pr-8"
           @input="onSearchInput"
         />
         <button

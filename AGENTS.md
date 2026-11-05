@@ -201,8 +201,10 @@ uv run alembic check
   （reka 不允许 `<SelectItem value="">`），取接口参数时再转成 `null`。
   `ui/select/` 有三个本地改动，重新拉取组件后必须保留：`SelectContent` 默认
   `position: 'popper'`（`item-aligned` 会盖在触发器上）和 `bodyLock: false`（否则弹层会把
-  `body` 设成 `overflow: hidden`，页面 scrollbar 消失）；`SelectTrigger` 多一个 `size="field"`
-  （44px / 16px，配合尚未迁移的 `.field-input` 表单）。
+  `body` 设成 `overflow: hidden`，页面 scrollbar 消失）。
+- 表单控件：单行输入用 `@/components/ui/input`（28px / `text-xs`，不要再用 `.field-input`，
+  该 class 已删）；`textarea` 与 `checkbox` 尚未迁移（仍是 `.field-textarea` / `.login-token`
+  与原生 checkbox）。表单控件统一 28px，`SelectTrigger` 不需要尺寸覆写。
 - 已确认的布局约定：
   - 搜索框与最近 / 最热排序在同一行，字号一致；
   - 状态筛选与标签筛选的标签对齐；

@@ -6,6 +6,7 @@ import { ApiError } from '@/api/client';
 import type { AdminUserItem } from '@/api/types';
 import { listAdminUsers } from '@/api/users';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -93,18 +94,12 @@ onMounted(load);
     <form class="admin-toolbar" @submit.prevent="load">
       <label class="admin-filter">
         <span class="field-label">搜索</span>
-        <input
-          v-model="searchInput"
-          class="field-input"
-          type="search"
-          maxlength="100"
-          placeholder="邮箱或显示名"
-        />
+        <Input v-model="searchInput" type="search" maxlength="100" placeholder="邮箱或显示名" />
       </label>
       <label class="admin-filter">
         <span class="field-label">角色</span>
         <Select :model-value="roleFilter" @update:model-value="onRoleChange">
-          <SelectTrigger size="field" class="min-w-[200px]" aria-label="按角色筛选">
+          <SelectTrigger class="min-w-[200px]" aria-label="按角色筛选">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

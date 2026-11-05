@@ -11,6 +11,7 @@ import type { PostDetail, TagSummary } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import TagPicker from '@/components/TagPicker.vue';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
 import type { JSONContent } from '@/types/content';
 
@@ -117,7 +118,7 @@ onMounted(() => {
       <form v-else class="compose" @submit.prevent="submit">
         <label class="field">
           <span class="field-label">标题</span>
-          <input v-model="title" class="field-input" maxlength="200" />
+          <Input v-model="title" maxlength="200" />
         </label>
 
         <div class="field">

@@ -10,6 +10,7 @@ import type { Board, TagSummary } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import TagPicker from '@/components/TagPicker.vue';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -169,7 +170,7 @@ onMounted(() => {
             :model-value="boardSlug"
             @update:model-value="(value) => (boardSlug = String(value))"
           >
-            <SelectTrigger size="field" class="w-full" aria-label="选择发布到哪个看板">
+            <SelectTrigger class="w-full" aria-label="选择发布到哪个看板">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -182,9 +183,8 @@ onMounted(() => {
 
         <div class="field">
           <span class="field-label">昵称（可选）</span>
-          <input
+          <Input
             v-model="nickname"
-            class="field-input"
             type="text"
             maxlength="50"
             placeholder="例如：路过的产品经理（展示为「昵称 · 匿名」）"
@@ -193,9 +193,8 @@ onMounted(() => {
 
         <label class="field">
           <span class="field-label">标题</span>
-          <input
+          <Input
             v-model="title"
-            class="field-input"
             type="text"
             maxlength="200"
             placeholder="一句话说明你的建议或问题"

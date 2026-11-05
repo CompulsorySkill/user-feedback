@@ -22,6 +22,7 @@ import { ApiError } from '@/api/client';
 import type { ChangelogAttachmentInput } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/composables/useConfirm';
 import { useUpload } from '@/composables/useUpload';
 import type { JSONContent } from '@/types/content';
@@ -195,7 +196,7 @@ onMounted(load);
       <form class="compose" @submit.prevent="save(false)">
         <label class="field">
           <span class="field-label">标题</span>
-          <input v-model="title" class="field-input" maxlength="200" placeholder="v0.4 更新：…" />
+          <Input v-model="title" maxlength="200" placeholder="v0.4 更新：…" />
         </label>
 
         <div class="field">
