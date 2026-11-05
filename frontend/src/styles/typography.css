@@ -42,9 +42,7 @@ samp {
 .tag-filter-count,
 .sort-button,
 .vote-button,
-.status-select,
 .status-select-label,
-.status-select-wrap,
 .comment-time,
 .comment-action,
 .comment-form-foot,
@@ -148,11 +146,6 @@ samp {
 
 .vote-button.is-compact {
   padding: 0 10px;
-}
-
-.status-select-wrap {
-  height: var(--control-height);
-  padding: 0 10px 0 12px;
 }
 
 .login-link {

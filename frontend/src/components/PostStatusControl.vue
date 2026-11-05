@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { IconChevronDown, IconLock, IconLoader2 } from '@tabler/icons-vue';
+import { IconLoader2, IconLock } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
 import { ApiError } from '@/api/client';
 import { updatePostStatus } from '@/api/postActions';
 import type { PostDetail, PostStatus } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 
@@ -59,20 +66,21 @@ async function applyStatus(target: PostStatus): Promise<void> {
 <template>
   <div class="status-control">
     <template v-if="auth.isAdmin">
-      <label class="status-select-wrap">
-        <span class="status-select-label">状态</span>
-        <select
-          class="status-select"
-          :value="post.status"
-          :disabled="pending"
-          @change="applyStatus(($event.target as HTMLSelectElement).value as PostStatus)"
-        >
-          <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">
+      <span class="status-select-label">状态</span>
+      <Select
+        :model-value="post.status"
+        :disabled="pending"
+        @update:model-value="(value) => applyStatus(value as PostStatus)"
+      >
+        <SelectTrigger aria-label="修改反馈状态">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">
             {{ option.label }}
-          </option>
-        </select>
-        <IconChevronDown class="status-select-icon" :size="14" :stroke-width="2" />
-      </label>
+          </SelectItem>
+        </SelectContent>
+      </Select>
       <IconLoader2 v-if="pending" class="spin" :size="15" :stroke-width="2" />
     </template>
 
