@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import tailwindCompact from 'vite-plugin-tailwind-compat';
+import vueDevTools from 'vite-plugin-vue-devtools';
 
 // 本地开发：/api 反代后端；媒体前缀（默认 /storage，可随 S3_BUCKET 改）反代本机 RustFS。
 // 子路径前缀是容器启动期注入的（见 docker-entrypoint.sh），构建产物本身与前缀无关。
@@ -12,7 +13,10 @@ const storageTarget = process.env.VITE_STORAGE_PROXY_TARGET ?? 'http://127.0.0.1
 const storagePrefix = process.env.S3_BUCKET ?? 'storage';
 
 export default defineConfig({
-  plugins: [vue(), tailwindcss(), tailwindCompact()],
+  devtools: {
+    apply: 'serve',
+  },
+  plugins: [vue(), vueDevTools(), tailwindcss(), tailwindCompact()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
