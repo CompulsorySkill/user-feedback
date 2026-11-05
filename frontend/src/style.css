@@ -121,15 +121,6 @@ p {
   margin: 0;
 }
 
-a {
-  text-decoration: none;
-}
-
-/* 按钮样式的链接（shadcn buttonVariants）颜色交给 utility，不被这条全局规则吃掉 */
-a:not([data-slot='button']) {
-  color: inherit;
-}
-
 code {
   font-family: var(--mono);
   padding: 0.1em 0.4em;
