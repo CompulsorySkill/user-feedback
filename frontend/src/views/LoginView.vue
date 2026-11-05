@@ -148,7 +148,7 @@ onMounted(load);
           :class="buttonVariants({ variant: 'default', size: 'lg' })"
           >继续</RouterLink
         >
-        <Button type="button" @click="auth.logout()" variant="ghost" size="lg">退出登录</Button>
+        <Button type="button" @click="auth.logout()" variant="outline" size="lg">退出登录</Button>
       </div>
     </div>
 
@@ -219,7 +219,13 @@ onMounted(load);
           <span class="field-label">显示名（可选）</span>
           <input v-model="name" class="field-input" maxlength="128" />
         </label>
-        <Button type="button" :disabled="submitting" @click="loginAsDev" variant="ghost" size="lg">
+        <Button
+          type="button"
+          :disabled="submitting"
+          @click="loginAsDev"
+          variant="outline"
+          size="lg"
+        >
           <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
           快速登录
         </Button>
