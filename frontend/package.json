@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@tabler/icons-vue": "^3.49.0",
+    "@tailwindcss/vite": "^4.3.4",
     "@tiptap/core": "^3.32.0",
     "@tiptap/extension-image": "^3.32.0",
     "@tiptap/extension-mention": "^3.32.1",
@@ -23,6 +24,7 @@
     "@tiptap/vue-3": "^3.32.0",
     "@vueuse/core": "^15.0.0",
     "pinia": "^4.1.0",
+    "tailwindcss": "^4.3.4",
     "vue": "^3.5.44",
     "vue-router": "^5.4.0"
   },
@@ -36,6 +38,7 @@
     "oxlint": "1.89.0",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",
+    "vite-plugin-tailwind-compat": "^0.1.2",
     "vitest": "^5.0.5",
     "vue-tsc": "^3.3.13"
   }
