@@ -35,3 +35,6 @@ Thumbs.db
 
 # DSH 本地恢复记录
 .dsh-acl-recovery/
+
+# Playwright MCP 运行日志
+.playwright-mcp/

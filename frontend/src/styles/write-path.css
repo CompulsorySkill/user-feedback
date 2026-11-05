@@ -33,7 +33,7 @@
   gap: 6px;
   padding: 7px 13px;
   border-radius: 999px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--text-muted);
   font-weight: 550;
@@ -45,14 +45,14 @@
 }
 
 .vote-button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .vote-button.is-voted {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .vote-button:disabled {
@@ -77,7 +77,7 @@
   gap: 22px;
   padding: 26px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -97,7 +97,7 @@
   width: 100%;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface-muted);
   color: var(--text);
   font: inherit;
@@ -108,8 +108,8 @@
 }
 
 .field-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .compose-actions {
@@ -118,7 +118,7 @@
   justify-content: space-between;
   gap: 16px;
   padding-top: 6px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 
 .compose-buttons {
@@ -138,7 +138,7 @@
 .env-toggle input {
   width: 15px;
   height: 15px;
-  accent-color: var(--accent);
+  accent-color: var(--brand);
   cursor: pointer;
 }
 
@@ -159,7 +159,7 @@
 .anon-badge {
   padding: 1px 6px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface-muted);
   color: var(--text-subtle);
   letter-spacing: 0.02em;
@@ -171,7 +171,7 @@
 .env-panel {
   margin-top: 26px;
   padding: 12px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface-muted);
 }
@@ -208,13 +208,13 @@
 
 .editor-shell {
   border-radius: 12px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
   overflow: hidden;
 }
 
 .editor-shell:focus-within {
-  border-color: var(--accent);
+  border-color: var(--brand);
 }
 
 .editor-toolbar {
@@ -223,7 +223,7 @@
   gap: 2px;
   flex-wrap: wrap;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   background: var(--surface-muted);
 }
 
@@ -249,8 +249,8 @@
 }
 
 .tool-button.is-active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .tool-button:disabled {
@@ -262,7 +262,7 @@
   width: 1px;
   height: 18px;
   margin: 0 4px;
-  background: var(--border);
+  background: var(--line);
 }
 
 .tiptap {
@@ -294,7 +294,7 @@
 .tiptap blockquote {
   margin: 0.8em 0;
   padding: 0.5em 1em;
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--brand);
   background: var(--surface-muted);
   color: var(--text-muted);
   border-radius: 0 8px 8px 0;
@@ -319,7 +319,7 @@
 .tiptap video {
   max-width: 100%;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   display: block;
 }
 
@@ -332,7 +332,7 @@
 }
 
 .tiptap .ProseMirror-selectednode {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
@@ -341,9 +341,9 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .editor-error {
@@ -359,7 +359,7 @@
   min-width: 200px;
   padding: 4px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -380,8 +380,8 @@
 
 .mention-item.is-active,
 .mention-item:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .mention-empty {
@@ -407,8 +407,8 @@
 .admin-badge {
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-weight: 600;
 }
 
@@ -458,7 +458,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 10px 4px 12px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 9px;
   background: var(--surface);
 }
@@ -497,7 +497,7 @@
   gap: 12px;
   margin-bottom: 14px;
   padding: 10px 14px;
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--line-strong);
   border-radius: 10px;
   background: var(--surface-muted);
 }
@@ -511,7 +511,7 @@
   margin-top: 26px;
   padding: 24px 26px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
 }
 
@@ -540,7 +540,7 @@
 .comment-card {
   padding: 14px 16px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
 }
 
@@ -587,7 +587,7 @@
 }
 
 .comment-action:hover {
-  color: var(--accent);
+  color: var(--brand);
 }
 
 .comment-action:disabled {
@@ -605,13 +605,13 @@
   gap: 10px;
   margin-top: 10px;
   padding-left: 22px;
-  border-left: 2px solid var(--border);
+  border-left: 2px solid var(--line);
 }
 
 .comment-form {
   margin-top: 20px;
   padding-top: 18px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -623,7 +623,7 @@
   min-height: 84px;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface-muted);
   color: var(--text);
   font: inherit;
@@ -632,8 +632,8 @@
 }
 
 .comment-form textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .comment-form-foot {
@@ -650,8 +650,8 @@
   align-self: flex-start;
   padding: 3px 10px;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .reply-cancel {
@@ -697,7 +697,7 @@
 .filter-chip {
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text-muted);
   font: inherit;
@@ -709,14 +709,14 @@
 }
 
 .filter-chip:hover {
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   color: var(--text);
 }
 
 .filter-chip.is-active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-weight: 550;
 }
 
@@ -724,7 +724,7 @@
   display: inline-flex;
   padding: 2px;
   border-radius: 9px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface-muted);
 }
 
@@ -787,16 +787,16 @@
 }
 
 .login-link {
-  color: var(--accent);
+  color: var(--brand);
   font-weight: 550;
   padding: 4px 10px;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
 }
 
 .login-link:hover {
-  border-color: var(--accent);
+  border-color: var(--brand);
 }
 
 .login-grid {
@@ -808,7 +808,7 @@
 .login-card {
   padding: 24px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
   display: flex;
@@ -832,7 +832,7 @@
   resize: vertical;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface-muted);
   color: var(--text);
   font-family: var(--mono);
@@ -841,7 +841,7 @@
 }
 
 .login-token:focus {
-  border-color: var(--accent);
+  border-color: var(--brand);
 }
 
 .login-actions {

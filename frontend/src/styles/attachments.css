@@ -26,7 +26,7 @@
   gap: 10px;
   padding: 9px 12px;
   border-radius: 9px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface-muted);
   color: var(--text-muted);
 }
@@ -62,14 +62,14 @@
 }
 
 .attachment-remove:hover {
-  background: var(--border);
+  background: var(--line);
   color: var(--text);
 }
 
 .changelog-attachments {
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 
 .changelog-attachments h2 {
@@ -83,7 +83,7 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   transition:
     border-color 0.15s ease,
@@ -95,7 +95,7 @@
 }
 
 .attachment-item:hover {
-  border-color: var(--accent);
+  border-color: var(--brand);
   background: var(--surface-muted);
 }
 
@@ -107,8 +107,8 @@
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .attachment-main {
@@ -125,5 +125,5 @@
 }
 
 .attachment-item:hover .attachment-download {
-  color: var(--accent);
+  color: var(--brand);
 }

@@ -1,21 +1,54 @@
+/* 字体自托管（fontsource），不引 Google Fonts：见 AGENTS.md §5.2 */
+@import '@fontsource/noto-sans/400.css';
+@import '@fontsource/noto-sans/500.css';
+@import '@fontsource/noto-sans/600.css';
+@import '@fontsource/noto-sans/700.css';
+@import '@fontsource-variable/dm-sans';
+
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-vue/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-muted: #fbfbfc;
+  /* shadcn 语义 token 是唯一真源（自定义取值，不用 zinc 默认色） */
+  --background: #f6f7f9;
+  --foreground: #1c1f26;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #fbfbfc;
+  --secondary-foreground: var(--foreground);
+  --muted: #fbfbfc;
+  --muted-foreground: #5f6572;
+  --accent: #eef0ff;
+  --accent-foreground: #4f46e5;
+  --destructive: #b42318;
   --border: #e4e6eb;
-  --border-strong: #d3d6dd;
-  --text: #1c1f26;
-  --text-muted: #5f6572;
+  --input: #d3d6dd;
+  --ring: #4f46e5;
+  --radius: 14px;
+
+  /* 旧样式兼容别名：业务 CSS 只用 --bg/--surface/--text/--brand/--line 这一套，
+     配色值统一在上一段改，别在这里重写。 */
+  --bg: var(--background);
+  --surface: var(--card);
+  --surface-muted: var(--secondary);
+  --text: var(--foreground);
+  --text-muted: var(--muted-foreground);
   --text-subtle: #8a909c;
-  --accent: #4f46e5;
-  --accent-soft: #eef0ff;
+  --brand: var(--primary);
+  --brand-soft: var(--accent);
+  --line: var(--border);
+  --line-strong: var(--input);
   --ok: #15803d;
   --ok-soft: #e8f7ee;
-  --error: #b42318;
+  --error: var(--destructive);
   --error-soft: #fdecea;
-  --radius: 14px;
   --shadow: 0 1px 2px rgb(16 24 40 / 4%), 0 12px 32px -18px rgb(16 24 40 / 18%);
   --mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
 
@@ -37,19 +70,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #101216;
-    --surface: #181b21;
-    --surface-muted: #14171c;
+    --background: #101216;
+    --foreground: #eef1f6;
+    --card: #181b21;
+    --popover: #181b21;
+    --secondary: #14171c;
+    --muted: #14171c;
+    --muted-foreground: #a4acba;
+    --accent: #23203c;
+    --accent-foreground: #8f8bff;
+    --primary: #8f8bff;
+    --primary-foreground: #101216;
+    --destructive: #fca5a5;
     --border: #2a2f39;
-    --border-strong: #38404e;
-    --text: #eef1f6;
-    --text-muted: #a4acba;
+    --input: #38404e;
+    --ring: #8f8bff;
     --text-subtle: #7b8494;
-    --accent: #8f8bff;
-    --accent-soft: #23203c;
     --ok: #4ade80;
     --ok-soft: #14291d;
-    --error: #fca5a5;
     --error-soft: #2d1717;
     --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 18px 40px -24px rgb(0 0 0 / 60%);
   }
@@ -94,7 +132,7 @@ code {
   padding: 0.1em 0.4em;
   border-radius: 6px;
   background: var(--surface-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
 }
 
 .container {
@@ -116,7 +154,7 @@ code {
   z-index: 10;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .header-inner {
@@ -141,7 +179,7 @@ code {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: var(--accent);
+  background: var(--brand);
   color: #fff;
 }
 
@@ -165,8 +203,8 @@ code {
 }
 
 .nav-link.router-link-exact-active {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--brand);
+  background: var(--brand-soft);
   font-weight: 550;
 }
 
@@ -195,7 +233,7 @@ code {
   padding: 4px 12px;
   margin-bottom: 18px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text-muted);
 }
@@ -226,14 +264,14 @@ code {
 }
 
 .button-primary {
-  background: var(--accent);
+  background: var(--brand);
   color: #fff;
-  box-shadow: 0 8px 18px -10px var(--accent);
+  box-shadow: 0 8px 18px -10px var(--brand);
 }
 
 .button-ghost {
   background: var(--surface);
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   color: var(--text);
 }
 
@@ -285,7 +323,7 @@ code {
   align-items: center;
   text-align: center;
   padding: 48px 24px;
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
   background: var(--surface-muted);
 }
@@ -297,8 +335,8 @@ code {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
   margin-bottom: 14px;
 }
 
@@ -320,7 +358,7 @@ code {
 }
 
 .back-link:hover {
-  color: var(--accent);
+  color: var(--brand);
 }
 
 .page-header {
@@ -371,7 +409,7 @@ code {
   flex-direction: column;
   padding: 22px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   transition:
     border-color 0.15s ease,
@@ -380,7 +418,7 @@ code {
 }
 
 .board-card:hover {
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   box-shadow: var(--shadow);
   transform: translateY(-1px);
 }
@@ -416,7 +454,7 @@ code {
   gap: 10px;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   color: var(--text-subtle);
 }
 
@@ -424,7 +462,7 @@ code {
   padding: 2px 8px;
   border-radius: 6px;
   background: var(--surface-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
 }
 
 .service-strip {
@@ -435,7 +473,7 @@ code {
   margin-top: 44px;
   padding: 14px 18px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text-muted);
 }
@@ -482,7 +520,7 @@ code {
 
 .board-header {
   padding-bottom: 26px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   margin-bottom: 26px;
 }
 
@@ -509,7 +547,7 @@ code {
   padding: 2px 9px;
   border-radius: 6px;
   background: var(--surface-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
 }
 
 .post-list {
@@ -521,7 +559,7 @@ code {
 .post-card {
   padding: 20px 22px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   transition:
     border-color 0.15s ease,
@@ -529,7 +567,7 @@ code {
 }
 
 .post-card:hover {
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   box-shadow: var(--shadow);
 }
 
@@ -544,15 +582,15 @@ code {
   margin-right: auto;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface-muted);
   color: var(--text-muted);
   white-space: nowrap;
 }
 
 .post-board-chip:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .post-time {
@@ -566,7 +604,7 @@ code {
 }
 
 .post-title-link:hover h3 {
-  color: var(--accent);
+  color: var(--brand);
 }
 
 .post-excerpt {
@@ -667,7 +705,7 @@ code {
 .changelog-detail {
   padding: 30px 32px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -690,7 +728,7 @@ code {
   flex-wrap: wrap;
   margin-top: 14px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   color: var(--text-muted);
 }
 
@@ -702,7 +740,7 @@ code {
 
 .notice-closed {
   background: var(--surface-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   color: var(--text-muted);
 }
 
@@ -759,7 +797,7 @@ h6.rt-heading {
 .rt-quote {
   margin: 1.4em 0;
   padding: 0.85em 1.2em;
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--brand);
   border-radius: 0 10px 10px 0;
   background: var(--surface-muted);
   color: var(--text-muted);
@@ -788,7 +826,7 @@ h6.rt-heading {
   padding: 0.12em 0.38em;
   border-radius: 5px;
   background: var(--surface-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
 }
 
 .rt-bold {
@@ -798,8 +836,8 @@ h6.rt-heading {
 .rt-mention {
   padding: 0.05em 0.35em;
   border-radius: 5px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-weight: 550;
   white-space: nowrap;
 }
@@ -818,7 +856,7 @@ h6.rt-heading {
 
 .rt-rule {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   margin: 1.8em 0;
 }
 
@@ -831,7 +869,7 @@ h6.rt-heading {
   display: block;
   width: 100%;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: #000;
 }
 
@@ -853,7 +891,7 @@ h6.rt-heading {
   flex-wrap: wrap;
   margin-top: 28px;
   padding-top: 18px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 
 .action-hint {
@@ -867,7 +905,7 @@ h6.rt-heading {
   margin-top: 26px;
   padding: 24px 26px;
   border-radius: var(--radius);
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--line-strong);
   background: var(--surface-muted);
 }
 
@@ -893,7 +931,7 @@ h6.rt-heading {
   gap: 20px;
   padding: 20px 22px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
   transition:
     border-color 0.15s ease,
@@ -901,7 +939,7 @@ h6.rt-heading {
 }
 
 .changelog-item:hover {
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   box-shadow: var(--shadow);
 }
 
@@ -939,7 +977,7 @@ h6.rt-heading {
   text-align: center;
   padding: 56px 32px;
   border-radius: var(--radius);
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--line-strong);
   background: var(--surface-muted);
 }
 
@@ -950,8 +988,8 @@ h6.rt-heading {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
   margin-bottom: 20px;
 }
 
@@ -1044,7 +1082,7 @@ h6.rt-heading {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--line);
 }
 
 .board-nav-item {
@@ -1066,8 +1104,8 @@ h6.rt-heading {
 }
 
 .board-nav-item.is-active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 
 .board-nav-item.is-active .board-nav-name {
@@ -1075,7 +1113,7 @@ h6.rt-heading {
 }
 
 .board-nav-item.is-active .board-nav-count {
-  color: var(--accent);
+  color: var(--brand);
 }
 
 .board-nav-name {
@@ -1127,7 +1165,7 @@ h6.rt-heading {
   width: 100%;
   padding: 0 40px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--text);
   font-family: inherit;
@@ -1142,8 +1180,8 @@ h6.rt-heading {
 }
 
 .search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .search-icon {
@@ -1201,7 +1239,7 @@ h6.rt-heading {
 
   .board-nav-item {
     padding: 6px 10px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--line);
     white-space: nowrap;
   }
 
@@ -1238,7 +1276,7 @@ h6.rt-heading {
   resize: vertical;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface-muted);
   color: var(--text);
   font: inherit;
@@ -1250,8 +1288,8 @@ h6.rt-heading {
 }
 
 .field-textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .board-admin-flags {
@@ -1278,7 +1316,7 @@ h6.rt-heading {
   gap: 20px;
   padding: 18px 20px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--surface);
 }
 
@@ -1365,4 +1403,50 @@ h6.rt-heading {
 .post-card-foot > .vote-button,
 .post-detail-foot > .vote-button {
   margin-left: auto;
+}
+
+/* shadcn 语义 token 是唯一真源；下面的 --bg/--brand/--line 等只是旧样式的别名，
+   改配色请改 :root 里的 shadcn 变量。 */
+@theme inline {
+  --font-sans: 'Noto Sans', system-ui, sans-serif;
+  --font-heading: 'DM Sans Variable', 'DM Sans', sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--brand);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--line);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    @apply font-sans;
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
 }
