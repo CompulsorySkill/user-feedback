@@ -5,8 +5,11 @@ import { computed, onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { createComment, deleteComment, listComments, type CommentItem } from '@/api/comments';
 import CommentNode from '@/components/CommentNode.vue';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 import type { CommentNodeData } from '@/types/comment';
+
+const confirm = useConfirm();
 
 const props = defineProps<{ postId: string; closed: boolean }>();
 const emit = defineEmits<{ count: [number] }>();
@@ -84,7 +87,7 @@ async function submit(): Promise<void> {
 onMounted(load);
 
 async function removeComment(node: CommentNodeData): Promise<void> {
-  if (!window.confirm('确认删除这条评论？其下的回复会一并删除。')) return;
+  if (!(await confirm({ title: '确认删除这条评论？', message: '其下的回复会一并删除。' }))) return;
   error.value = '';
   try {
     await deleteComment(props.postId, node.id);

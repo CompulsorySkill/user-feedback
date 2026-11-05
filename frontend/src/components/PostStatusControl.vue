@@ -5,7 +5,10 @@ import { computed, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { updatePostStatus } from '@/api/postActions';
 import type { PostDetail, PostStatus } from '@/api/types';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
+
+const confirm = useConfirm();
 
 const props = defineProps<{ post: PostDetail }>();
 const emit = defineEmits<{ updated: [post: PostDetail] }>();
@@ -28,7 +31,14 @@ const canAuthorClose = computed(() => isAuthor.value && props.post.status !== 'c
 
 async function applyStatus(target: PostStatus): Promise<void> {
   if (pending.value || target === props.post.status) return;
-  if (target === 'closed' && !window.confirm('确认关闭这条反馈？关闭后不能自行重开。')) {
+  if (
+    target === 'closed' &&
+    !(await confirm({
+      title: '确认关闭这条反馈？',
+      message: '关闭后不能自行重开。',
+      confirmText: '关闭',
+    }))
+  ) {
     return;
   }
 

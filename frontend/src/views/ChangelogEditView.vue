@@ -21,6 +21,7 @@ import {
 import { ApiError } from '@/api/client';
 import type { ChangelogAttachmentInput } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
+import { useConfirm } from '@/composables/useConfirm';
 import { useUpload } from '@/composables/useUpload';
 import type { JSONContent } from '@/types/content';
 import { formatBytes } from '@/utils/format';
@@ -34,6 +35,7 @@ interface AttachmentDraft extends ChangelogAttachmentInput {
 
 const route = useRoute();
 const router = useRouter();
+const confirm = useConfirm();
 const { uploading: attachmentUploading, error: attachmentError, upload } = useUpload();
 const attachments = ref<AttachmentDraft[]>([]);
 const attachmentInput = ref<HTMLInputElement | null>(null);
@@ -157,7 +159,7 @@ async function togglePublish(): Promise<void> {
 }
 
 async function remove(): Promise<void> {
-  if (!editingId.value || !window.confirm('确认删除这条更新日志？')) return;
+  if (!editingId.value || !(await confirm({ title: '确认删除这条更新日志？' }))) return;
   submitting.value = true;
   try {
     await deleteChangelog(editingId.value);

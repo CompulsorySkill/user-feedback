@@ -174,16 +174,31 @@ uv run alembic check
 - 富文本只按白名单渲染，**禁止 `v-html`**；未知节点只渲染子节点。
 - 媒体 JSON 只存 object key，展示统一经 `storageUrl()` 拼前缀；前缀来自 `GET /v1/site` 的
   `storage_prefix`（等于 `/S3_BUCKET`，默认 `/storage`），Caddy 反代同一路径。
-- 图标统一 `@tabler/icons-vue`；不引入 Google Fonts，使用系统字体栈。
+- 图标统一 `@tabler/icons-vue`；字体自托管（`@fontsource*`），**不引入 Google Fonts**。
 - 首期不引入 TanStack Query；页面 `setup` 中直接调用 `api/`。
 
 ### 5.2 UI 与样式
 
-- 全站只允许 3 档字号：`--fs-display` 32px、`--fs-body` 16px、`--fs-caption` 13px。
-  不要在组件里写死 `font-size`；按现有类归入 `styles/typography.css`。
-- 控件高度使用 `--control-height`（40px）和 `--control-height-sm`（32px）；
-  输入框 44px。新增按钮 / 筛选器 / 排序器 / 投票按钮复用现有类。
+- 交互控件优先用 `src/components/ui/`（shadcn-vue 生成，reka-ui + Tailwind，风格为
+  `reka-mira`）。这套组件按自身规格出高密度控件与 `text-xs` 级字号，**不套用旧的三档字号
+  与 `--control-height` 约定**；用 `shadcn-vue` CLI 重新拉取后保持其默认尺寸，不要为了
+  「统一」去改生成文件的 size / font-size。
+- 旧页面（`src/styles/*.css` + 手写 class）继续用 `--fs-display/--fs-body/--fs-caption`
+  与 `--control-height/--control-height-sm`，`styles/typography.css` 仍然是它们的字号归宿。
+- 颜色只有一个真源：`src/style.css` 的 `:root` 里那组 shadcn 语义变量
+  （`--background/--foreground/--card/--primary/--border/--input/--ring/--radius` …）。
+  旧样式改用别名 `--bg/--surface/--surface-muted/--text/--text-muted/--brand/--brand-soft/
+  --line/--line-strong`，**不要在别处就地重定义这些变量**；深色模式在
+  `prefers-color-scheme` 块里覆盖同一组 shadcn 变量。
+- 破坏性操作（删除 / 关闭）用 `useConfirm()` + `ConfirmDialog`，不要再用 `window.confirm`。
 - 已确认的布局约定：
+  - 搜索框与最近 / 最热排序在同一行，字号一致；
+  - 状态筛选与标签筛选的标签对齐；
+  - 保持统一页面宽度与 `scrollbar-gutter: stable`，避免长短页切换时跳动；
+  - **不要重新引入全站页脚**（站点底部品牌 / 版权条）；帖子详情的操作区
+    `post-detail-foot` 不在此列。
+- 桌面端优先，不新增移动端断点或触屏交互。
+- 支持系统深色模式（`prefers-color-scheme`），新增颜色走上面的 CSS 变量。
   - 搜索框与最近 / 最热排序在同一行，字号一致；
   - 状态筛选与标签筛选的标签对齐；
   - 保持统一页面宽度与 `scrollbar-gutter: stable`，避免长短页切换时跳动；

@@ -20,12 +20,14 @@ import RichTextRenderer from '@/components/RichTextRenderer.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import TagList from '@/components/TagList.vue';
 import VoteButton from '@/components/VoteButton.vue';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 import { formatDate, formatDateTime, formatRelative } from '@/utils/date';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const confirm = useConfirm();
 const post = ref<PostDetail | null>(null);
 const loading = ref(true);
 const errorMessage = ref('');
@@ -45,7 +47,13 @@ function onPostUpdated(updated: PostDetail): void {
 
 async function removePost(): Promise<void> {
   if (!post.value || deleting.value) return;
-  if (!window.confirm('确认删除这条反馈？其评论与投票会一并删除，且不可恢复。')) return;
+  if (
+    !(await confirm({
+      title: '确认删除这条反馈？',
+      message: '其评论与投票会一并删除，且不可恢复。',
+    }))
+  )
+    return;
   deleting.value = true;
   actionError.value = '';
   const boardSlug = post.value.board.slug;

@@ -13,6 +13,9 @@ import { onMounted, ref } from 'vue';
 import { createBoard, deleteBoard, listAdminBoards, updateBoard } from '@/api/boards';
 import { ApiError } from '@/api/client';
 import type { Board } from '@/api/types';
+import { useConfirm } from '@/composables/useConfirm';
+
+const confirm = useConfirm();
 
 interface BoardForm {
   slug: string;
@@ -134,7 +137,7 @@ async function remove(board: Board): Promise<void> {
     board.post_count > 0
       ? `看板「${board.name}」下有 ${board.post_count} 条反馈，删除会一并清理这些反馈、评论与投票，且不可撤销。确认删除？`
       : `确认删除看板「${board.name}」？此操作不可撤销。`;
-  if (!window.confirm(warning)) return;
+  if (!(await confirm({ title: warning }))) return;
   deletingId.value = board.id;
   actionError.value = '';
   try {

@@ -3,6 +3,7 @@ import { IconMessageCircle } from '@tabler/icons-vue';
 import { onMounted, onUnmounted } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { site } from '@/config/site';
 import { useAuthStore } from '@/stores/auth';
 
@@ -67,5 +68,7 @@ onUnmounted(() => {
     <main class="site-main">
       <RouterView />
     </main>
+
+    <ConfirmDialog />
   </div>
 </template>

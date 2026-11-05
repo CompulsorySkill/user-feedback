@@ -5,8 +5,11 @@ import { onMounted, ref } from 'vue';
 import { listAuditLogs, runUploadCleanup } from '@/api/audit';
 import { ApiError } from '@/api/client';
 import type { AuditLogItem, UploadCleanupResult } from '@/api/types';
+import { useConfirm } from '@/composables/useConfirm';
 import { AUDIT_ACTIONS, auditActionLabel, formatAuditDetail } from '@/utils/audit';
 import { formatDateTime } from '@/utils/date';
+
+const confirm = useConfirm();
 
 const PAGE_SIZE = 30;
 
@@ -54,7 +57,13 @@ async function loadMore(): Promise<void> {
 
 async function cleanup(dryRun: boolean): Promise<void> {
   if (runningCleanup.value) return;
-  if (!dryRun && !window.confirm('将删除超过保留期且未被任何反馈引用的上传对象，确认执行？')) {
+  if (
+    !dryRun &&
+    !(await confirm({
+      title: '清理上传对象',
+      message: '将删除超过保留期且未被任何反馈引用的上传对象，确认执行？',
+    }))
+  ) {
     return;
   }
   runningCleanup.value = true;

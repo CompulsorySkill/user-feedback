@@ -5,6 +5,9 @@ import { onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { createBuiltinTag, deleteTag, listAdminTags } from '@/api/tags';
 import type { TagSummary } from '@/api/types';
+import { useConfirm } from '@/composables/useConfirm';
+
+const confirm = useConfirm();
 
 const tags = ref<TagSummary[]>([]);
 const loading = ref(true);
@@ -52,7 +55,7 @@ async function remove(tag: TagSummary): Promise<void> {
     tag.post_count > 0
       ? `标签「${tag.name}」正被 ${tag.post_count} 条反馈使用，删除后会从这些反馈上移除。确认删除？`
       : `确认删除标签「${tag.name}」？`;
-  if (!window.confirm(warning)) return;
+  if (!(await confirm({ title: warning }))) return;
   deletingId.value = tag.id;
   actionError.value = '';
   try {
