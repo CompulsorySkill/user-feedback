@@ -42,10 +42,6 @@
   white-space: nowrap;
 }
 
-.audit-select {
-  min-width: 180px;
-}
-
 .audit-list {
   display: flex;
   flex-direction: column;

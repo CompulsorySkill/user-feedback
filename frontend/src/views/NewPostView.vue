@@ -10,6 +10,13 @@ import type { Board, TagSummary } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import TagPicker from '@/components/TagPicker.vue';
 import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuthStore } from '@/stores/auth';
 import type { JSONContent } from '@/types/content';
 
@@ -158,11 +165,19 @@ onMounted(() => {
       <form class="compose" @submit.prevent="submit">
         <label class="field">
           <span class="field-label">发布到</span>
-          <select v-model="boardSlug" class="field-input" aria-label="选择发布到哪个看板">
-            <option v-for="item in selectableBoards" :key="item.slug" :value="item.slug">
-              {{ item.name }}
-            </option>
-          </select>
+          <Select
+            :model-value="boardSlug"
+            @update:model-value="(value) => (boardSlug = String(value))"
+          >
+            <SelectTrigger size="field" class="w-full" aria-label="选择发布到哪个看板">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="item in selectableBoards" :key="item.slug" :value="item.slug">
+                {{ item.name }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </label>
 
         <div class="field">

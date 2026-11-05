@@ -6,11 +6,20 @@ import { listAuditLogs, runUploadCleanup } from '@/api/audit';
 import { ApiError } from '@/api/client';
 import type { AuditLogItem, UploadCleanupResult } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useConfirm } from '@/composables/useConfirm';
 import { AUDIT_ACTIONS, auditActionLabel, formatAuditDetail } from '@/utils/audit';
 import { formatDateTime } from '@/utils/date';
 
 const confirm = useConfirm();
+
+type AuditActionFilter = 'all' | (typeof AUDIT_ACTIONS)[number]['value'];
 
 const PAGE_SIZE = 30;
 
@@ -19,15 +28,23 @@ const nextCursor = ref<number | null>(null);
 const loading = ref(true);
 const loadingMore = ref(false);
 const errorMessage = ref('');
-const actionFilter = ref('');
+const actionFilter = ref<AuditActionFilter>('all');
 const runningCleanup = ref(false);
 const cleanupResult = ref<UploadCleanupResult | null>(null);
+
+function onActionChange(value: unknown): void {
+  actionFilter.value = String(value ?? 'all') as AuditActionFilter;
+  void load();
+}
 
 async function load(): Promise<void> {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const page = await listAuditLogs({ limit: PAGE_SIZE, action: actionFilter.value || null });
+    const page = await listAuditLogs({
+      limit: PAGE_SIZE,
+      action: actionFilter.value === 'all' ? null : actionFilter.value,
+    });
     logs.value = page.items;
     nextCursor.value = page.next_cursor ? Number(page.next_cursor) : null;
   } catch (error) {
@@ -44,7 +61,7 @@ async function loadMore(): Promise<void> {
     const page = await listAuditLogs({
       limit: PAGE_SIZE,
       before_id: nextCursor.value,
-      action: actionFilter.value || null,
+      action: actionFilter.value === 'all' ? null : actionFilter.value,
     });
     const seen = new Set(logs.value.map((item) => item.id));
     logs.value = [...logs.value, ...page.items.filter((item) => !seen.has(item.id))];
@@ -132,12 +149,17 @@ onMounted(load);
     <div class="audit-toolbar">
       <label class="audit-filter">
         <span class="field-label">动作</span>
-        <select v-model="actionFilter" class="field-input audit-select" @change="load">
-          <option value="">全部操作</option>
-          <option v-for="action in AUDIT_ACTIONS" :key="action.value" :value="action.value">
-            {{ action.label }}
-          </option>
-        </select>
+        <Select :model-value="actionFilter" @update:model-value="onActionChange">
+          <SelectTrigger size="field" class="min-w-[180px]" aria-label="按动作筛选">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部操作</SelectItem>
+            <SelectItem v-for="action in AUDIT_ACTIONS" :key="action.value" :value="action.value">
+              {{ action.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </label>
       <Button type="button" @click="load" variant="ghost" size="lg">
         <IconRefresh :size="14" :stroke-width="2" /> 刷新

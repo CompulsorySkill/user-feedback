@@ -6,6 +6,13 @@ import { ApiError } from '@/api/client';
 import type { AdminUserItem } from '@/api/types';
 import { listAdminUsers } from '@/api/users';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { formatDateTime } from '@/utils/date';
 
 const PAGE_SIZE = 30;
@@ -17,7 +24,12 @@ const loadingMore = ref(false);
 const errorMessage = ref('');
 const searchInput = ref('');
 const searchQuery = ref('');
-const roleFilter = ref<'' | 'user' | 'admin'>('');
+const roleFilter = ref<'all' | 'user' | 'admin'>('all');
+
+function onRoleChange(value: unknown): void {
+  roleFilter.value = String(value ?? 'all') as 'all' | 'user' | 'admin';
+  void load();
+}
 
 async function load(): Promise<void> {
   searchQuery.value = searchInput.value.trim();
@@ -27,7 +39,7 @@ async function load(): Promise<void> {
     const page = await listAdminUsers({
       limit: PAGE_SIZE,
       q: searchQuery.value || null,
-      role: roleFilter.value || null,
+      role: roleFilter.value === 'all' ? null : roleFilter.value,
     });
     users.value = page.items;
     nextCursor.value = page.next_cursor ? Number(page.next_cursor) : null;
@@ -46,7 +58,7 @@ async function loadMore(): Promise<void> {
       limit: PAGE_SIZE,
       before_id: nextCursor.value,
       q: searchQuery.value || null,
-      role: roleFilter.value || null,
+      role: roleFilter.value === 'all' ? null : roleFilter.value,
     });
     const seen = new Set(users.value.map((item) => item.id));
     users.value = [...users.value, ...page.items.filter((item) => !seen.has(item.id))];
@@ -60,7 +72,7 @@ async function loadMore(): Promise<void> {
 
 async function reset(): Promise<void> {
   searchInput.value = '';
-  roleFilter.value = '';
+  roleFilter.value = 'all';
   await load();
 }
 
@@ -91,11 +103,16 @@ onMounted(load);
       </label>
       <label class="admin-filter">
         <span class="field-label">角色</span>
-        <select v-model="roleFilter" class="field-input" @change="load">
-          <option value="">全部角色</option>
-          <option value="admin">管理员</option>
-          <option value="user">普通用户</option>
-        </select>
+        <Select :model-value="roleFilter" @update:model-value="onRoleChange">
+          <SelectTrigger size="field" class="min-w-[200px]" aria-label="按角色筛选">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部角色</SelectItem>
+            <SelectItem value="admin">管理员</SelectItem>
+            <SelectItem value="user">普通用户</SelectItem>
+          </SelectContent>
+        </Select>
       </label>
       <Button type="submit" variant="default" size="lg">
         <IconSearch :size="16" :stroke-width="2" /> 搜索

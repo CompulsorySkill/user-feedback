@@ -1,8 +1,9 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Board } from '@/api/types';
+import { Select } from '@/components/ui/select';
 
 const mocks = vi.hoisted(() => ({
   params: {} as Record<string, string>,
@@ -35,6 +36,15 @@ vi.mock('@/components/PostEditor.vue', () => ({
 
 import NewPostView from '@/views/NewPostView.vue';
 
+// jsdom 没有指针捕获 / PointerEvent 相关 API，reka-ui 的 Select 会用到
+beforeEach(() => {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+    Element.prototype.setPointerCapture = () => {};
+    Element.prototype.releasePointerCapture = () => {};
+  }
+});
+
 function board(overrides: Partial<Board> = {}): Board {
   return {
     id: 1,
@@ -57,6 +67,33 @@ function mountView() {
   return mount(NewPostView, { global: { plugins: [pinia] } });
 }
 
+// shadcn Select 的选项渲染在 teleport 到 body 的弹层里，只能从 document 取
+async function openBoardOptions(wrapper: VueWrapper): Promise<string[]> {
+  const trigger = wrapper.get('[data-slot="select-trigger"]').element as HTMLElement;
+  trigger.dispatchEvent(
+    new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0 }),
+  );
+  await flushPromises();
+  if (!document.querySelector('[role="option"]')) {
+    await wrapper.get('[data-slot="select-trigger"]').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+  }
+  return [...document.querySelectorAll<HTMLElement>('[role="option"]')].map(
+    (el) => el.textContent?.trim() ?? '',
+  );
+}
+
+async function chooseBoard(wrapper: VueWrapper, slug: string): Promise<void> {
+  // 选中动作走 reka 的指针事件，jsdom 下不稳定；这里直接触发 Select 的 v-model，
+  // 覆盖的仍是本组件自己的逻辑（boardSlug 与 URL 同步）。
+  wrapper.findComponent(Select).vm.$emit('update:model-value', slug);
+  await flushPromises();
+}
+
+function triggerText(wrapper: VueWrapper): string {
+  return wrapper.get('[data-slot="select-trigger"]').text().trim();
+}
+
 describe('NewPostView 看板选择', () => {
   beforeEach(() => {
     mocks.params = {};
@@ -69,16 +106,21 @@ describe('NewPostView 看板选择', () => {
     mocks.createPost.mockResolvedValue({ id: 'post-1' });
   });
 
+  afterEach(() => {
+    // 弹层 teleport 到 body，不清理会串到下个用例
+    document.body.innerHTML = '';
+  });
+
   it('从 /new 进入时默认第一个可匿名发布的看板，隐藏需登录的看板', async () => {
     const wrapper = mountView();
     await flushPromises();
 
-    const select = wrapper.find('select');
-    expect((select.element as HTMLSelectElement).value).toBe('product');
-    expect(select.findAll('option').map((item) => item.attributes('value'))).toEqual([
-      'product',
-      'bugs',
-    ]);
+    expect(triggerText(wrapper)).toBe('功能需求');
+    expect(await openBoardOptions(wrapper)).toEqual(['功能需求', '问题反馈']);
+    const checked = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+      (el) => el.getAttribute('data-state') === 'checked',
+    );
+    expect(checked?.textContent?.trim()).toBe('功能需求');
     wrapper.unmount();
   });
 
@@ -86,14 +128,14 @@ describe('NewPostView 看板选择', () => {
     const wrapper = mountView();
     await flushPromises();
 
-    await wrapper.find('select').setValue('bugs');
-    await flushPromises();
+    await chooseBoard(wrapper, 'bugs');
 
     expect(mocks.replace).toHaveBeenCalledWith({
       name: 'new-post-board',
       params: { slug: 'bugs' },
     });
     expect(wrapper.find('.back-link').text()).toContain('问题反馈');
+    expect(triggerText(wrapper)).toBe('问题反馈');
     wrapper.unmount();
   });
 
@@ -101,7 +143,7 @@ describe('NewPostView 看板选择', () => {
     const wrapper = mountView();
     await flushPromises();
 
-    await wrapper.find('select').setValue('bugs');
+    await chooseBoard(wrapper, 'bugs');
     await wrapper.find('input[maxlength="200"]').setValue('希望支持导出');
     await wrapper.find('form').trigger('submit');
     await flushPromises();
@@ -117,12 +159,8 @@ describe('NewPostView 看板选择', () => {
     await flushPromises();
 
     expect(wrapper.find('.notice-closed').exists()).toBe(true);
-    expect(
-      wrapper
-        .find('select')
-        .findAll('option')
-        .map((item) => item.attributes('value')),
-    ).toEqual(['product', 'bugs', 'internal']);
+    expect(triggerText(wrapper)).toBe('内部看板');
+    expect(await openBoardOptions(wrapper)).toEqual(['功能需求', '问题反馈', '内部看板']);
     expect(
       wrapper.find('.compose-buttons button[type="submit"]').attributes('disabled'),
     ).toBeDefined();

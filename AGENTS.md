@@ -194,6 +194,12 @@ uv run alembic check
 - 按钮统一用 `@/components/ui/button`：尺寸用 `size="lg"`（32px），旧的 `.button`
   系列 class 已删除；需要按钮外观的链接用 `buttonVariants({ variant, size })` 作 `:class`
   并同时加 `data-slot="button"`（布局选择器靠它）。
+- 下拉用 `@/components/ui/select`，不要用原生 `<select>`；筛选项的「全部」用 `'all'` 哨兵值
+  （reka 不允许 `<SelectItem value="">`），取接口参数时再转成 `null`。
+  `ui/select/` 有三个本地改动，重新拉取组件后必须保留：`SelectContent` 默认
+  `position: 'popper'`（`item-aligned` 会盖在触发器上）和 `bodyLock: false`（否则弹层会把
+  `body` 设成 `overflow: hidden`，页面 scrollbar 消失）；`SelectTrigger` 多一个 `size="field"`
+  （44px / 16px，配合尚未迁移的 `.field-input` 表单）。
 - 已确认的布局约定：
   - 搜索框与最近 / 最热排序在同一行，字号一致；
   - 状态筛选与标签筛选的标签对齐；
