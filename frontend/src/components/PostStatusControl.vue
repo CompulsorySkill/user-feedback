@@ -89,7 +89,7 @@ async function applyStatus(target: PostStatus): Promise<void> {
       type="button"
       :disabled="pending"
       @click="applyStatus('closed')"
-      variant="ghost"
+      variant="outline"
       size="lg"
     >
       <IconLoader2 v-if="pending" class="spin" :size="15" :stroke-width="2" />

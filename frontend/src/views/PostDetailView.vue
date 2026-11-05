@@ -126,7 +126,7 @@ watch(() => route.params.id, load, { immediate: true });
               v-if="canEdit"
               :to="`/post/${post.id}/edit`"
               data-slot="button"
-              :class="buttonVariants({ variant: 'ghost', size: 'lg' })"
+              :class="buttonVariants({ variant: 'outline', size: 'lg' })"
             >
               <IconEdit :size="15" :stroke-width="2" />
               编辑反馈
@@ -138,6 +138,7 @@ watch(() => route.params.id, load, { immediate: true });
               @click="removePost"
               variant="destructive"
               size="lg"
+              class="border-destructive/30"
             >
               <IconLoader2 v-if="deleting" class="spin" :size="15" :stroke-width="2" />
               <IconTrash v-else :size="15" :stroke-width="2" />

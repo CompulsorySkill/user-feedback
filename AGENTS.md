@@ -194,6 +194,9 @@ uv run alembic check
 - 按钮统一用 `@/components/ui/button`：尺寸用 `size="lg"`（32px），旧的 `.button`
   系列 class 已删除；需要按钮外观的链接用 `buttonVariants({ variant, size })` 作 `:class`
   并同时加 `data-slot="button"`（布局选择器靠它）。
+  本地改动（重新拉取组件后需保留）：base 不再带 `border-transparent`，而是下放到 default /
+  secondary / ghost / destructive / link 各 variant——否则它会在生成的 CSS 里排在
+  `border-border` 之后，把 `outline` 的边框颜色盖掉。
 - 下拉用 `@/components/ui/select`，不要用原生 `<select>`；筛选项的「全部」用 `'all'` 哨兵值
   （reka 不允许 `<SelectItem value="">`），取接口参数时再转成 `null`。
   `ui/select/` 有三个本地改动，重新拉取组件后必须保留：`SelectContent` 默认
