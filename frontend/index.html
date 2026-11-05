@@ -6,6 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="用户意见反馈与更新日志系统" />
     <title>用户意见反馈</title>
+    <script>
+      // 在首帧前定好主题，避免 useDark 挂载前的一瞬白闪。键名与值需与 useDark() 保持一致。
+      (function () {
+        try {
+          var mode = localStorage.getItem('vueuse-color-scheme');
+          var dark =
+            mode === 'dark' ||
+            (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) {
+          /* localStorage 不可用时交给 useDark 处理 */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>
