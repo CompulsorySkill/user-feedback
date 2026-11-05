@@ -35,8 +35,10 @@ ALLOWED_NODES = {
     "horizontalRule",
     "image",
     "video",
+    "mention",
 }
 ALLOWED_MARKS = {"bold", "italic", "strike", "underline", "code", "link"}
+MAX_MENTION_LABEL_LENGTH = 128
 
 
 def _invalid(message: str) -> AppException:
@@ -137,6 +139,16 @@ async def validate_rich_text(
             if not isinstance(src, str) or not src:
                 raise _invalid("媒体节点缺少 src")
             media.append((src, node_type))
+
+        if node_type == "mention":
+            # 只存展示名；名字仅作内联文本渲染，不指向任何可执行内容。
+            attrs = node.get("attrs")
+            label = attrs.get("label") if isinstance(attrs, dict) else None
+            if not isinstance(label, str) or not label.strip():
+                raise _invalid("提及节点缺少 label")
+            if len(label) > MAX_MENTION_LABEL_LENGTH:
+                raise _invalid("提及名称过长")
+            text_parts.append(f"@{label}")
 
         children = node.get("content")
         if children is not None and not isinstance(children, list):

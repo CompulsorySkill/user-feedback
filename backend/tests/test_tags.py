@@ -10,7 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import settings
-from tests.conftest import insert_board, insert_post, sqlite_timestamp
+from tests.conftest import insert_board, insert_post, insert_user, sqlite_timestamp
 
 SSO_SECRET = "test-sso-secret-0123456789abcdef012345"
 TEST_SESSION_SECRET = "test-session-secret-0123456789abcdef012345"
@@ -372,3 +372,19 @@ async def test_site_storage_prefix_follows_s3_bucket(
     response = await client.get("/api/v1/site")
 
     assert response.json()["storage_prefix"] == "/media"
+
+
+async def test_admin_mentions_only_lists_admins(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_user(sqlite_conn, email="a@example.com", display_name="Alice", role="admin")
+    insert_user(sqlite_conn, email="b@example.com", role="admin")
+    insert_user(sqlite_conn, email="c@example.com", display_name="Carol")
+
+    response = await client.get("/api/v1/admins")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"id": 1, "name": "Alice"},
+        {"id": 2, "name": "管理员"},
+    ]

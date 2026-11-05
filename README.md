@@ -129,6 +129,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | GET | `/api/v1/boards/{slug}/posts?limit=&cursor=` | 看板内反馈列表，keyset 分页；支持 `status=`、`sort=recent\|top`、`q=` 标题/摘要搜索、重复 `tag=` 标签筛选（OR） |
 | POST | `/api/v1/boards/{slug}/posts` | 发布反馈（`201`，匿名或登录）；可带自定义昵称、浏览器环境信息与标签（≤5 个） |
 | GET | `/api/v1/site` | 站点配置（当前为 `APP_NAME`） |
+| GET | `/api/v1/admins` | 可 @ 提及的管理员名单（`id` + 展示名，公开，不含邮箱） |
 | GET | `/api/v1/tags` | 内置标签列表（含使用数）；`include_custom=true` 返回全部标签，`board=<slug>` 把使用数限定在该看板 |
 | GET | `/api/v1/admin/tags` | 全部标签（管理员） |
 | POST | `/api/v1/admin/tags` | 新增内置标签（管理员） |

@@ -4,12 +4,21 @@ from __future__ import annotations
 
 from app.repositories.users import UserRepository
 from app.schemas.common import Page
+from app.schemas.site import AdminMention
 from app.schemas.user import AdminUserItem
 
 
 class UserService:
     def __init__(self, users: UserRepository) -> None:
         self.users = users
+
+    async def list_admin_mentions(self) -> list[AdminMention]:
+        """公开接口：只需 id 与名字，绝不返回邮箱。"""
+        admins = await self.users.list_admins()
+        return [
+            AdminMention(id=user.id, name=user.display_name or "管理员")
+            for user in admins
+        ]
 
     async def list_page(
         self,

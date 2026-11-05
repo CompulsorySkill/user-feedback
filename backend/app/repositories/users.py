@@ -37,6 +37,12 @@ class UserRepository:
             .outerjoin(comment_counts, comment_counts.c.author_id == User.id)
         )
 
+    async def list_admins(self, *, limit: int = 100) -> list[User]:
+        rows = await self.session.execute(
+            select(User).where(User.role == "admin").order_by(User.id).limit(limit)
+        )
+        return list(rows.scalars())
+
     async def list_page(
         self,
         *,

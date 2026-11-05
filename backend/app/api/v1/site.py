@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from app.api.deps import TagServiceDep
+from app.api.deps import TagServiceDep, UserServiceDep
 from app.core.config import settings
-from app.schemas.site import SiteInfo
+from app.schemas.site import AdminMention, SiteInfo
 from app.schemas.tag import TagSummary
 
 router = APIRouter(tags=["site"])
@@ -18,6 +18,12 @@ async def get_site_info() -> SiteInfo:
         name=settings.app_name,
         storage_prefix=f"{settings.base_prefix}/{settings.s3_bucket}",
     )
+
+
+@router.get("/admins", response_model=list[AdminMention], summary="可 @ 提及的管理员")
+async def list_admin_mentions(service: UserServiceDep) -> list[AdminMention]:
+    """公开：编辑器「@」补全名单，只含 id 与展示名。"""
+    return await service.list_admin_mentions()
 
 
 @router.get("/tags", response_model=list[TagSummary], summary="公开标签列表")

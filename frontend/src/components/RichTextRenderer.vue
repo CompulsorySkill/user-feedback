@@ -34,6 +34,8 @@ const imageAlt = computed(() => attrString(props.node, 'alt') ?? '');
 const imageTitle = computed(() => attrString(props.node, 'title'));
 const videoSrc = computed(() => attrString(props.node, 'src'));
 const videoPoster = computed(() => attrString(props.node, 'poster'));
+// 提及只保存展示名，渲染为内联文本，不解析成链接或 HTML。
+const mentionLabel = computed(() => attrString(props.node, 'label'));
 
 function collectText(node: JSONContent): string {
   const own = node.text ?? '';
@@ -95,6 +97,10 @@ function collectText(node: JSONContent): string {
   <hr v-else-if="node.type === 'horizontalRule'" class="rt-rule" />
 
   <br v-else-if="node.type === 'hardBreak'" />
+
+  <span v-else-if="node.type === 'mention' && mentionLabel" class="rt-mention">
+    @{{ mentionLabel }}
+  </span>
 
   <figure v-else-if="node.type === 'image' && imageSrc" class="rt-figure">
     <img

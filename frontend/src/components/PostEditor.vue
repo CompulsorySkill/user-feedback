@@ -21,6 +21,7 @@ import { computed, ref, watch } from 'vue';
 
 import { useUpload } from '@/composables/useUpload';
 import { StorageImage, VideoNode } from '@/editor/extensions';
+import { AdminMention } from '@/editor/mention';
 import type { JSONContent } from '@/types/content';
 import { imageFilesFromClipboard } from '@/utils/clipboard';
 
@@ -45,6 +46,7 @@ const editor = useEditor({
     StarterKit.configure({ heading: { levels: [2, 3] } }),
     StorageImage.configure({ inline: false, allowBase64: false }),
     VideoNode,
+    AdminMention,
     Placeholder.configure({
       placeholder: '描述你的建议、复现步骤或期望结果…',
     }),

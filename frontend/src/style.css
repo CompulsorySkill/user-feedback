@@ -793,6 +793,15 @@ h6.rt-heading {
   font-weight: 650;
 }
 
+.rt-mention {
+  padding: 0.05em 0.35em;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 550;
+  white-space: nowrap;
+}
+
 .rt-italic {
   font-style: italic;
 }

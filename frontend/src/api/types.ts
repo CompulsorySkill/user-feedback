@@ -164,3 +164,9 @@ export interface PostCreateInput {
   environment?: ClientEnvironment | null;
   tags?: string[];
 }
+
+/** 公开的可 @ 提及管理员：只有 id 与展示名，不含邮箱。 */
+export interface AdminMentionItem {
+  id: number;
+  name: string;
+}

@@ -353,6 +353,43 @@
   color: var(--error);
 }
 
+/* 「@」补全浮层：位置由 suggestion 插件的 mount() 写入 style */
+.mention-popup {
+  z-index: 40;
+  min-width: 200px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.mention-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-caption);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mention-item.is-active,
+.mention-item:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.mention-empty {
+  padding: 6px 10px;
+  color: var(--text-subtle);
+  font-size: var(--fs-caption);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

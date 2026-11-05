@@ -256,6 +256,54 @@ async def test_media_from_other_identity_rejected(
     assert response.json()["code"] == "INVALID_CONTENT"
 
 
+async def test_rich_text_accepts_admin_mention(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+    content = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [
+                    {"type": "text", "text": "想请 "},
+                    {"type": "mention", "attrs": {"id": "7", "label": "Alice"}},
+                    {"type": "text", "text": " 看一下"},
+                ],
+            }
+        ],
+    }
+
+    response = await client.post(
+        "/api/v1/boards/product/posts", json={"title": "提及", "content": content}
+    )
+
+    assert response.status_code == 201
+    assert "@Alice" in response.json()["excerpt"]
+
+
+async def test_rich_text_rejects_mention_without_label(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    insert_board(sqlite_conn)
+    content = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "mention", "attrs": {"id": "7"}}],
+            }
+        ],
+    }
+
+    response = await client.post(
+        "/api/v1/boards/product/posts", json={"title": "坏提及", "content": content}
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "INVALID_CONTENT"
+
+
 # --------------------------------------------------------------------------- #
 # 8.2 必测补充：管理员重开
 # --------------------------------------------------------------------------- #

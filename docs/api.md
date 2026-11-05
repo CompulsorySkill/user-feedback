@@ -162,6 +162,8 @@ keyset 分页。响应：
 
 - 顶层必须 `doc`；payload ≤ 256KB；深度 ≤ 8；节点 ≤ 2000；单文本 ≤ 20000 字符
 - 节点与 mark 白名单（未知节点 / 标记直接拒绝）；链接仅 http(s)
+- `mention` 节点只存 `id` 与 `label`（≤128 字符），仅作为内联文本渲染，`label` 必填；
+  候选名单来自公开接口 `GET /v1/admins`，摘要拼接为 `@label`
 - `image` / `video` 的 `src` 必须是**当前身份**的 `Upload`，且 purpose / content_type 匹配，否则 `400 INVALID_CONTENT`
 - 编辑时允许保留原内容中已存在的媒体 key（历史数据或他人上传），新增媒体仍必须是编辑者自己的 `Upload`
 
@@ -243,6 +245,7 @@ keyset 分页。响应：
 | GET | `/v1/boards/{slug}/posts` | 公开 |
 | POST | `/v1/boards/{slug}/posts` | 匿名 / 登录；可带 `tags` |
 | GET | `/v1/site` | 公开；`{name, storage_prefix}`，前缀等于 `/<BASE_PATH>/<S3_BUCKET>` |
+| GET | `/v1/admins` | 公开；`[{id, name}]`，编辑器 `@` 提及管理员用，不含邮箱 |
 | GET | `/v1/tags` | 公开；内置标签（`include_custom=true` 含用户标签，`board=<slug>` 限定计数范围） |
 | GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
 | GET | `/v1/admin/audit-logs` | 管理员；审计日志 |
