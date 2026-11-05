@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { IconMessageCircle } from '@tabler/icons-vue';
-import { onMounted, onUnmounted } from 'vue';
+import { defineAsyncComponent, onMounted, onUnmounted } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { site } from '@/config/site';
 import { useAuthStore } from '@/stores/auth';
+
+// 弹窗只在真正需要时才加载，避免 reka-ui 进首屏 bundle。
+const ConfirmDialog = defineAsyncComponent(() => import('@/components/ConfirmDialog.vue'));
 
 const auth = useAuthStore();
 const route = useRoute();
