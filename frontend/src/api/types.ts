@@ -172,6 +172,8 @@ export interface UploadCleanupResult {
 export type UploadPurpose =
   | 'post_image'
   | 'post_video'
+  | 'comment_image'
+  | 'comment_video'
   | 'changelog_image'
   | 'changelog_video'
   | 'changelog_attachment'

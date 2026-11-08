@@ -55,7 +55,9 @@ async def login(
 async def test_sso_login_creates_user_and_session(
     client: AsyncClient, sqlite_conn
 ) -> None:
-    response = await login(client, "alice@example.com", name="Alice", target="/b/product")
+    response = await login(
+        client, "alice@example.com", name="Alice", target="/b/product"
+    )
 
     assert response.status_code == 302
     assert response.headers["location"] == "/b/product"
@@ -190,7 +192,9 @@ async def test_login_merges_anonymous_posts_and_votes(
             "title": "登录前的匿名反馈",
             "content": {
                 "type": "doc",
-                "content": [{"type": "paragraph", "content": [{"type": "text", "text": "正文"}]}],
+                "content": [
+                    {"type": "paragraph", "content": [{"type": "text", "text": "正文"}]}
+                ],
             },
         },
     )
@@ -244,14 +248,10 @@ async def test_admin_can_change_any_status(client: AsyncClient, sqlite_conn) -> 
     assert response.json()["status"] == "planned"
 
 
-async def test_author_can_only_close_once(
-    client: AsyncClient, sqlite_conn
-) -> None:
+async def test_author_can_only_close_once(client: AsyncClient, sqlite_conn) -> None:
     await login(client, "alice@example.com")
     me = (await client.get("/api/v1/auth/me")).json()
-    post_id = await _create_post_for(
-        client, sqlite_conn, author_id=me["user"]["id"]
-    )
+    post_id = await _create_post_for(client, sqlite_conn, author_id=me["user"]["id"])
 
     closed = await client.patch(
         f"/api/v1/posts/{post_id}/status", json={"status": "closed"}
@@ -326,7 +326,9 @@ async def test_anonymous_cannot_edit_post(client: AsyncClient, sqlite_conn) -> N
 def changelog_doc() -> dict:
     return {
         "type": "doc",
-        "content": [{"type": "paragraph", "content": [{"type": "text", "text": "发布说明"}]}],
+        "content": [
+            {"type": "paragraph", "content": [{"type": "text", "text": "发布说明"}]}
+        ],
     }
 
 
@@ -391,9 +393,7 @@ async def test_admin_sees_drafts_in_list_and_detail(
     )
 
     await login(client, ADMIN_EMAIL)
-    listing = await client.get(
-        "/api/v1/changelogs", params={"include_drafts": "true"}
-    )
+    listing = await client.get("/api/v1/changelogs", params={"include_drafts": "true"})
     titles = [item["title"] for item in listing.json()["items"]]
     assert titles == ["草稿", "已发布"]
     assert (await client.get(f"/api/v1/changelogs/{draft_id}")).status_code == 200
@@ -408,27 +408,49 @@ async def test_admin_sees_drafts_in_list_and_detail(
 async def _comment(
     client: AsyncClient, post_id: str, content: str, parent_id: str | None = None
 ):
-    payload: dict = {"content": content}
+    payload: dict = {"content": doc(content)}
     if parent_id:
         payload["parent_id"] = parent_id
     return await client.post(f"/api/v1/posts/{post_id}/comments", json=payload)
 
 
+def doc(text: str) -> dict:
+    return {
+        "type": "doc",
+        "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}],
+    }
+
+
+def comment_text(content: dict) -> str:
+    parts: list[str] = []
+
+    def walk(node: dict) -> None:
+        if isinstance(node.get("text"), str):
+            parts.append(node["text"])
+        for child in node.get("content") or []:
+            walk(child)
+
+    walk(content)
+    return "".join(parts)
+
+
 async def test_comment_create_and_list(client: AsyncClient, sqlite_conn) -> None:
     board_id = insert_board(sqlite_conn)
-    post_id = insert_post(sqlite_conn, board_id=board_id, title="评论目标", created_at=BASE)
+    post_id = insert_post(
+        sqlite_conn, board_id=board_id, title="评论目标", created_at=BASE
+    )
 
     created = await _comment(client, post_id, "第一条评论")
     assert created.status_code == 201
     body = created.json()
-    assert body["content"] == "第一条评论"
+    assert body["content"] == doc("第一条评论")
     assert body["is_anonymous"] is True
     assert body["parent_id"] is None
 
     listing = await client.get(f"/api/v1/posts/{post_id}/comments")
     assert listing.status_code == 200
     assert listing.json()["total"] == 1
-    assert listing.json()["items"][0]["content"] == "第一条评论"
+    assert listing.json()["items"][0]["content"] == doc("第一条评论")
 
     detail = await client.get(f"/api/v1/posts/{post_id}")
     assert detail.json()["comment_count"] == 1
@@ -439,20 +461,14 @@ async def test_comment_depth_caps_at_three(client: AsyncClient, sqlite_conn) -> 
     post_id = insert_post(sqlite_conn, board_id=board_id, title="深评", created_at=BASE)
 
     root = (await _comment(client, post_id, "根评论")).json()
-    level2 = (
-        await _comment(client, post_id, "二层", parent_id=root["id"])
-    ).json()
-    level3 = (
-        await _comment(client, post_id, "三层", parent_id=level2["id"])
-    ).json()
-    level4 = (
-        await _comment(client, post_id, "四层", parent_id=level3["id"])
-    ).json()
+    level2 = (await _comment(client, post_id, "二层", parent_id=root["id"])).json()
+    level3 = (await _comment(client, post_id, "三层", parent_id=level2["id"])).json()
+    level4 = (await _comment(client, post_id, "四层", parent_id=level3["id"])).json()
 
     assert level3["parent_id"] == level2["id"]
     # 超出 3 层：挂到根评论并前缀「回复 @xxx」
     assert level4["parent_id"] == root["id"]
-    assert level4["content"].startswith("回复 @匿名用户：")
+    assert comment_text(level4["content"]).startswith("回复 @匿名用户：")
 
 
 async def test_comment_rejected_when_post_closed_or_guest_disabled(
@@ -486,7 +502,9 @@ async def test_comment_rejected_when_post_closed_or_guest_disabled(
 
 async def test_comment_rate_limit(client: AsyncClient, sqlite_conn) -> None:
     board_id = insert_board(sqlite_conn)
-    post_id = insert_post(sqlite_conn, board_id=board_id, title="限流评论", created_at=BASE)
+    post_id = insert_post(
+        sqlite_conn, board_id=board_id, title="限流评论", created_at=BASE
+    )
 
     statuses = []
     for index in range(11):
@@ -495,3 +513,59 @@ async def test_comment_rate_limit(client: AsyncClient, sqlite_conn) -> None:
 
     assert statuses[:10] == [201] * 10
     assert statuses[10] == 429
+
+
+async def test_comment_rich_media_requires_comment_purpose(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    post_id = insert_post(
+        sqlite_conn, board_id=board_id, title="带图评论", created_at=BASE
+    )
+
+    async def presign(purpose: str) -> str:
+        response = await client.post(
+            "/api/v1/uploads/presign",
+            json={
+                "filename": "comment.png",
+                "content_type": "image/png",
+                "purpose": purpose,
+                "size": 1024,
+            },
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["object_key"]
+
+    def with_image(key: str) -> dict:
+        return {
+            "type": "doc",
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": "看图"}],
+                },
+                {"type": "image", "attrs": {"src": key}},
+            ],
+        }
+
+    ok_key = await presign("comment_image")
+    created = await client.post(
+        f"/api/v1/posts/{post_id}/comments",
+        json={"content": with_image(ok_key)},
+    )
+    assert created.status_code == 201, created.text
+
+    wrong_key = await presign("post_image")
+    rejected = await client.post(
+        f"/api/v1/posts/{post_id}/comments",
+        json={"content": with_image(wrong_key)},
+    )
+    assert rejected.status_code == 400
+    assert rejected.json()["code"] == "INVALID_CONTENT"
+
+    empty = await client.post(
+        f"/api/v1/posts/{post_id}/comments",
+        json={"content": {"type": "doc", "content": []}},
+    )
+    assert empty.status_code == 400
+    assert empty.json()["code"] == "INVALID_CONTENT"

@@ -8,7 +8,10 @@ const node: CommentNodeData = {
   id: 'comment-1',
   post_id: 'post-1',
   parent_id: null,
-  content: '一条评论',
+  content: {
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: '一条评论' }] }],
+  },
   author_name: 'alice',
   is_anonymous: false,
   created_at: '2026-03-01T12:00:00Z',

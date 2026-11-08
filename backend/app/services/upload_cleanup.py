@@ -23,6 +23,7 @@ from app.models import (
     AnnouncementAttachment,
     ChangelogAttachment,
     ChangelogEntry,
+    Comment,
     Post,
     Upload,
 )
@@ -43,7 +44,7 @@ class UploadCleanupService:
             return set()
         patterns = [f"%{key}%" for key in keys]
         referenced: set[str] = set()
-        for model in (Post, ChangelogEntry, Announcement):
+        for model in (Post, Comment, ChangelogEntry, Announcement):
             content = cast(model.content, Text)
             stmt = select(content).where(or_(*(content.like(p) for p in patterns)))
             rows = await self.session.execute(stmt)

@@ -17,9 +17,16 @@ from app.core.rate_limit import enforce_rate_limit
 from app.models import Board, Comment, Post, User
 from app.repositories.comments import CommentRepository
 from app.repositories.posts import PostRepository
+from app.repositories.uploads import UploadRepository
 from app.schemas.comment import CommentCreateRequest, CommentItem, CommentList
+from app.services.rich_text import collect_media_keys, content_text, validate_rich_text
 
 MAX_DEPTH = 3
+MAX_COMMENT_TEXT = 2000
+COMMENT_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
+    "image": ("comment_image",),
+    "video": ("comment_video",),
+}
 
 
 class CommentService:
@@ -28,10 +35,12 @@ class CommentService:
         session: AsyncSession,
         posts: PostRepository,
         comments: CommentRepository,
+        uploads: UploadRepository,
     ) -> None:
         self.session = session
         self.posts = posts
         self.comments = comments
+        self.uploads = uploads
 
     async def _post(self, post_id: uuid.UUID) -> tuple[Post, Board]:
         row = await self.posts.get_with_board(post_id)
@@ -41,9 +50,7 @@ class CommentService:
         return post, board
 
     @staticmethod
-    def _item(
-        comment: Comment, author_name: str | None
-    ) -> CommentItem:
+    def _item(comment: Comment, author_name: str | None) -> CommentItem:
         return CommentItem(
             id=comment.id,
             post_id=comment.post_id,
@@ -70,9 +77,7 @@ class CommentService:
     ) -> CommentItem:
         post, board = await self._post(post_id)
         if post.status == "closed":
-            raise AppException(
-                403, code="POST_CLOSED", detail="反馈已关闭，不能评论"
-            )
+            raise AppException(403, code="POST_CLOSED", detail="反馈已关闭，不能评论")
         if isinstance(identity, AnonymousIdentity) and not board.allow_guest_commenting:
             raise AppException(
                 403,
@@ -87,6 +92,16 @@ class CommentService:
         )
 
         content = payload.content
+        excerpt = await validate_rich_text(
+            content,
+            identity_keys=[identity.key],
+            allowed_purposes=COMMENT_MEDIA_PURPOSES,
+            uploads=self.uploads,
+            max_total_text=MAX_COMMENT_TEXT,
+        )
+        if not excerpt and not collect_media_keys(content):
+            raise AppException(400, code="INVALID_CONTENT", detail="评论不能为空")
+
         parent_id = payload.parent_id
 
         if parent_id is not None:
@@ -104,7 +119,16 @@ class CommentService:
                         break
                     root = ancestor
                 label = await self._author_label(parent)
-                content = f"回复 @{label}：{content}"
+                content = {
+                    "type": "doc",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [{"type": "text", "text": f"回复 @{label}："}],
+                        },
+                        *(content.get("content") or []),
+                    ],
+                }
                 parent_id = root.id
 
         author_id = (
@@ -143,7 +167,7 @@ class CommentService:
         if comment is None or comment.post_id != post_id:
             raise AppException(404, code="COMMENT_NOT_FOUND", detail="评论不存在")
 
-        content = comment.content
+        content = content_text(comment.content)
         levels = await self.comments.subtree(comment_id)
         for level in levels:
             await self.session.execute(delete(Comment).where(Comment.id.in_(level)))

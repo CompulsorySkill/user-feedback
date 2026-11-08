@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 UploadPurpose = Literal[
     "post_image",
     "post_video",
+    "comment_image",
+    "comment_video",
     "changelog_image",
     "changelog_video",
     "changelog_attachment",
@@ -22,8 +24,10 @@ VIDEO_CONTENT_TYPES = ("video/mp4",)
 
 PURPOSE_CONTENT_TYPES: dict[str, tuple[str, ...]] = {
     "post_image": IMAGE_CONTENT_TYPES,
+    "comment_image": IMAGE_CONTENT_TYPES,
     "changelog_image": IMAGE_CONTENT_TYPES,
     "post_video": VIDEO_CONTENT_TYPES,
+    "comment_video": VIDEO_CONTENT_TYPES,
     "changelog_video": VIDEO_CONTENT_TYPES,
     "announcement_image": IMAGE_CONTENT_TYPES,
     "announcement_video": VIDEO_CONTENT_TYPES,

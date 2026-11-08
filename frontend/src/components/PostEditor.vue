@@ -27,11 +27,28 @@ import { imageFilesFromClipboard } from '@/utils/clipboard';
 
 const props = withDefaults(
   defineProps<{
-    scope?: 'post' | 'changelog' | 'announcement';
+    scope?: 'post' | 'comment' | 'changelog' | 'announcement';
     initialContent?: JSONContent | null;
+    placeholder?: string;
+    ariaLabel?: string;
   }>(),
-  { scope: 'post', initialContent: null },
+  {
+    scope: 'post',
+    initialContent: null,
+    placeholder: '描述你的建议、复现步骤或期望结果…',
+    ariaLabel: '正文',
+  },
 );
+
+type MediaPurpose =
+  | 'post_image'
+  | 'post_video'
+  | 'comment_image'
+  | 'comment_video'
+  | 'changelog_image'
+  | 'changelog_video'
+  | 'announcement_image'
+  | 'announcement_video';
 
 const emit = defineEmits<{
   'update:json': [value: JSONContent];
@@ -48,13 +65,13 @@ const editor = useEditor({
     VideoNode,
     AdminMention,
     Placeholder.configure({
-      placeholder: '描述你的建议、复现步骤或期望结果…',
+      placeholder: props.placeholder,
     }),
   ],
   editorProps: {
     attributes: {
       class: 'tiptap',
-      'aria-label': '反馈正文',
+      'aria-label': props.ariaLabel,
     },
     // 粘贴剪贴板里的截图 / 图片时，阻止默认的 base64 嵌入，改走直传。
     handlePaste: (_view, event) => {
@@ -97,7 +114,7 @@ function insertMedia(file: File, purpose: 'image' | 'video', key: string): void 
 }
 
 async function pasteImages(files: File[]): Promise<void> {
-  const purpose = `${props.scope}_image` as 'post_image' | 'changelog_image' | 'announcement_image';
+  const purpose = `${props.scope}_image` as MediaPurpose;
   // 逐张上传，保证插入顺序与粘贴顺序一致。
   for (const file of files) {
     const key = await upload(file, purpose);
@@ -111,13 +128,7 @@ async function onFileChange(event: Event): Promise<void> {
   input.value = '';
   if (!file || !editor.value) return;
 
-  const purpose = `${props.scope}_${pendingPurpose.value}` as
-    | 'post_image'
-    | 'post_video'
-    | 'changelog_image'
-    | 'changelog_video'
-    | 'announcement_image'
-    | 'announcement_video';
+  const purpose = `${props.scope}_${pendingPurpose.value}` as MediaPurpose;
   const key = await upload(file, purpose);
   if (!key) return;
 
@@ -127,6 +138,12 @@ async function onFileChange(event: Event): Promise<void> {
 defineExpose({
   getJSON: (): JSONContent | null => editor.value?.getJSON() ?? null,
   isEmpty: (): boolean => editor.value?.isEmpty ?? true,
+  clear: (): void => {
+    editor.value?.commands.clearContent(true);
+  },
+  focus: (): void => {
+    editor.value?.commands.focus();
+  },
 });
 </script>
 

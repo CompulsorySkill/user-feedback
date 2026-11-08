@@ -187,3 +187,43 @@ async def test_cleanup_keeps_row_when_storage_delete_fails(
         assert keys == {"uploads/broken.png"}
     finally:
         await engine.dispose()
+
+
+async def test_cleanup_keeps_comment_media(db_path, sqlite_conn) -> None:
+    import json
+    import uuid
+
+    board_id = insert_board(sqlite_conn)
+    post_id = insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="带图评论",
+        created_at=NOW - timedelta(hours=2),
+    )
+    insert_upload(
+        sqlite_conn,
+        object_key="uploads/comment.png",
+        created_at=NOW - timedelta(hours=48),
+        purpose="comment_image",
+    )
+    sqlite_conn.execute(
+        "INSERT INTO comments (id, post_id, content) VALUES (?, ?, ?)",
+        (
+            uuid.uuid4().hex,
+            post_id,
+            json.dumps(content_with("uploads/comment.png")),
+        ),
+    )
+    sqlite_conn.commit()
+
+    engine = create_async_engine(sqlite_url(db_path))
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    storage = FakeStorage()
+    try:
+        async with sessionmaker() as session:
+            result = await UploadCleanupService(session, storage).run(grace_hours=24)
+        assert result.referenced == 1
+        assert result.deleted == 0
+        assert storage.deleted == []
+    finally:
+        await engine.dispose()

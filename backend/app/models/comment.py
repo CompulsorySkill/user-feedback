@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
-from sqlalchemy import ForeignKey, Index, String, Text, Uuid
+from sqlalchemy import JSON, ForeignKey, Index, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -25,7 +26,7 @@ class Comment(TimestampMixin, Base):
         ForeignKey("comments.id", ondelete="CASCADE"), nullable=True
     )
 
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
 
     author_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True

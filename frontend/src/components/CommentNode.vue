@@ -5,6 +5,8 @@ import { computed, ref } from 'vue';
 import type { CommentNodeData } from '@/types/comment';
 import { formatDateTime, formatRelative } from '@/utils/date';
 
+import RichTextRenderer from './RichTextRenderer.vue';
+
 const props = defineProps<{ node: CommentNodeData; depth: number; canDelete?: boolean }>();
 const emit = defineEmits<{
   reply: [node: CommentNodeData];
@@ -28,7 +30,9 @@ const author = computed(() =>
           {{ formatRelative(node.created_at) }}
         </span>
       </div>
-      <p class="comment-content">{{ node.content }}</p>
+      <div class="comment-content rich-text">
+        <RichTextRenderer :node="node.content" />
+      </div>
       <div class="comment-actions">
         <button type="button" class="comment-action" @click="emit('reply', node)">
           <IconCornerUpLeft :size="13" :stroke-width="2" />

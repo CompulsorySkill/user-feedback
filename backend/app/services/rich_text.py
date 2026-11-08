@@ -89,6 +89,7 @@ async def validate_rich_text(
     allowed_purposes: dict[str, tuple[str, ...]],
     uploads: UploadRepository,
     allowed_object_keys: set[str] | None = None,
+    max_total_text: int | None = None,
 ) -> str:
     """校验并返回 excerpt（纯文本前 200 字）。"""
     if not isinstance(content, dict) or content.get("type") != "doc":
@@ -158,6 +159,12 @@ async def validate_rich_text(
 
     walk(content, 0)
 
+    if (
+        max_total_text is not None
+        and sum(len(part) for part in text_parts) > max_total_text
+    ):
+        raise _invalid(f"文本总长度不能超过 {max_total_text} 字")
+
     if media:
         preapproved = allowed_object_keys or set()
         rows = await uploads.list_for_identities(
@@ -181,3 +188,20 @@ async def validate_rich_text(
 
     excerpt = " ".join("".join(text_parts).split())
     return excerpt[:200]
+
+
+def content_text(content: Any) -> str:
+    """提取富文本纯文本，用于审计快照与去空校验。"""
+    parts: list[str] = []
+    stack = [content]
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, dict):
+            continue
+        text = node.get("text")
+        if isinstance(text, str):
+            parts.append(text)
+        children = node.get("content")
+        if isinstance(children, list):
+            stack.extend(reversed(children))
+    return " ".join("".join(parts).split())

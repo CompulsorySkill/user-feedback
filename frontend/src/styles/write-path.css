@@ -507,7 +507,6 @@
   margin-top: 8px;
   color: var(--text-muted);
   line-height: 1.7;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
@@ -558,25 +557,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.comment-form textarea {
-  width: 100%;
-  resize: vertical;
-  min-height: 84px;
-  padding: 11px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface-muted);
-  color: var(--text);
-  font: inherit;
-  line-height: 1.6;
-  outline: none;
-}
-
-.comment-form textarea:focus {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .comment-form-foot {
@@ -676,9 +656,6 @@
 
 .login-card h2 {
   font-weight: 600;
-}
-
-.login-card .muted code {
 }
 
 .login-title {

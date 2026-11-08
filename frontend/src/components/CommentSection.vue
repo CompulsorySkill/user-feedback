@@ -5,10 +5,17 @@ import { computed, onMounted, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { createComment, deleteComment, listComments, type CommentItem } from '@/api/comments';
 import CommentNode from '@/components/CommentNode.vue';
+import PostEditor from '@/components/PostEditor.vue';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 import type { CommentNodeData } from '@/types/comment';
+import {
+  contentHasMedia,
+  contentPlainText,
+  contentTextLength,
+  type JSONContent,
+} from '@/types/content';
 
 const confirm = useConfirm();
 
@@ -21,8 +28,19 @@ const items = ref<CommentItem[]>([]);
 const loading = ref(true);
 const error = ref('');
 const submitting = ref(false);
-const draft = ref('');
+const uploading = ref(false);
+const draft = ref<JSONContent | null>(null);
+const editor = ref<InstanceType<typeof PostEditor> | null>(null);
 const replyTo = ref<CommentNodeData | null>(null);
+
+const draftLength = computed(() => contentTextLength(draft.value));
+const canSubmit = computed(
+  () =>
+    !submitting.value &&
+    !uploading.value &&
+    draftLength.value <= 2000 &&
+    (contentPlainText(draft.value).trim().length > 0 || contentHasMedia(draft.value)),
+);
 
 const tree = computed<CommentNodeData[]>(() => {
   const nodes = new Map<string, CommentNodeData>();
@@ -61,21 +79,21 @@ async function load(): Promise<void> {
 
 function startReply(node: CommentNodeData): void {
   replyTo.value = node;
-  document.querySelector<HTMLTextAreaElement>('.comment-form textarea')?.focus();
+  editor.value?.focus();
 }
 
 async function submit(): Promise<void> {
-  const content = draft.value.trim();
-  if (!content || submitting.value) return;
+  if (!draft.value || !canSubmit.value) return;
 
   submitting.value = true;
   error.value = '';
   try {
     await createComment(props.postId, {
-      content,
+      content: draft.value,
       parent_id: replyTo.value?.id ?? null,
     });
-    draft.value = '';
+    editor.value?.clear();
+    draft.value = null;
     replyTo.value = null;
     await load();
   } catch (err) {
@@ -138,15 +156,17 @@ async function removeComment(node: CommentNodeData): Promise<void> {
           <IconX :size="12" :stroke-width="2" />
         </button>
       </div>
-      <textarea
-        v-model="draft"
-        rows="3"
-        maxlength="2000"
+      <PostEditor
+        ref="editor"
+        scope="comment"
+        aria-label="评论内容"
         placeholder="写下你的补充、复现步骤或看法（支持匿名）"
-      ></textarea>
+        @update:json="draft = $event"
+        @update:uploading="uploading = $event"
+      />
       <div class="comment-form-foot">
-        <span class="muted">{{ draft.length }} / 2000</span>
-        <Button type="submit" :disabled="submitting || !draft.trim()" variant="default" size="lg">
+        <span class="muted">{{ draftLength }} / 2000</span>
+        <Button type="submit" :disabled="!canSubmit" variant="default" size="lg">
           <IconLoader2 v-if="submitting" class="spin" :size="14" :stroke-width="2" />
           <IconSend v-else :size="14" :stroke-width="2" />
           发表评论

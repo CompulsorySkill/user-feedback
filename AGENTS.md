@@ -8,7 +8,7 @@
 
 自托管的用户意见反馈系统，包含两大模块：
 
-- **反馈（Post）**：看板、状态流转、富文本（图片 / MP4）、匿名或登录发布、投票、三层评论。
+- **反馈（Post）**：看板、状态流转、富文本（图片 / MP4）、匿名或登录发布、投票、富文本三层评论。
 - **更新日志（Changelog）**：管理员草稿 / 发布、富文本、任意类型附件下载。
 
 产品面向 **PC Web**，不做移动端适配。单仓结构：
@@ -127,7 +127,7 @@ tests/             每个用例独立 SQLite 库，schema 由迁移链构建
 ### 4.3 数据库与迁移
 
 - **Alembic 是 schema 唯一权威，禁止 `create_all`，禁止启动时自动建表。**
-- 修改模型后生成迁移，保持数字前缀命名（当前 head 为 `0008_announcement_attachments`）：
+- 修改模型后生成迁移，保持数字前缀命名（当前 head 为 `0009_comment_rich_content`）：
 
 ```bash
 cd backend
@@ -156,7 +156,7 @@ uv run alembic check
   - 下载走 `GET /api/v1/changelogs/{id}/attachments/{attachment_id}`，强制
     `Content-Disposition: attachment` 与 `nosniff`；
   - 草稿附件仅管理员可下载；公开详情不返回 `object_key`。
-- 上传清理只删除超过保留期且未被富文本或 `changelog_attachments` 引用的对象；
+- 上传清理只删除超过保留期且未被反馈 / 评论 / 更新日志 / 公告富文本或附件表引用的对象；
   新增引用方式时必须同步更新 `services/upload_cleanup.py`。
 - 安全响应头、CORS 白名单、HttpOnly cookie、限流（数据库固定窗口）不要弱化。
 - 管理写操作应写审计日志（actor 邮箱快照、IP、target、detail）；审计失败不阻塞主流程。

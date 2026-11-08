@@ -153,8 +153,9 @@ keyset 分页。响应：
 { "filename": "cover.png", "content_type": "image/png", "purpose": "post_image", "size": 123456 }
 ```
 
-- purpose：`post_image` / `post_video` / `changelog_image` / `changelog_video` / `changelog_attachment` /
-  `announcement_image` / `announcement_video` / `announcement_attachment`
+- purpose：`post_image` / `post_video` / `comment_image` / `comment_video` / `changelog_image` /
+  `changelog_video` / `changelog_attachment` / `announcement_image` / `announcement_video` /
+  `announcement_attachment`
 - 图片：PNG / JPEG / WebP / GIF；视频：仅 `video/mp4`；单文件 ≤ `UPLOAD_MAX_BYTES`（默认 100MB）
 - `changelog_attachment` / `announcement_attachment` 仅管理员可用，**不限制 content-type**；对象以 `application/octet-stream` 存储，
   下载走受控接口并强制 `Content-Disposition: attachment`
@@ -186,19 +187,35 @@ keyset 分页。响应：
 
 ### 富文本校验
 
+反馈、更新日志、公告与评论正文均为 Tiptap JSON：
+
 - 顶层必须 `doc`；payload ≤ 256KB；深度 ≤ 8；节点 ≤ 2000；单文本 ≤ 20000 字符
+- 评论正文的纯文本总长度 ≤ 2000 字，且不能为空（只有图片 / 视频也算有效内容）
 - 节点与 mark 白名单（未知节点 / 标记直接拒绝）；链接仅 http(s)
 - `mention` 节点只存 `id` 与 `label`（≤128 字符），仅作为内联文本渲染，`label` 必填；
   候选名单来自公开接口 `GET /v1/admins`，摘要拼接为 `@label`
 - `image` / `video` 的 `src` 必须是**当前身份**的 `Upload`，且 purpose / content_type 匹配，否则 `400 INVALID_CONTENT`
+  - 反馈：`post_image` / `post_video`；评论：`comment_image` / `comment_video`；
+    更新日志：`changelog_image` / `changelog_video`；公告：`announcement_image` / `announcement_video`
 - 编辑时允许保留原内容中已存在的媒体 key（历史数据或他人上传），新增媒体仍必须是编辑者自己的 `Upload`
+
+创建评论的请求体：
+
+```json
+{
+  "content": { "type": "doc", "content": [] },
+  "parent_id": null
+}
+```
+
+超过 3 层时服务端会挂到根评论，并在正文前插入「回复 @xxx：」段落。
 
 ### 未引用对象清理
 
 `POST /api/v1/admin/uploads/cleanup?dry_run=false&grace_hours=24`（管理员）
 
 - 扫描 `uploads` 表中创建超过 `grace_hours`（默认 24，最大 720）的记录；
-- 只保留在反馈 / 更新日志 / 公告富文本或 `changelog_attachments` / `announcement_attachments` 中出现的 object key；
+- 只保留在反馈 / 评论 / 更新日志 / 公告富文本或 `changelog_attachments` / `announcement_attachments` 中出现的 object key；
 - 未引用对象从 RustFS 删除，并删除对应 `Upload` 行；单次最多删除 200 条，
   但会继续向后扫描（已引用记录不会阻塞后续孤儿对象）；
 - `dry_run=true` 只返回可清理数量，不删除任何对象；
@@ -290,7 +307,7 @@ keyset 分页。响应：
 | PATCH | `/v1/posts/{id}/status` | 作者（仅关闭）/ 管理员 |
 | POST / DELETE | `/v1/posts/{id}/vote` | 匿名 / 登录 |
 | GET | `/v1/posts/{id}/comments` | 公开 |
-| POST | `/v1/posts/{id}/comments` | 匿名 / 登录 |
+| POST | `/v1/posts/{id}/comments` | 匿名 / 登录；正文为 Tiptap JSON |
 | DELETE | `/v1/posts/{id}/comments/{comment_id}` | 管理员；连子回复一并删除并修正 `comment_count` |
 | POST | `/v1/uploads/presign` | 图片 / 视频：匿名 / 登录；更新日志附件：仅管理员 |
 | GET | `/v1/changelogs`、`/v1/changelogs/{id}` | 公开；草稿仅管理员 |

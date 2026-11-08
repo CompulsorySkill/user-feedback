@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from datetime import datetime
@@ -47,7 +48,25 @@ def insert_comment(conn, *, post_id: str, author_id: int) -> None:
     conn.execute(
         "INSERT INTO comments (id, post_id, content, author_id, created_at, updated_at)"
         " VALUES (?, ?, ?, ?, ?, ?)",
-        (comment_id.hex, post_id, "评论", author_id, stamp, stamp),
+        (
+            comment_id.hex,
+            post_id,
+            json.dumps(
+                {
+                    "type": "doc",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [{"type": "text", "text": "评论"}],
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            author_id,
+            stamp,
+            stamp,
+        ),
     )
     conn.commit()
 

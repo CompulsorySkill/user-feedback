@@ -214,7 +214,7 @@ def get_comment_service(
     comments: CommentRepoDep,
     uploads: UploadRepoDep,
 ) -> CommentService:
-    return CommentService(session, posts, comments)
+    return CommentService(session, posts, comments, uploads)
 
 
 BoardServiceDep = Annotated[BoardService, Depends(get_board_service)]

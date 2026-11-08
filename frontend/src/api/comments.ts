@@ -1,10 +1,12 @@
+import type { JSONContent } from '@/types/content';
+
 import { api } from './client';
 
 export interface CommentItem {
   id: string;
   post_id: string;
   parent_id: string | null;
-  content: string;
+  content: JSONContent;
   author_name: string | null;
   is_anonymous: boolean;
   created_at: string;
@@ -21,7 +23,7 @@ export function listComments(postId: string): Promise<CommentList> {
 
 export function createComment(
   postId: string,
-  input: { content: string; parent_id?: string | null },
+  input: { content: JSONContent; parent_id?: string | null },
 ): Promise<CommentItem> {
   return api.post<CommentItem>(`/v1/posts/${encodeURIComponent(postId)}/comments`, input);
 }

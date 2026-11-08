@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime
 
@@ -42,7 +43,18 @@ def insert_comment(
             comment_id.hex,
             post_id,
             uuid.UUID(parent_id).hex if parent_id else None,
-            content,
+            json.dumps(
+                {
+                    "type": "doc",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [{"type": "text", "text": content}],
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
             stamp,
             stamp,
         ),

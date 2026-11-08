@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import uuid
 
@@ -58,7 +59,7 @@ def test_upgrade_creates_all_tables(sqlite_conn: sqlite3.Connection) -> None:
     assert _tables(sqlite_conn) == EXPECTED_TABLES
 
     version = sqlite_conn.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("0008_announcement_attachments",)
+    assert version == ("0009_comment_rich_content",)
 
 
 def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:
@@ -121,6 +122,46 @@ def test_post_status_check_constraint(sqlite_conn: sqlite3.Connection) -> None:
 
     with pytest.raises(sqlite3.IntegrityError):
         sqlite_conn.execute("UPDATE posts SET status='done' WHERE id=?", (post_id,))
+
+
+def test_comment_content_migrates_to_rich_text(tmp_path) -> None:
+    db_path = tmp_path / "comment-content.db"
+    config = alembic_config(f"sqlite+aiosqlite:///{db_path.as_posix()}")
+    command.upgrade(config, "0008_announcement_attachments")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("INSERT INTO boards (slug, name) VALUES ('general', 'General')")
+        post_id = uuid.uuid4().hex
+        conn.execute(
+            "INSERT INTO posts (id, board_id, title, content)"
+            " VALUES (?, 1, 'hello', '{}')",
+            (post_id,),
+        )
+        conn.execute(
+            "INSERT INTO comments (id, post_id, content) VALUES (?, ?, ?)",
+            (uuid.uuid4().hex, post_id, "旧评论"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    command.upgrade(config, "head")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        raw = conn.execute("SELECT content FROM comments").fetchone()[0]
+    finally:
+        conn.close()
+    assert json.loads(raw) == {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "旧评论"}],
+            }
+        ],
+    }
 
 
 def test_downgrade_removes_schema(tmp_path) -> None:
