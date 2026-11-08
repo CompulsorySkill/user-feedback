@@ -201,9 +201,10 @@ uv run alembic check
   （reka 不允许 `<SelectItem value="">`），取接口参数时再转成 `null`。
   `ui/select/` 有三个本地改动，重新拉取组件后必须保留：`SelectContent` 默认
   `position: 'popper'`（`item-aligned` 会盖在触发器上）和 `bodyLock: false`（否则弹层会把
-  `body` 设成 `overflow: hidden`，页面 scrollbar 消失）；`SelectTrigger` 多了 `size="lg"`（同
-  `data-[size=lg]:h-8`），列表筛选栏那种 32px 行用它，别用 `class="h-8"`——组件自带的
-  `data-[size=default]:h-7` 选择器权重更高，会压掉。
+  `body` 设成 `overflow: hidden`，页面 scrollbar 消失）；`SelectTrigger` 的字号按富文本
+  编辑器（16px）对齐：默认档是 `h-10 text-base`（40px 表单尺寸），32px 密集行用
+  `size="sm"`（`h-8 text-xs`）。别用 `class="h-8"` 改高度——组件自带的
+  `data-[size=*]:h-*` 选择器权重更高，会把它压掉。
 - 多选下拉用 `@/components/FilterCombobox`（reka `Combobox` 的 `multiple`）：触发器是
   `size="lg"` 的 outline Button，文案为「状态 · 2」，选中项本身就带 ✕ 清除。注意三点：
   `ComboboxTrigger` 默认 `tabindex="-1"`（reka 假设输入框在外侧），必须显式传 `tabindex="0"`
@@ -211,7 +212,8 @@ uv run alembic check
   搜索输入框放在弹层内，靠 `ComboboxRoot` 自带的过滤，不要另写一份筛选逻辑。
 - 表单控件：单行输入用 `@/components/ui/input`（28px / `text-xs`，不要再用 `.field-input`，
   该 class 已删）；`textarea` 与 `checkbox` 尚未迁移（仍是 `.field-textarea` / `.login-token`
-  与原生 checkbox）。表单控件统一 28px，`SelectTrigger` 不需要尺寸覆写。
+  与原生 checkbox）。单行输入统一 28px；`SelectTrigger` 默认 40px / 16px（见上），
+  和 28px 输入并排时注意视觉落差。
 - 已确认的布局约定：
   - 列表筛选栏为两行（`.filter-bar`）：第一行搜索框 + 搜索按钮（32px），第二行左对齐
     状态 / 标签多选、右对齐用户下拉 + 排序 Select，最右是「重置」（仅在有筛选时出现）；

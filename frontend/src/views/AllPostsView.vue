@@ -51,7 +51,6 @@ onMounted(load);
       <div class="board-main">
         <header class="board-header">
           <div class="board-header-main">
-            <span class="board-slug">ALL FEEDBACK</span>
             <h1>全部反馈</h1>
             <div class="board-meta">
               <span>{{ totalCount }} 条反馈</span>

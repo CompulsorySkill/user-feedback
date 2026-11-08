@@ -150,7 +150,7 @@ onMounted(load);
       <label class="audit-filter">
         <span class="field-label">动作</span>
         <Select :model-value="actionFilter" @update:model-value="onActionChange">
-          <SelectTrigger class="min-w-[180px]" aria-label="按动作筛选">
+          <SelectTrigger size="sm" class="min-w-[180px]" aria-label="按动作筛选">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

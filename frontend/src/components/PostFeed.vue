@@ -364,7 +364,7 @@ watch(
         @update:model-value="setAuthor"
       />
       <Select :model-value="sort" @update:model-value="setSort">
-        <SelectTrigger size="lg" aria-label="排序">
+        <SelectTrigger size="sm" aria-label="排序">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

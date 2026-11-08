@@ -162,11 +162,6 @@ onMounted(() => {
 
     <template v-else-if="board">
       <header class="mb-8">
-        <p
-          class="mb-[18px] inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground"
-        >
-          New feedback
-        </p>
         <h1 class="font-bold">发布反馈</h1>
         <p class="mt-1 text-sm text-muted-foreground">
           匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。
@@ -181,11 +176,11 @@ onMounted(() => {
       </div>
 
       <form
-        class="flex flex-col gap-[22px] rounded-lg border border-border bg-card p-[26px] shadow-[var(--shadow)]"
+        class="flex flex-col gap-5 rounded-lg border border-border bg-card p-6 shadow-(--shadow)"
         @submit.prevent="submit"
       >
         <label class="flex flex-col gap-2">
-          <span class="text-sm font-semibold text-muted-foreground">发布到</span>
+          <span class="font-semibold text-muted-foreground">发布到</span>
           <Select
             :model-value="boardSlug"
             @update:model-value="(value) => (boardSlug = String(value))"
@@ -202,7 +197,7 @@ onMounted(() => {
         </label>
 
         <div class="flex flex-col gap-2">
-          <span class="text-sm font-semibold text-muted-foreground">昵称（可选）</span>
+          <span class="font-semibold text-muted-foreground">昵称（可选）</span>
           <Input
             v-model="nickname"
             type="text"
@@ -212,7 +207,7 @@ onMounted(() => {
         </div>
 
         <label class="flex flex-col gap-2">
-          <span class="text-sm font-semibold text-muted-foreground">标题</span>
+          <span class="font-semibold text-muted-foreground">标题</span>
           <Input
             v-model="title"
             type="text"
@@ -222,12 +217,12 @@ onMounted(() => {
         </label>
 
         <div class="flex flex-col gap-2">
-          <span class="text-sm font-semibold text-muted-foreground">标签（可选）</span>
+          <span class="font-semibold text-muted-foreground">标签（可选）</span>
           <TagPicker v-model="tags" :suggestions="tagSuggestions" />
         </div>
 
         <div class="flex flex-col gap-2">
-          <span class="text-sm font-semibold text-muted-foreground">正文</span>
+          <span class="font-semibold text-muted-foreground">正文</span>
           <PostEditor ref="editorRef" @update:uploading="uploading = $event" />
         </div>
 
@@ -245,7 +240,7 @@ onMounted(() => {
             <input
               v-model="attachEnvironment"
               type="checkbox"
-              class="size-[15px] cursor-pointer accent-[var(--brand)]"
+              class="size-3.5 cursor-pointer accent-(--brand)"
             />
             附带浏览器 / 操作系统信息
           </label>
@@ -253,7 +248,7 @@ onMounted(() => {
             <RouterLink
               :to="`/b/${board.slug}`"
               data-slot="button"
-              :class="buttonVariants({ variant: 'ghost', size: 'lg' })"
+              :class="buttonVariants({ variant: 'outline', size: 'lg' })"
               >取消</RouterLink
             >
             <Button

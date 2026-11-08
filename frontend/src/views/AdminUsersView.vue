@@ -99,7 +99,7 @@ onMounted(load);
       <label class="admin-filter">
         <span class="field-label">角色</span>
         <Select :model-value="roleFilter" @update:model-value="onRoleChange">
-          <SelectTrigger class="min-w-[200px]" aria-label="按角色筛选">
+          <SelectTrigger size="sm" class="min-w-[200px]" aria-label="按角色筛选">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
