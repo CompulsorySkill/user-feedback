@@ -127,7 +127,7 @@ tests/             每个用例独立 SQLite 库，schema 由迁移链构建
 ### 4.3 数据库与迁移
 
 - **Alembic 是 schema 唯一权威，禁止 `create_all`，禁止启动时自动建表。**
-- 修改模型后生成迁移，保持数字前缀命名（当前 head 为 `0006_changelog_attachments`）：
+- 修改模型后生成迁移，保持数字前缀命名（当前 head 为 `0008_announcement_attachments`）：
 
 ```bash
 cd backend

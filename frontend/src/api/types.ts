@@ -106,6 +106,32 @@ export interface ChangelogDetail extends ChangelogSummary {
   attachments: ChangelogAttachment[];
 }
 
+export interface AnnouncementSummary {
+  id: string;
+  title: string;
+  excerpt: string;
+  is_published: boolean;
+  is_pinned: boolean;
+  published_at: string | null;
+  author_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnnouncementAttachment {
+  id: number;
+  object_key: string | null;
+  filename: string;
+  content_type: string;
+  size: number;
+  download_url: string;
+}
+
+export interface AnnouncementDetail extends AnnouncementSummary {
+  content: import('@/types/content').JSONContent;
+  attachments: AnnouncementAttachment[];
+}
+
 export interface Page<T> {
   items: T[];
   next_cursor: string | null;
@@ -148,7 +174,10 @@ export type UploadPurpose =
   | 'post_video'
   | 'changelog_image'
   | 'changelog_video'
-  | 'changelog_attachment';
+  | 'changelog_attachment'
+  | 'announcement_image'
+  | 'announcement_video'
+  | 'announcement_attachment';
 
 export interface UploadTicket {
   object_key: string;

@@ -25,11 +25,12 @@ class UploadService:
     ) -> UploadPresignResponse:
         if identity is None:
             raise AppException(403, code="IDENTITY_REQUIRED", detail="缺少身份")
-        if payload.purpose == "changelog_attachment" and not (
+        attachment_purposes = {"changelog_attachment", "announcement_attachment"}
+        if payload.purpose in attachment_purposes and not (
             isinstance(identity, AuthenticatedUser) and identity.is_admin
         ):
             raise AppException(
-                403, code="ADMIN_REQUIRED", detail="只有管理员可以上传更新日志附件"
+                403, code="ADMIN_REQUIRED", detail="只有管理员可以上传附件"
             )
         content_type = payload.content_type.strip().lower()
         allowed_types = PURPOSE_CONTENT_TYPES[payload.purpose]
@@ -51,7 +52,7 @@ class UploadService:
         # 附件强制以 octet-stream 存储，避免 text/html、SVG 等被浏览器直接执行。
         presign_content_type = (
             "application/octet-stream"
-            if payload.purpose == "changelog_attachment"
+            if payload.purpose in attachment_purposes
             else content_type
         )
         presigned = self.storage.presign_put(

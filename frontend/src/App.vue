@@ -43,6 +43,7 @@ onUnmounted(() => {
         <nav class="site-nav" aria-label="主导航">
           <RouterLink to="/" class="nav-link">反馈</RouterLink>
           <RouterLink to="/changelog" class="nav-link">更新日志</RouterLink>
+          <RouterLink to="/announcements" class="nav-link">公告</RouterLink>
           <RouterLink v-if="auth.isAdmin" to="/admin/boards" class="nav-link">
             看板管理
           </RouterLink>

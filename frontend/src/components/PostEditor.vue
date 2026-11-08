@@ -27,7 +27,7 @@ import { imageFilesFromClipboard } from '@/utils/clipboard';
 
 const props = withDefaults(
   defineProps<{
-    scope?: 'post' | 'changelog';
+    scope?: 'post' | 'changelog' | 'announcement';
     initialContent?: JSONContent | null;
   }>(),
   { scope: 'post', initialContent: null },
@@ -97,7 +97,7 @@ function insertMedia(file: File, purpose: 'image' | 'video', key: string): void 
 }
 
 async function pasteImages(files: File[]): Promise<void> {
-  const purpose = `${props.scope}_image` as 'post_image' | 'changelog_image';
+  const purpose = `${props.scope}_image` as 'post_image' | 'changelog_image' | 'announcement_image';
   // 逐张上传，保证插入顺序与粘贴顺序一致。
   for (const file of files) {
     const key = await upload(file, purpose);
@@ -115,7 +115,9 @@ async function onFileChange(event: Event): Promise<void> {
     | 'post_image'
     | 'post_video'
     | 'changelog_image'
-    | 'changelog_video';
+    | 'changelog_video'
+    | 'announcement_image'
+    | 'announcement_video';
   const key = await upload(file, purpose);
   if (!key) return;
 

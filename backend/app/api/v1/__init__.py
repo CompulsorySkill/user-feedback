@@ -6,6 +6,7 @@ from app.api.v1 import (
     admin_tags,
     admin_uploads,
     admin_users,
+    announcements,
     auth,
     boards,
     changelogs,
@@ -25,6 +26,7 @@ v1_router.include_router(admin_uploads.router)
 v1_router.include_router(admin_users.router)
 v1_router.include_router(posts.router)
 v1_router.include_router(changelogs.router)
+v1_router.include_router(announcements.router)
 v1_router.include_router(uploads.router)
 
 __all__ = ["v1_router"]

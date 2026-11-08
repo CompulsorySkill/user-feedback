@@ -11,6 +11,8 @@ from alembic import command
 from tests.conftest import alembic_config, sqlite_url
 
 EXPECTED_TABLES = {
+    "announcement_attachments",
+    "announcements",
     "audit_logs",
     "boards",
     "changelog_attachments",
@@ -56,7 +58,7 @@ def test_upgrade_creates_all_tables(sqlite_conn: sqlite3.Connection) -> None:
     assert _tables(sqlite_conn) == EXPECTED_TABLES
 
     version = sqlite_conn.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("0006_changelog_attachments",)
+    assert version == ("0008_announcement_attachments",)
 
 
 def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:

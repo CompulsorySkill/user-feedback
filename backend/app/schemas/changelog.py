@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.attachment import AttachmentInput
 from app.schemas.common import UTCModel
 
 
@@ -19,11 +20,6 @@ class ChangelogSummary(UTCModel):
     published_at: datetime | None
     created_at: datetime
     updated_at: datetime
-
-
-class ChangelogAttachmentInput(BaseModel):
-    object_key: str = Field(min_length=1, max_length=255, pattern=r"^uploads/")
-    filename: str = Field(min_length=1, max_length=255)
 
 
 class ChangelogAttachment(BaseModel):
@@ -44,9 +40,7 @@ class ChangelogDetail(ChangelogSummary):
 class ChangelogCreateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     content: dict[str, Any]
-    attachments: list[ChangelogAttachmentInput] = Field(
-        default_factory=list, max_length=10
-    )
+    attachments: list[AttachmentInput] = Field(default_factory=list, max_length=10)
 
     @field_validator("title")
     @classmethod
@@ -60,9 +54,7 @@ class ChangelogCreateRequest(BaseModel):
 class ChangelogUpdateRequest(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     content: dict[str, Any] | None = None
-    attachments: list[ChangelogAttachmentInput] | None = Field(
-        default=None, max_length=10
-    )
+    attachments: list[AttachmentInput] | None = Field(default=None, max_length=10)
 
     @field_validator("title")
     @classmethod

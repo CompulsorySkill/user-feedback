@@ -95,6 +95,19 @@ GET /api/v1/posts/authors?board=product
 - 撤回：`is_published=false`，**保留 `published_at`** 供审计。
 - 编辑即覆盖，无版本历史。
 
+## 5.1 公告语义
+
+公告与更新日志类似，但增加**置顶**与**作者标注**：
+
+- 创建即为草稿，仅管理员可见；发布 / 撤回规则与更新日志一致。
+- `author_name` 为创建时管理员显示名（无显示名取邮箱）的快照，后续编辑不改写。
+- `is_pinned` 全局最多一篇：置顶某篇会自动取消其他公告的置顶；置顶只允许已发布公告。
+- 撤回发布会同时取消置顶。
+- 列表按「置顶一篇 + 其余按创建时间倒序」返回；置顶只出现在第一页，不参与游标分页。
+- 公告正文附件：与更新日志同一套规则，purpose 为 `announcement_attachment`（仅管理员、不限 content-type、
+  以 `application/octet-stream` 存储、最多 10 个），下载走 `GET /v1/announcements/{id}/attachments/{attachment_id}`。
+- 富文本中的图片 / 视频走 `announcement_image` / `announcement_video` purpose。
+
 ## 6. 分页
 
 keyset 分页。响应：
@@ -140,9 +153,10 @@ keyset 分页。响应：
 { "filename": "cover.png", "content_type": "image/png", "purpose": "post_image", "size": 123456 }
 ```
 
-- purpose：`post_image` / `post_video` / `changelog_image` / `changelog_video` / `changelog_attachment`
+- purpose：`post_image` / `post_video` / `changelog_image` / `changelog_video` / `changelog_attachment` /
+  `announcement_image` / `announcement_video` / `announcement_attachment`
 - 图片：PNG / JPEG / WebP / GIF；视频：仅 `video/mp4`；单文件 ≤ `UPLOAD_MAX_BYTES`（默认 100MB）
-- `changelog_attachment` 仅管理员可用，**不限制 content-type**；对象以 `application/octet-stream` 存储，
+- `changelog_attachment` / `announcement_attachment` 仅管理员可用，**不限制 content-type**；对象以 `application/octet-stream` 存储，
   下载走受控接口并强制 `Content-Disposition: attachment`
 - 返回 `object_key`、`upload_url`、`method: "PUT"`、`headers`
 - `upload_url` 是站点相对路径（`/<BASE_PATH>/<S3_BUCKET>/...`，根部署即 `/storage/...`），浏览器按当前访问的 origin 补全协议与端口；
@@ -184,7 +198,7 @@ keyset 分页。响应：
 `POST /api/v1/admin/uploads/cleanup?dry_run=false&grace_hours=24`（管理员）
 
 - 扫描 `uploads` 表中创建超过 `grace_hours`（默认 24，最大 720）的记录；
-- 只保留在反馈 / 更新日志富文本或 `changelog_attachments` 中出现的 object key；
+- 只保留在反馈 / 更新日志 / 公告富文本或 `changelog_attachments` / `announcement_attachments` 中出现的 object key；
 - 未引用对象从 RustFS 删除，并删除对应 `Upload` 行；单次最多删除 200 条，
   但会继续向后扫描（已引用记录不会阻塞后续孤儿对象）；
 - `dry_run=true` 只返回可清理数量，不删除任何对象；
@@ -244,7 +258,8 @@ keyset 分页。响应：
 - 仅追加，不随目标对象删除；actor 被删除后保留邮箱快照。
 - 记录动作：`board.create/update/delete`、`tag.create/delete`、`post.update`（管理员）、
   `post.status`、`post.delete`、`comment.delete`、
-  `changelog.create/update/delete/publish/unpublish`、`upload.cleanup`。
+  `changelog.create/update/delete/publish/unpublish`、`upload.cleanup`、
+  `announcement.create/update/delete/publish/unpublish/pin/unpin`。
 - `action` 精确筛选；`before_id` 为上一页最后一条的 `id`；按 `id` 倒序。
 - 审计写入失败 best-effort：记录服务端日志，不回滚已提交的业务操作。
 
@@ -282,6 +297,11 @@ keyset 分页。响应：
 | POST / PATCH / DELETE | `/v1/changelogs[/{id}]` | 管理员；请求可带 `attachments` |
 | GET | `/v1/changelogs/{id}/attachments/{attachment_id}` | 公开（草稿仅管理员）；强制下载 |
 | POST | `/v1/changelogs/{id}/publish`、`/unpublish` | 管理员 |
+| GET | `/v1/announcements`、`/v1/announcements/{id}` | 公开；草稿仅管理员 |
+| POST / PATCH / DELETE | `/v1/announcements[/{id}]` | 管理员 |
+| POST | `/v1/announcements/{id}/publish`、`/unpublish` | 管理员 |
+| POST | `/v1/announcements/{id}/pin`、`/unpin` | 管理员；置顶全局唯一 |
+| GET | `/v1/announcements/{id}/attachments/{attachment_id}` | 公开（草稿仅管理员）；强制下载 |
 | GET | `/sso/jwt?token=&return_to=` | 公开（产品侧跳转，失败降级匿名） |
 | POST | `/sso/jwt` | 公开；`{token, return_to}` 换取会话，返回 `redirect_to` |
 | GET | `/v1/auth/me`、`/capabilities` | 公开（按 cookie） |

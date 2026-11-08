@@ -20,7 +20,8 @@ export function useUpload() {
 
   async function upload(file: File, purpose: UploadPurpose): Promise<string | null> {
     error.value = '';
-    const isAttachment = purpose === 'changelog_attachment';
+    const isAttachment =
+      purpose === 'changelog_attachment' || purpose === 'announcement_attachment';
 
     if (!isAttachment && !ALLOWED_CONTENT_TYPES.has(file.type)) {
       error.value = '仅支持 PNG / JPEG / WebP / GIF 图片与 MP4 视频';

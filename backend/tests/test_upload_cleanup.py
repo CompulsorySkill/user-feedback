@@ -119,6 +119,46 @@ async def test_cleanup_keeps_changelog_attachment(db_path, sqlite_conn) -> None:
         await engine.dispose()
 
 
+async def test_cleanup_keeps_announcement_attachment(db_path, sqlite_conn) -> None:
+    import json
+    import uuid
+
+    announcement_id = uuid.uuid4()
+    stamp = (NOW - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S.%f")
+    sqlite_conn.execute(
+        "INSERT INTO announcements (id, title, content, excerpt, is_published,"
+        " is_pinned, created_at, updated_at)"
+        " VALUES (?, '带附件的公告', ?, '', 1, 0, ?, ?)",
+        (announcement_id.hex, json.dumps({"type": "doc", "content": []}), stamp, stamp),
+    )
+    insert_upload(
+        sqlite_conn,
+        object_key="uploads/notice.zip",
+        created_at=NOW - timedelta(hours=48),
+        purpose="announcement_attachment",
+        content_type="application/zip",
+    )
+    sqlite_conn.execute(
+        "INSERT INTO announcement_attachments"
+        " (announcement_id, object_key, filename, content_type, size)"
+        " VALUES (?, 'uploads/notice.zip', 'notice.zip', 'application/zip', 10)",
+        (announcement_id.hex,),
+    )
+    sqlite_conn.commit()
+
+    engine = create_async_engine(sqlite_url(db_path))
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    storage = FakeStorage()
+    try:
+        async with sessionmaker() as session:
+            result = await UploadCleanupService(session, storage).run(grace_hours=24)
+        assert result.referenced == 1
+        assert result.deleted == 0
+        assert storage.deleted == []
+    finally:
+        await engine.dispose()
+
+
 async def test_cleanup_keeps_row_when_storage_delete_fails(
     db_path, sqlite_conn
 ) -> None:

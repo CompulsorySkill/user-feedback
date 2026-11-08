@@ -11,6 +11,13 @@ export const AUDIT_ACTIONS: Array<{ value: string; label: string }> = [
   { value: 'changelog.delete', label: '删除更新日志' },
   { value: 'changelog.publish', label: '发布更新日志' },
   { value: 'changelog.unpublish', label: '撤回更新日志' },
+  { value: 'announcement.create', label: '创建公告' },
+  { value: 'announcement.update', label: '编辑公告' },
+  { value: 'announcement.delete', label: '删除公告' },
+  { value: 'announcement.publish', label: '发布公告' },
+  { value: 'announcement.unpublish', label: '撤回公告' },
+  { value: 'announcement.pin', label: '置顶公告' },
+  { value: 'announcement.unpin', label: '取消置顶公告' },
   { value: 'upload.cleanup', label: '清理上传对象' },
 ];
 

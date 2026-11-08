@@ -18,6 +18,7 @@ from app.core.identity import (
 from app.core.security import ACCESS_COOKIE, decode_session_token
 from app.core.storage import S3Storage, get_storage
 from app.models import User
+from app.repositories.announcements import AnnouncementRepository
 from app.repositories.audit import AuditRepository
 from app.repositories.boards import BoardRepository
 from app.repositories.changelogs import ChangelogRepository
@@ -27,6 +28,7 @@ from app.repositories.tags import TagRepository
 from app.repositories.uploads import UploadRepository
 from app.repositories.users import UserRepository
 from app.repositories.votes import VoteRepository
+from app.services.announcements import AnnouncementService
 from app.services.audit import AuditService
 from app.services.boards import BoardService
 from app.services.changelogs import ChangelogService
@@ -51,6 +53,10 @@ def get_post_repository(session: SessionDep) -> PostRepository:
 
 def get_changelog_repository(session: SessionDep) -> ChangelogRepository:
     return ChangelogRepository(session)
+
+
+def get_announcement_repository(session: SessionDep) -> AnnouncementRepository:
+    return AnnouncementRepository(session)
 
 
 def get_upload_repository(session: SessionDep) -> UploadRepository:
@@ -80,6 +86,9 @@ def get_user_repository(session: SessionDep) -> UserRepository:
 BoardRepoDep = Annotated[BoardRepository, Depends(get_board_repository)]
 PostRepoDep = Annotated[PostRepository, Depends(get_post_repository)]
 ChangelogRepoDep = Annotated[ChangelogRepository, Depends(get_changelog_repository)]
+AnnouncementRepoDep = Annotated[
+    AnnouncementRepository, Depends(get_announcement_repository)
+]
 UploadRepoDep = Annotated[UploadRepository, Depends(get_upload_repository)]
 VoteRepoDep = Annotated[VoteRepository, Depends(get_vote_repository)]
 CommentRepoDep = Annotated[CommentRepository, Depends(get_comment_repository)]
@@ -175,6 +184,14 @@ def get_changelog_service(
     return ChangelogService(session, changelogs, uploads)
 
 
+def get_announcement_service(
+    session: SessionDep,
+    announcements: AnnouncementRepoDep,
+    uploads: UploadRepoDep,
+) -> AnnouncementService:
+    return AnnouncementService(session, announcements, uploads)
+
+
 def get_upload_service(session: SessionDep, storage: StorageDep) -> UploadService:
     return UploadService(session, storage)
 
@@ -206,6 +223,9 @@ TagServiceDep = Annotated[TagService, Depends(get_tag_service)]
 AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 ChangelogServiceDep = Annotated[ChangelogService, Depends(get_changelog_service)]
+AnnouncementServiceDep = Annotated[
+    AnnouncementService, Depends(get_announcement_service)
+]
 UploadServiceDep = Annotated[UploadService, Depends(get_upload_service)]
 UploadCleanupServiceDep = Annotated[
     UploadCleanupService, Depends(get_upload_cleanup_service)

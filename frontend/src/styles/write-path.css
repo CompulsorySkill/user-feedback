@@ -146,6 +146,24 @@
   letter-spacing: 0.02em;
 }
 
+.pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.announcement-author {
+  margin-top: 6px;
+  color: var(--text-muted);
+}
+
 .post-detail-meta .author-tag {
 }
 

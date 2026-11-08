@@ -147,11 +147,15 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
 | GET | `/api/v1/posts/{id}/comments` | 评论扁平列表（含 `parent_id`） |
 | POST | `/api/v1/posts/{id}/comments` | 发表评论（≤3 层，超出挂根并「回复 @xxx」） |
-| POST | `/api/v1/uploads/presign` | 获取 presigned PUT（图片 / MP4，≤100MB）；更新日志附件支持任意类型（仅管理员） |
+| POST | `/api/v1/uploads/presign` | 获取 presigned PUT（图片 / MP4，≤100MB）；更新日志 / 公告附件支持任意类型（仅管理员） |
 | GET | `/api/v1/changelogs?limit=&cursor=` | 已发布更新日志列表；管理员可用 `include_drafts=true` |
 | POST/PATCH/DELETE | `/api/v1/changelogs[/{id}]` | 更新日志写（仅管理员）；可携带最多 10 个附件 |
 | GET | `/api/v1/changelogs/{id}/attachments/{attachment_id}` | 下载附件（草稿仅管理员，强制 attachment） |
 | POST | `/api/v1/changelogs/{id}/publish`、`/unpublish` | 发布 / 撤回（仅管理员） |
+| GET | `/api/v1/announcements?limit=&cursor=` | 已发布公告列表（置顶在前）；管理员可用 `include_drafts=true` |
+| POST/PATCH/DELETE | `/api/v1/announcements[/{id}]` | 公告写（仅管理员）；可携带最多 10 个附件 |
+| GET | `/api/v1/announcements/{id}/attachments/{attachment_id}` | 下载公告附件（草稿仅管理员，强制 attachment） |
+| POST | `/api/v1/announcements/{id}/publish`、`/unpublish`、`/pin`、`/unpin` | 发布 / 撤回 / 置顶 / 取消置顶（仅管理员） |
 | GET | `/api/sso/jwt?token=&return_to=` | SSO 跳转登录（失败降级匿名） |
 | POST | `/api/sso/jwt` | SSO 登录（token 走 body，不进 URL） |
 | GET/POST | `/api/v1/auth/me`、`/refresh`、`/logout` | 当前身份、刷新、登出 |

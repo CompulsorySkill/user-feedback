@@ -16,30 +16,22 @@ from app.models import (
 )
 from app.repositories.changelogs import ChangelogRepository
 from app.repositories.uploads import UploadRepository
+from app.schemas.attachment import AttachmentInput
 from app.schemas.changelog import (
     ChangelogAttachment as ChangelogAttachmentSchema,
-    ChangelogAttachmentInput,
     ChangelogCreateRequest,
     ChangelogDetail,
     ChangelogSummary,
     ChangelogUpdateRequest,
 )
 from app.schemas.common import Page
+from app.services.attachments import validate_attachments
 from app.services.rich_text import collect_media_keys, validate_rich_text
 
 CHANGELOG_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
     "image": ("changelog_image",),
     "video": ("changelog_video",),
 }
-MAX_ATTACHMENTS = 10
-
-
-def sanitize_filename(value: str) -> str:
-    """去掉路径与控制字符，仅保留用于展示 / 下载的文件名。"""
-    name = value.replace("\\", "/").rsplit("/", 1)[-1].strip()
-    name = "".join(char for char in name if ord(char) >= 32 and char not in '\r\n"')
-    name = name[:200].strip()
-    return name or "attachment"
 
 
 def _summary(entry: ChangelogEntry) -> ChangelogSummary:
@@ -128,47 +120,14 @@ class ChangelogService:
         )
 
     async def _validate_attachments(
-        self, items: list[ChangelogAttachmentInput], actor: User
+        self, items: list[AttachmentInput], actor: User
     ) -> list[dict[str, str | int]]:
-        if len(items) > MAX_ATTACHMENTS:
-            raise AppException(
-                400,
-                code="ATTACHMENT_LIMIT",
-                detail=f"每条更新日志最多 {MAX_ATTACHMENTS} 个附件",
-            )
-        if not items:
-            return []
-
-        keys: list[str] = []
-        seen: set[str] = set()
-        for item in items:
-            if item.object_key in seen:
-                continue
-            seen.add(item.object_key)
-            keys.append(item.object_key)
-
-        uploads = await self.uploads.list_for_identity(f"user:{actor.id}", keys)
-        uploads_by_key = {upload.object_key: upload for upload in uploads}
-        result: list[dict[str, str | int]] = []
-        for item in items:
-            upload = uploads_by_key.get(item.object_key)
-            if upload is None or upload.purpose != "changelog_attachment":
-                raise AppException(
-                    400,
-                    code="INVALID_ATTACHMENT",
-                    detail="附件不存在、已失效或不属于当前管理员",
-                )
-            if any(row["object_key"] == item.object_key for row in result):
-                continue
-            result.append(
-                {
-                    "object_key": item.object_key,
-                    "filename": sanitize_filename(item.filename),
-                    "content_type": upload.content_type,
-                    "size": upload.size,
-                }
-            )
-        return result
+        return await validate_attachments(
+            items,
+            identity=f"user:{actor.id}",
+            uploads=self.uploads,
+            purpose="changelog_attachment",
+        )
 
     @staticmethod
     def _attachment_rows(

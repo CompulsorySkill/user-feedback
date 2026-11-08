@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from typing import Annotated, Any
-from urllib.parse import quote
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Request, Response
 from fastapi import status as http_status
@@ -18,6 +17,7 @@ from app.api.deps import (
     IdentityDep,
     StorageDep,
 )
+from app.api.v1.download import content_disposition, stream_object
 from app.core.errors import AppException
 from app.core.identity import AuthenticatedUser
 from app.schemas.changelog import (
@@ -37,31 +37,6 @@ CursorQuery = Annotated[str | None, Query(description="上一页返回的 next_c
 
 def _is_admin(identity) -> bool:
     return isinstance(identity, AuthenticatedUser) and identity.is_admin
-
-
-def _content_disposition(filename: str) -> str:
-    fallback = (
-        "".join(
-            char if 32 <= ord(char) < 127 and char not in '"\\' else "_"
-            for char in filename
-        )
-        or "attachment"
-    )
-    return (
-        f'attachment; filename="{fallback}"; '
-        f"filename*=UTF-8''{quote(filename, safe='')}"
-    )
-
-
-async def _stream_object(body: Any):
-    try:
-        while True:
-            chunk = await asyncio.to_thread(body.read, 64 * 1024)
-            if not chunk:
-                break
-            yield chunk
-    finally:
-        await asyncio.to_thread(body.close)
 
 
 @router.get("", response_model=Page[ChangelogSummary], summary="更新日志列表")
@@ -142,10 +117,10 @@ async def download_attachment(
         ) from None
 
     return StreamingResponse(
-        _stream_object(stored.body),
+        stream_object(stored.body),
         media_type="application/octet-stream",
         headers={
-            "Content-Disposition": _content_disposition(attachment.filename),
+            "Content-Disposition": content_disposition(attachment.filename),
             "Content-Length": str(stored.content_length or attachment.size),
             "Cache-Control": "private, max-age=0, no-store",
             "X-Content-Type-Options": "nosniff",

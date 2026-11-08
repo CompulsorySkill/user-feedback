@@ -1,6 +1,6 @@
 """未引用上传对象清理。
 
-presign 会先写 ``uploads`` 记录，真正上传的 object key 只有在反馈 / 更新日志
+presign 会先写 ``uploads`` 记录，真正上传的 object key 只有在反馈 / 更新日志 / 公告
 富文本或 ``changelog_attachments`` 里出现才算被引用。这里清理超过保留期仍未被引用的记录与 RustFS 对象，
 同时覆盖「presign 后从未上传」和「编辑内容后移除媒体」两种情况。
 
@@ -18,7 +18,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.storage import StorageBackend
-from app.models import ChangelogAttachment, ChangelogEntry, Post, Upload
+from app.models import (
+    Announcement,
+    AnnouncementAttachment,
+    ChangelogAttachment,
+    ChangelogEntry,
+    Post,
+    Upload,
+)
 from app.schemas.audit import UploadCleanupResult
 
 MAX_BATCH = 200
@@ -36,7 +43,7 @@ class UploadCleanupService:
             return set()
         patterns = [f"%{key}%" for key in keys]
         referenced: set[str] = set()
-        for model in (Post, ChangelogEntry):
+        for model in (Post, ChangelogEntry, Announcement):
             content = cast(model.content, Text)
             stmt = select(content).where(or_(*(content.like(p) for p in patterns)))
             rows = await self.session.execute(stmt)
@@ -47,13 +54,12 @@ class UploadCleanupService:
                     if key in text:
                         referenced.add(key)
 
-        # 更新日志附件不在 content JSON 中，必须单独计入引用。
-        attachment_rows = await self.session.execute(
-            select(ChangelogAttachment.object_key).where(
-                ChangelogAttachment.object_key.in_(keys)
+        # 附件不在 content JSON 中，必须单独计入引用。
+        for model in (ChangelogAttachment, AnnouncementAttachment):
+            attachment_rows = await self.session.execute(
+                select(model.object_key).where(model.object_key.in_(keys))
             )
-        )
-        referenced.update(attachment_rows.scalars().all())
+            referenced.update(attachment_rows.scalars().all())
         return referenced
 
     async def run(
