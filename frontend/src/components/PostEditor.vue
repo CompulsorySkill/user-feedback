@@ -2,6 +2,7 @@
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
+  IconAt,
   IconBold,
   IconCode,
   IconH2,
@@ -111,6 +112,10 @@ function insertMedia(file: File, purpose: 'image' | 'video', key: string): void 
       .insertContent({ type: 'video', attrs: { src: key, poster: null } })
       .run();
   }
+}
+
+function insertMention(): void {
+  editor.value?.chain().focus().insertContent('@').run();
 }
 
 async function pasteImages(files: File[]): Promise<void> {
@@ -224,6 +229,9 @@ defineExpose({
         @click="editor.chain().focus().toggleCodeBlock().run()"
       >
         <IconCode :size="16" :stroke-width="2" />
+      </button>
+      <button type="button" class="tool-button" title="提及管理员" @click="insertMention">
+        <IconAt :size="16" :stroke-width="2" />
       </button>
 
       <span class="tool-sep" />

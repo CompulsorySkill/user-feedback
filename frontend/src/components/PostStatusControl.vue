@@ -72,11 +72,16 @@ async function applyStatus(target: PostStatus): Promise<void> {
         :disabled="pending"
         @update:model-value="(value) => applyStatus(value as PostStatus)"
       >
-        <SelectTrigger aria-label="修改反馈状态">
+        <SelectTrigger aria-label="修改反馈状态" size="sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">
+          <SelectItem
+            v-for="option in STATUS_OPTIONS"
+            :key="option.value"
+            :value="option.value"
+            size="sm"
+          >
             {{ option.label }}
           </SelectItem>
         </SelectContent>
