@@ -312,7 +312,8 @@ watch(
           maxlength="100"
           placeholder="搜索标题或摘要…"
           aria-label="搜索反馈"
-          class="h-8 pr-8"
+          size="sm"
+          class="pr-8"
           @input="onSearchInput"
           @keydown.enter.prevent="submitSearch"
         />

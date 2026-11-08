@@ -94,7 +94,13 @@ onMounted(load);
     <form class="admin-toolbar" @submit.prevent="load">
       <label class="admin-filter">
         <span class="field-label">搜索</span>
-        <Input v-model="searchInput" type="search" maxlength="100" placeholder="邮箱或显示名" />
+        <Input
+          v-model="searchInput"
+          size="sm"
+          type="search"
+          maxlength="100"
+          placeholder="邮箱或显示名"
+        />
       </label>
       <label class="admin-filter">
         <span class="field-label">角色</span>
