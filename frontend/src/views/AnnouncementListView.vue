@@ -81,14 +81,19 @@ onMounted(load);
         </div>
         <div class="changelog-body">
           <h2>
-            <span v-if="entry.is_pinned" class="pinned-badge">
+            <span
+              v-if="entry.is_pinned"
+              class="inline-flex items-center gap-1 rounded-full bg-accent py-px pl-1.5 pr-2 align-middle text-xs font-semibold text-accent-foreground"
+            >
               <IconPin :size="12" :stroke-width="2" /> 置顶
             </span>
             {{ entry.title }}
             <span v-if="!entry.is_published" class="anon-badge">草稿</span>
           </h2>
           <p>{{ entry.excerpt }}</p>
-          <p v-if="entry.author_name" class="announcement-author">作者：{{ entry.author_name }}</p>
+          <p v-if="entry.author_name" class="mt-1.5 text-muted-foreground">
+            作者：{{ entry.author_name }}
+          </p>
         </div>
         <IconArrowUpRight class="changelog-arrow" :size="18" :stroke-width="1.8" />
       </RouterLink>

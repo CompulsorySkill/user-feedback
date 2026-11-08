@@ -96,7 +96,10 @@ watch(() => route.params.id, load, { immediate: true });
 
       <div v-if="auth.isAdmin" class="detail-admin-bar">
         <span v-if="!entry.is_published" class="anon-badge">草稿（仅管理员可见）</span>
-        <span v-else-if="entry.is_pinned" class="pinned-badge">
+        <span
+          v-else-if="entry.is_pinned"
+          class="inline-flex items-center gap-1 rounded-full bg-accent py-px pl-1.5 pr-2 align-middle text-xs font-semibold text-accent-foreground"
+        >
           <IconPin :size="12" :stroke-width="2" /> 已置顶
         </span>
         <span v-else class="muted">已发布</span>
@@ -135,14 +138,19 @@ watch(() => route.params.id, load, { immediate: true });
 
       <article class="changelog-detail">
         <header class="post-detail-head">
-          <span v-if="entry.is_pinned" class="pinned-badge">
+          <span
+            v-if="entry.is_pinned"
+            class="inline-flex items-center gap-1 rounded-full bg-accent py-px pl-1.5 pr-2 align-middle text-xs font-semibold text-accent-foreground"
+          >
             <IconPin :size="12" :stroke-width="2" /> 置顶
           </span>
           <span class="changelog-date">
             {{ entry.published_at ? formatDate(entry.published_at) : '尚未发布' }}
           </span>
           <h1>{{ entry.title }}</h1>
-          <p v-if="entry.author_name" class="announcement-author">作者：{{ entry.author_name }}</p>
+          <p v-if="entry.author_name" class="mt-1.5 text-muted-foreground">
+            作者：{{ entry.author_name }}
+          </p>
         </header>
         <section class="rich-text">
           <RichTextRenderer :node="entry.content" />

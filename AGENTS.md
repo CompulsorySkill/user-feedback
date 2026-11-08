@@ -190,6 +190,10 @@ uv run alembic check
   旧样式改用别名 `--bg/--surface/--surface-muted/--text/--text-muted/--brand/--brand-soft/
   --line/--line-strong`，**不要在别处就地重定义这些变量**；深色取值写在同一文件的
   `.dark` 块里。
+- 新组件样式优先写成 Tailwind 工具类，颜色 / 圆角用 `@theme` 暴露的语义 token
+  （`bg-background`、`text-muted-foreground`、`bg-accent`、`text-accent-foreground`、
+  `border-border`、`rounded-lg` 等），**不要为新组件往 `src/styles/*.css` 或 `style.css`
+  追加新规则**。只有旧页面继续在原 CSS 文件里维护；确需复用旧 class 时直接复用，不要复制一份。
 - 破坏性操作（删除 / 关闭）用 `useConfirm()` + `ConfirmDialog`，不要再用 `window.confirm`。
 - 按钮统一用 `@/components/ui/button`：尺寸用 `size="lg"`（32px），旧的 `.button`
   系列 class 已删除；需要按钮外观的链接用 `buttonVariants({ variant, size })` 作 `:class`
