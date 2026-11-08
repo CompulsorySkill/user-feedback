@@ -1,4 +1,4 @@
-"""开发种子数据：看板、反馈、更新日志，以及本地演示媒体。
+"""开发种子数据：看板、反馈、评论、更新日志、公告，以及本地演示媒体。
 
 用法（在 backend/ 下执行）::
 
@@ -28,6 +28,7 @@ from app.models import (
     AnnouncementAttachment,
     Board,
     ChangelogEntry,
+    Comment,
     Post,
     PostTag,
     Tag,
@@ -105,6 +106,14 @@ def ordered_list(items: list[str]) -> dict[str, Any]:
 
 def blockquote(text: str) -> dict[str, Any]:
     return {"type": "blockquote", "content": [paragraph(text)]}
+
+
+def mention_node(label: str) -> dict[str, Any]:
+    return {"type": "mention", "attrs": {"id": f"seed-{label}", "label": label}}
+
+
+def paragraph_nodes(*nodes: dict[str, Any]) -> dict[str, Any]:
+    return {"type": "paragraph", "content": list(nodes)}
 
 
 def code_block(text: str) -> dict[str, Any]:
@@ -292,6 +301,7 @@ USERS = [
     {"email": "linxiaoman@example.com", "display_name": "林小满", "role": "admin"},
     {"email": "chenyi@example.com", "display_name": "陈亦", "role": "user"},
     {"email": "shenzhiyuan@example.com", "display_name": "沈知远", "role": "user"},
+    {"email": "zhouyuan@example.com", "display_name": "周予安", "role": "admin"},
 ]
 
 # (board_slug, title, status, author_index|None, votes, comments, hours_ago, 简介, 富文本节点)
@@ -358,6 +368,13 @@ POSTS: list[dict[str, Any]] = [
         "body": [
             paragraph(
                 "导出内容建议包含标题、状态、投票数、评论数与创建时间，Markdown 版本保留富文本结构。"
+            ),
+            paragraph_nodes(
+                text_node("字段想先对齐一下，"),
+                mention_node("林小满"),
+                text_node(" 和 "),
+                mention_node("周予安"),
+                text_node(" 有空时帮忙看看。"),
             ),
             bullet_list(
                 ["CSV：一行一条，便于表哥分析", "Markdown：保留标题层级与列表"]
@@ -557,6 +574,80 @@ POSTS: list[dict[str, Any]] = [
     },
 ]
 
+# 帖子索引 -> 评论；parent 为本列表下标，用于演示 3 层楼中楼与提及来源。
+COMMENTS: dict[int, list[dict[str, Any]]] = {
+    2: [
+        {
+            "author": 1,
+            "hours_ago": 25,
+            "content": [
+                paragraph_nodes(
+                    text_node("我也需要这个功能。导出时麻烦 "),
+                    mention_node("林小满"),
+                    text_node(" 确认下普通用户的权限范围。"),
+                )
+            ],
+        },
+        {
+            "author": 3,
+            "parent": 0,
+            "hours_ago": 24,
+            "content": [
+                paragraph_nodes(
+                    text_node("先按 CSV 出第一版，"),
+                    mention_node("林小满"),
+                    text_node(" 看下字段够不够。"),
+                )
+            ],
+        },
+        {
+            "author": 0,
+            "parent": 1,
+            "hours_ago": 23,
+            "content": [
+                paragraph_nodes(
+                    text_node("字段没问题，"),
+                    mention_node("周予安"),
+                    text_node(" 记得保留原始时间戳。"),
+                )
+            ],
+        },
+    ],
+}
+
+COMMENT_TEMPLATES = (
+    "这个场景我们也遇到过，希望优先排期。",
+    "补充一个细节：最好支持导出后再导入。",
+    "同意，先把基础能力做出来再迭代。",
+    "如果能带上筛选条件就更好用了。",
+    "我们下个季度会用到，先关注一下。",
+    "相关问题已经整理在内部文档里。",
+    "当前用脚本绕过了，但还是希望原生支持。",
+    "数据量大时可能需要考虑性能。",
+)
+
+
+def filler_comments(
+    post_index: int, hours_ago: int, count: int
+) -> list[dict[str, Any]]:
+    """为没有手写评论的帖子生成数量匹配的占位评论，保证 comment_count 真实。"""
+    entries: list[dict[str, Any]] = []
+    for index in range(count):
+        # 每 5 条留一条匿名，覆盖匿名展示。
+        anonymous = index % 5 == 4
+        entries.append(
+            {
+                "author": None if anonymous else (post_index + index) % len(USERS),
+                "hours_ago": hours_ago * (count - index) / (count + 1),
+                "content": [
+                    paragraph(
+                        COMMENT_TEMPLATES[(post_index + index) % len(COMMENT_TEMPLATES)]
+                    )
+                ],
+            }
+        )
+    return entries
+
 
 def build_rich_post(
     nodes: list[dict[str, Any]], media: dict[str, str | None]
@@ -709,6 +800,7 @@ async def seed(reset: bool) -> None:
             await session.execute(delete(PostTag))
             await session.execute(delete(Tag))
             await session.execute(delete(ChangelogEntry))
+            await session.execute(delete(Comment))
             await session.execute(delete(Post))
             await session.execute(delete(Board))
             await session.execute(delete(User))
@@ -745,6 +837,7 @@ async def seed(reset: bool) -> None:
             await session.flush()
             tag_ids[name] = tag.id
 
+        posts: list[Post] = []
         for index, item in enumerate(POSTS):
             nodes = [paragraph(item["lead"]), *item["body"]]
             content = build_rich_post(nodes, media)
@@ -763,14 +856,48 @@ async def seed(reset: bool) -> None:
                 anonymous_name=anonymous_name,
                 client_env=dict(client_env) if client_env else None,
                 vote_count=item["votes"],
-                comment_count=item["comments"],
+                comment_count=0,
                 created_at=created_at,
                 updated_at=created_at,
             )
             session.add(post)
             await session.flush()
+            posts.append(post)
             for tag_name in POST_TAGS.get(item["board"], []):
                 session.add(PostTag(post_id=post.id, tag_id=tag_ids[tag_name]))
+
+        comment_total = 0
+        for post_index, post in enumerate(posts):
+            entries = COMMENTS.get(post_index) or filler_comments(
+                post_index,
+                POSTS[post_index]["hours_ago"],
+                POSTS[post_index]["comments"],
+            )
+            inserted: list[Comment] = []
+            for entry_index, item in enumerate(entries):
+                author = users[item["author"]] if item["author"] is not None else None
+                created_at = NOW - timedelta(hours=item["hours_ago"])
+                parent = (
+                    inserted[item["parent"]] if item.get("parent") is not None else None
+                )
+                comment = Comment(
+                    post_id=post.id,
+                    parent_id=parent.id if parent else None,
+                    content={"type": "doc", "content": item["content"]},
+                    author_id=author.id if author else None,
+                    anonymous_token=(
+                        None
+                        if author
+                        else f"seed-comment-{post_index:02d}-{entry_index:02d}"
+                    ),
+                    created_at=created_at,
+                    updated_at=created_at,
+                )
+                session.add(comment)
+                await session.flush()
+                inserted.append(comment)
+            post.comment_count = len(entries)
+            comment_total += len(entries)
 
         for item in CHANGELOGS:
             created_at = NOW - timedelta(hours=item["hours_ago"])
@@ -832,6 +959,7 @@ async def seed(reset: bool) -> None:
 
     print(
         f"种子数据写入完成：{len(BOARDS)} 个看板 / {len(POSTS)} 条反馈 / "
+        f"{comment_total} 条评论 / "
         f"{len(CHANGELOGS)} 条更新日志 / {len(ANNOUNCEMENTS)} 条公告"
     )
     if media["cover"]:
