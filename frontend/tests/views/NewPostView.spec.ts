@@ -134,7 +134,8 @@ describe('NewPostView 看板选择', () => {
       name: 'new-post-board',
       params: { slug: 'bugs' },
     });
-    expect(wrapper.find('.back-link').text()).toContain('问题反馈');
+    // RouterLink 在测试里被 stub 成 <a :data-to>，用 data-to 定位返回链接
+    expect(wrapper.find('a[data-to="/b/bugs"]').text()).toContain('问题反馈');
     expect(triggerText(wrapper)).toBe('问题反馈');
     wrapper.unmount();
   });
@@ -158,12 +159,10 @@ describe('NewPostView 看板选择', () => {
     const wrapper = mountView();
     await flushPromises();
 
-    expect(wrapper.find('.notice-closed').exists()).toBe(true);
+    expect(wrapper.text()).toContain('该看板已关闭匿名发布');
     expect(triggerText(wrapper)).toBe('内部看板');
     expect(await openBoardOptions(wrapper)).toEqual(['功能需求', '问题反馈', '内部看板']);
-    expect(
-      wrapper.find('.compose-buttons button[type="submit"]').attributes('disabled'),
-    ).toBeDefined();
+    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined();
     wrapper.unmount();
   });
 });

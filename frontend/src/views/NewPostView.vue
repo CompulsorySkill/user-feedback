@@ -140,32 +140,52 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container">
-    <RouterLink :to="board ? `/b/${board.slug}` : '/'" class="back-link">
+  <div class="mx-auto w-[min(1120px,100%_-_32px)]">
+    <RouterLink
+      :to="board ? `/b/${board.slug}` : '/'"
+      class="mb-5 inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-primary"
+    >
       <IconArrowLeft :size="15" :stroke-width="2" />
       {{ board ? board.name : '返回' }}
     </RouterLink>
 
-    <p v-if="loading" class="loading-line">
-      <IconLoader2 class="spin" :size="16" :stroke-width="2" /> 正在加载…
+    <p v-if="loading" class="flex items-center gap-2 py-7 text-sm text-muted-foreground">
+      <IconLoader2 class="animate-spin" :size="16" :stroke-width="2" /> 正在加载…
     </p>
 
-    <div v-else-if="loadError" class="inline-error">{{ loadError }}</div>
+    <div
+      v-else-if="loadError"
+      class="flex flex-wrap items-center gap-3.5 rounded-[10px] bg-destructive/10 px-4 py-3.5 text-sm text-destructive"
+    >
+      {{ loadError }}
+    </div>
 
     <template v-else-if="board">
-      <header class="page-header">
-        <p class="eyebrow">New feedback</p>
-        <h1>发布反馈</h1>
-        <p class="muted">匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。</p>
+      <header class="mb-8">
+        <p
+          class="mb-[18px] inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground"
+        >
+          New feedback
+        </p>
+        <h1 class="font-bold">发布反馈</h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          匿名发布，无需登录；可自定义昵称，展示时仍会标注匿名。
+        </p>
       </header>
 
-      <div v-if="!canPost" class="notice notice-closed">
+      <div
+        v-if="!canPost"
+        class="mt-5 rounded-[10px] border border-border bg-secondary px-4 py-3 text-sm text-muted-foreground"
+      >
         该看板已关闭匿名发布，请先登录或改选其他看板。
       </div>
 
-      <form class="compose" @submit.prevent="submit">
-        <label class="field">
-          <span class="field-label">发布到</span>
+      <form
+        class="flex flex-col gap-[22px] rounded-lg border border-border bg-card p-[26px] shadow-[var(--shadow)]"
+        @submit.prevent="submit"
+      >
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-muted-foreground">发布到</span>
           <Select
             :model-value="boardSlug"
             @update:model-value="(value) => (boardSlug = String(value))"
@@ -181,8 +201,8 @@ onMounted(() => {
           </Select>
         </label>
 
-        <div class="field">
-          <span class="field-label">昵称（可选）</span>
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-muted-foreground">昵称（可选）</span>
           <Input
             v-model="nickname"
             type="text"
@@ -191,8 +211,8 @@ onMounted(() => {
           />
         </div>
 
-        <label class="field">
-          <span class="field-label">标题</span>
+        <label class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-muted-foreground">标题</span>
           <Input
             v-model="title"
             type="text"
@@ -201,24 +221,35 @@ onMounted(() => {
           />
         </label>
 
-        <div class="field">
-          <span class="field-label">标签（可选）</span>
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-muted-foreground">标签（可选）</span>
           <TagPicker v-model="tags" :suggestions="tagSuggestions" />
         </div>
 
-        <div class="field">
-          <span class="field-label">正文</span>
+        <div class="flex flex-col gap-2">
+          <span class="text-sm font-semibold text-muted-foreground">正文</span>
           <PostEditor ref="editorRef" @update:uploading="uploading = $event" />
         </div>
 
-        <p v-if="submitError" class="inline-error">{{ submitError }}</p>
+        <p
+          v-if="submitError"
+          class="flex flex-wrap items-center gap-3.5 rounded-[10px] bg-destructive/10 px-4 py-3.5 text-sm text-destructive"
+        >
+          {{ submitError }}
+        </p>
 
-        <div class="compose-actions">
-          <label class="env-toggle">
-            <input v-model="attachEnvironment" type="checkbox" />
+        <div class="flex items-center justify-between gap-4 border-t border-border pt-1.5">
+          <label
+            class="inline-flex cursor-pointer items-center gap-2 text-muted-foreground select-none"
+          >
+            <input
+              v-model="attachEnvironment"
+              type="checkbox"
+              class="size-[15px] cursor-pointer accent-[var(--brand)]"
+            />
             附带浏览器 / 操作系统信息
           </label>
-          <div class="compose-buttons">
+          <div class="flex gap-2.5">
             <RouterLink
               :to="`/b/${board.slug}`"
               data-slot="button"
@@ -231,7 +262,7 @@ onMounted(() => {
               variant="default"
               size="lg"
             >
-              <IconLoader2 v-if="submitting" class="spin" :size="16" :stroke-width="2" />
+              <IconLoader2 v-if="submitting" class="animate-spin" :size="16" :stroke-width="2" />
               <IconSend v-else :size="16" :stroke-width="2" />
               {{ submitting ? '发布中…' : uploading ? '等待上传完成…' : '发布反馈' }}
             </Button>
