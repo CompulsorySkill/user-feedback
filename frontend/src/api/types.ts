@@ -70,11 +70,37 @@ export interface ClientEnvironment {
   timezone?: string | null;
 }
 
+export type PostTimelineEventType =
+  | 'created'
+  | 'status_changed'
+  | 'task_accepted'
+  | 'task_completed';
+
+export interface PostTimelineEvent {
+  id: number;
+  event_type: PostTimelineEventType;
+  from_status: PostStatus | null;
+  to_status: PostStatus | null;
+  actor_name: string | null;
+  created_at: string;
+}
+
+export interface PostTaskInfo {
+  assignee_id: number | null;
+  assignee_name: string;
+  accepted_at: string;
+  completed_at: string | null;
+}
+
 export interface PostDetail extends PostSummary {
   board: BoardRef;
   content: import('@/types/content').JSONContent;
   environment: ClientEnvironment | null;
   is_author: boolean;
+  timeline: PostTimelineEvent[];
+  task: PostTaskInfo | null;
+  can_accept_task: boolean;
+  can_complete_task: boolean;
 }
 
 export interface ChangelogSummary {

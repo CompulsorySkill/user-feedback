@@ -28,6 +28,7 @@
 | 评论 | ❌ | 看板 `allow_guest_commenting` | ✅ | ✅ |
 | 编辑自己的反馈 / 标签 | ❌ | ❌（匿名无作者身份） | 非 closed 时 ✅ | ✅（含 closed） |
 | 变更状态 | ❌ | ❌ | 仅单向关闭自己的反馈 | 任意流转（含重开） |
+| 接受 / 完成任务 | ❌ | ❌ | 正文或评论中被 @ 的登录用户 | 同左（须被提及） |
 | 查看用户目录 | ❌ | ❌ | ❌ | ✅ |
 | 维护内置标签 | ❌ | ❌ | ❌ | ✅ |
 | 查看审计日志 / 清理上传对象 | ❌ | ❌ | ❌ | ✅ |
@@ -49,7 +50,40 @@
 
 - 匿名 Post 没有作者，只有管理员能改状态。
 - `closed` 冻结：不可编辑、不可新投票、不可新评论；已有数据保留，管理员重开后恢复。
-- 状态变化只更新 `status` 与 `updated_at`，不保留逐条版本历史；管理员与作者的状态变更会写入审计日志（`post.status`）。
+- 每次状态变化都会写入 `post_timeline_events`，记录 `from_status` / `to_status`、actor 与时间快照；
+  同时保留原有审计日志 `post.status`。
+
+### 时间线与任务
+
+`GET /v1/posts/{id}` 的 `PostDetail` 额外返回：
+
+```json
+{
+  "timeline": [
+    {
+      "id": 1,
+      "event_type": "created",
+      "from_status": null,
+      "to_status": "open",
+      "actor_name": "Alice",
+      "created_at": "2026-05-01T12:00:00+00:00"
+    }
+  ],
+  "task": null,
+  "can_accept_task": false,
+  "can_complete_task": false
+}
+```
+
+- `event_type`：`created` / `status_changed` / `task_accepted` / `task_completed`。
+- 发帖时自动记录 `created`；迁移会为历史反馈回填一条 `created`。
+- `can_accept_task` / `can_complete_task` 由服务端按当前登录身份计算，前端只用于按钮显隐。
+- 被提及指 **反馈正文或评论**里的 mention `id` 等于当前用户 id；命中任一位置即可获得任务权限。
+  任务权限只认可管理员 mention（与编辑器候选一致），伪造普通用户 id 不会授权。
+- 接受任务：仅被提及的登录用户，且当前无任务、状态不是 `completed / closed`；成功后状态变为 `in_progress`，
+  写入 `post_tasks`（接受人、接受时间）并追加 `task_accepted` 事件。
+- 完成任务：仅任务接受者可调用，状态变为 `completed`，写入 `completed_at` 并追加 `task_completed` 事件。
+- 管理员把状态直接改为 `completed` 时，若已有未完成任务，会同步写入 `completed_at`。
 
 ## 4. 标签
 
@@ -274,7 +308,7 @@ keyset 分页。响应：
 
 - 仅追加，不随目标对象删除；actor 被删除后保留邮箱快照。
 - 记录动作：`board.create/update/delete`、`tag.create/delete`、`post.update`（管理员）、
-  `post.status`、`post.delete`、`comment.delete`、
+  `post.status`、`post.task_accept`、`post.task_complete`、`post.delete`、`comment.delete`、
   `changelog.create/update/delete/publish/unpublish`、`upload.cleanup`、
   `announcement.create/update/delete/publish/unpublish/pin/unpin`。
 - `action` 精确筛选；`before_id` 为上一页最后一条的 `id`；按 `id` 倒序。
@@ -301,10 +335,12 @@ keyset 分页。响应：
 | GET | `/v1/posts/authors` | 公开；作者候选（显示名 + 匿名昵称 + `post_count`），支持 `board=` |
 | GET | `/v1/admin/boards` | 管理员 |
 | POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
-| GET | `/v1/posts/{id}` | 公开（返回 `is_author`） |
+| GET | `/v1/posts/{id}` | 公开（返回 `is_author`、时间线、任务与当前用户可执行动作） |
 | PATCH | `/v1/posts/{id}` | 作者 / 管理员 |
 | DELETE | `/v1/posts/{id}` | 管理员；级联删除评论、投票与标签关联 |
 | PATCH | `/v1/posts/{id}/status` | 作者（仅关闭）/ 管理员 |
+| POST | `/v1/posts/{id}/task/accept` | 正文中被提及的登录用户；置为进行中并记录任务 |
+| POST | `/v1/posts/{id}/task/complete` | 任务接受者；置为已完成 |
 | POST / DELETE | `/v1/posts/{id}/vote` | 匿名 / 登录 |
 | GET | `/v1/posts/{id}/comments` | 公开 |
 | POST | `/v1/posts/{id}/comments` | 匿名 / 登录；正文为 Tiptap JSON |

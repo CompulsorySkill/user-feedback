@@ -13,6 +13,9 @@ from app.schemas.common import UTCModel
 from app.schemas.tag import TagRef
 
 PostStatus = Literal["open", "planned", "in_progress", "completed", "closed"]
+PostTimelineEventType = Literal[
+    "created", "status_changed", "task_accepted", "task_completed"
+]
 
 
 class ClientEnvironment(BaseModel):
@@ -44,11 +47,31 @@ class PostSummary(UTCModel):
     tags: list[TagRef] = Field(default_factory=list)
 
 
+class PostTimelineEvent(UTCModel):
+    id: int
+    event_type: PostTimelineEventType
+    from_status: PostStatus | None
+    to_status: PostStatus | None
+    actor_name: str | None
+    created_at: datetime
+
+
+class PostTaskInfo(UTCModel):
+    assignee_id: int | None
+    assignee_name: str
+    accepted_at: datetime
+    completed_at: datetime | None
+
+
 class PostDetail(PostSummary):
     board: BoardRef
     content: dict[str, Any]
     environment: ClientEnvironment | None = None
     is_author: bool = False
+    timeline: list[PostTimelineEvent] = Field(default_factory=list)
+    task: PostTaskInfo | None = None
+    can_accept_task: bool = False
+    can_complete_task: bool = False
 
 
 class AuthorFacet(BaseModel):

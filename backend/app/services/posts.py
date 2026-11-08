@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,9 +23,12 @@ from app.core.pagination import (
 from app.core.rate_limit import enforce_rate_limit
 from app.models import Post, Tag
 from app.repositories.boards import BoardRepository
+from app.repositories.comments import CommentRepository
+from app.repositories.post_timeline import PostTimelineRepository
 from app.repositories.posts import PostRepository
 from app.repositories.tags import TagRepository
 from app.repositories.uploads import UploadRepository
+from app.repositories.users import UserRepository
 from app.schemas.board import BoardRef
 from app.schemas.common import Page
 from app.schemas.post import (
@@ -32,6 +37,8 @@ from app.schemas.post import (
     PostCreateRequest,
     PostDetail,
     PostSummary,
+    PostTaskInfo,
+    PostTimelineEvent,
     PostUpdateRequest,
 )
 from app.services.rich_text import collect_media_keys, validate_rich_text
@@ -42,6 +49,31 @@ POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
     "image": ("post_image",),
     "video": ("post_video",),
 }
+
+
+def mentioned_user_ids(content: Any) -> set[int]:
+    """从正文 mention 节点取出用户 id；非数字 id（旧种子）直接忽略。"""
+    ids: set[int] = set()
+    stack = [content]
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") == "mention":
+            attrs = node.get("attrs")
+            raw = attrs.get("id") if isinstance(attrs, dict) else None
+            try:
+                ids.add(int(raw))
+            except (TypeError, ValueError):
+                pass
+        children = node.get("content")
+        if isinstance(children, list):
+            stack.extend(children)
+    return ids
+
+
+def _actor_name(user) -> str:
+    return user.display_name or user.email
 
 
 def _summary(
@@ -77,13 +109,30 @@ class PostService:
         boards: BoardRepository,
         uploads: UploadRepository,
         tags: TagRepository,
+        timeline: PostTimelineRepository,
+        comments: CommentRepository,
+        users: UserRepository,
     ) -> None:
         self.session = session
         self.posts = posts
         self.boards = boards
         self.uploads = uploads
         self.tags = tags
+        self.timeline = timeline
+        self.comments = comments
+        self.users = users
         self.tag_service = TagService(session, tags)
+
+    async def _task_mentioned_user_ids(
+        self, post_id: uuid.UUID, content: Any
+    ) -> set[int]:
+        ids = mentioned_user_ids(content)
+        for comment_content in await self.comments.list_content_for_post(post_id):
+            ids.update(mentioned_user_ids(comment_content))
+        if not ids:
+            return set()
+        # 编辑器只允许 @ 管理员；任务权限也只认管理员 mention，防止伪造 self-mention 提权。
+        return ids & await self.users.list_admin_ids()
 
     async def _paginate(
         self,
@@ -195,9 +244,7 @@ class PostService:
             fetch, limit=limit, cursor_raw=cursor_raw, sort=sort
         )
 
-    async def list_authors(
-        self, *, board_slug: str | None = None
-    ) -> list[AuthorFacet]:
+    async def list_authors(self, *, board_slug: str | None = None) -> list[AuthorFacet]:
         rows = await self.posts.author_facets(board_slug=board_slug)
         return [AuthorFacet(name=name, post_count=count) for name, count in rows]
 
@@ -210,6 +257,10 @@ class PostService:
         is_author = (
             isinstance(viewer, AuthenticatedUser) and post.author_id == viewer.user.id
         )
+        viewer_id = viewer.user.id if isinstance(viewer, AuthenticatedUser) else None
+        events = await self.timeline.list_events(post.id)
+        task = await self.timeline.get_task(post.id)
+        mentioned_ids = await self._task_mentioned_user_ids(post.id, post.content)
         tag_map = await self.tags.for_posts([post.id])
         return PostDetail(
             **_summary(
@@ -225,6 +276,40 @@ class PostService:
                 ClientEnvironment(**post.client_env) if post.client_env else None
             ),
             is_author=is_author,
+            timeline=[
+                PostTimelineEvent(
+                    id=event.id,
+                    event_type=event.event_type,
+                    from_status=event.from_status,
+                    to_status=event.to_status,
+                    actor_name=event.actor_name,
+                    created_at=event.created_at,
+                )
+                for event in events
+            ],
+            task=(
+                PostTaskInfo(
+                    assignee_id=task.assignee_id,
+                    assignee_name=task.assignee_name,
+                    accepted_at=task.accepted_at,
+                    completed_at=task.completed_at,
+                )
+                if task is not None
+                else None
+            ),
+            can_accept_task=(
+                viewer_id is not None
+                and viewer_id in mentioned_ids
+                and task is None
+                and post.status not in {"closed", "completed"}
+            ),
+            can_complete_task=(
+                viewer_id is not None
+                and task is not None
+                and task.assignee_id == viewer_id
+                and task.completed_at is None
+                and post.status != "closed"
+            ),
         )
 
     async def create(
@@ -275,6 +360,18 @@ class PostService:
         )
         self.session.add(post)
         await self.session.flush()
+        self.timeline.add_event(
+            post_id=post.id,
+            event_type="created",
+            actor_id=identity.user.id if authenticated else None,
+            actor_name=(
+                _actor_name(identity.user)
+                if authenticated
+                else (payload.anonymous_name or "匿名用户")
+            ),
+            to_status="open",
+            created_at=post.created_at,
+        )
         if tag_ids:
             await self.tags.replace_for_post(post.id, tag_ids)
         await self.session.commit()
@@ -288,6 +385,7 @@ class PostService:
         if row is None:
             raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
         post, _board, _author = row
+        previous_status = post.status
 
         if isinstance(identity, AuthenticatedUser):
             if identity.is_admin:
@@ -307,6 +405,100 @@ class PostService:
             # 匿名 Post 无作者身份，匿名 cookie 不作为授权依据。
             raise AppException(403, code="STATUS_FORBIDDEN", detail="无权变更该状态")
 
+        if post.status != previous_status:
+            self.timeline.add_event(
+                post_id=post.id,
+                event_type="status_changed",
+                actor_id=identity.user.id,
+                actor_name=_actor_name(identity.user),
+                from_status=previous_status,
+                to_status=post.status,
+            )
+            if post.status == "completed":
+                task = await self.timeline.get_task(post.id)
+                if task is not None and task.completed_at is None:
+                    task.completed_at = datetime.now(timezone.utc)
+
+        await self.session.commit()
+        return await self.get(post_id, identity)
+
+    async def accept_task(self, post_id: uuid.UUID, identity: Identity) -> PostDetail:
+        row = await self.posts.get_with_board(post_id)
+        if row is None:
+            raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
+        post = row[0]
+        if not isinstance(identity, AuthenticatedUser):
+            raise AppException(403, code="IDENTITY_REQUIRED", detail="请先登录")
+        user = identity.user
+        if user.id not in await self._task_mentioned_user_ids(post.id, post.content):
+            raise AppException(
+                403, code="TASK_NOT_ASSIGNED", detail="只有被提及的用户可以接受任务"
+            )
+
+        task = await self.timeline.get_task(post.id)
+        if task is not None:
+            if task.assignee_id != user.id:
+                raise AppException(
+                    409, code="TASK_ALREADY_ACCEPTED", detail="任务已被其他用户接受"
+                )
+            if task.completed_at is not None:
+                raise AppException(409, code="TASK_COMPLETED", detail="任务已完成")
+            return await self.get(post_id, identity)
+        if post.status in {"closed", "completed"}:
+            raise AppException(
+                409, code="TASK_NOT_AVAILABLE", detail="当前状态不能接受任务"
+            )
+
+        now = datetime.now(timezone.utc)
+        previous_status = post.status
+        if post.status in {"open", "planned"}:
+            post.status = "in_progress"
+        self.timeline.add_task(
+            post_id=post.id,
+            assignee_id=user.id,
+            assignee_name=_actor_name(user),
+            accepted_at=now,
+        )
+        self.timeline.add_event(
+            post_id=post.id,
+            event_type="task_accepted",
+            actor_id=user.id,
+            actor_name=_actor_name(user),
+            from_status=previous_status,
+            to_status=post.status,
+        )
+        await self.session.commit()
+        return await self.get(post_id, identity)
+
+    async def complete_task(self, post_id: uuid.UUID, identity: Identity) -> PostDetail:
+        row = await self.posts.get_with_board(post_id)
+        if row is None:
+            raise AppException(404, code="POST_NOT_FOUND", detail="反馈不存在")
+        post = row[0]
+        if not isinstance(identity, AuthenticatedUser):
+            raise AppException(403, code="IDENTITY_REQUIRED", detail="请先登录")
+        user = identity.user
+        task = await self.timeline.get_task(post.id)
+        if task is None or task.assignee_id != user.id:
+            raise AppException(
+                403, code="TASK_NOT_ASSIGNED", detail="只有任务接受者可以完成任务"
+            )
+        if task.completed_at is not None:
+            return await self.get(post_id, identity)
+        if post.status == "closed":
+            raise AppException(409, code="TASK_CLOSED", detail="反馈已关闭")
+
+        previous_status = post.status
+        post.status = "completed"
+        task.completed_at = datetime.now(timezone.utc)
+        self.timeline.add_event(
+            post_id=post.id,
+            event_type="task_completed",
+            actor_id=user.id,
+            actor_name=_actor_name(user),
+            from_status=previous_status,
+            to_status="completed",
+        )
         await self.session.commit()
         return await self.get(post_id, identity)
 

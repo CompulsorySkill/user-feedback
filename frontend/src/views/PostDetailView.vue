@@ -11,13 +11,12 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { ApiError } from '@/api/client';
-import type { CommentItem } from '@/api/comments';
 import { deletePost, getPost } from '@/api/posts';
 import type { PostDetail } from '@/api/types';
 import AuthorTag from '@/components/AuthorTag.vue';
 import CommentSection from '@/components/CommentSection.vue';
-import MentionedUsersCard from '@/components/MentionedUsersCard.vue';
 import PostStatusControl from '@/components/PostStatusControl.vue';
+import PostTimeline from '@/components/PostTimeline.vue';
 import RichTextRenderer from '@/components/RichTextRenderer.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import TagList from '@/components/TagList.vue';
@@ -32,7 +31,6 @@ const router = useRouter();
 const auth = useAuthStore();
 const confirm = useConfirm();
 const post = ref<PostDetail | null>(null);
-const comments = ref<CommentItem[]>([]);
 const loading = ref(true);
 const errorMessage = ref('');
 const deleting = ref(false);
@@ -47,10 +45,6 @@ const canEdit = computed(() => {
 
 function onPostUpdated(updated: PostDetail): void {
   post.value = updated;
-}
-
-function onCommentsLoaded(items: CommentItem[]): void {
-  comments.value = items;
 }
 
 async function removePost(): Promise<void> {
@@ -79,7 +73,6 @@ async function load(): Promise<void> {
   loading.value = true;
   errorMessage.value = '';
   post.value = null;
-  comments.value = [];
   try {
     post.value = await getPost(String(route.params.id ?? ''));
   } catch (error) {
@@ -198,14 +191,9 @@ watch(() => route.params.id, load, { immediate: true });
         </footer>
       </article>
 
-      <MentionedUsersCard :post="post" :comments="comments" />
+      <PostTimeline :post="post" @updated="onPostUpdated" />
 
-      <CommentSection
-        :post-id="post.id"
-        :closed="isClosed"
-        @count="post.comment_count = $event"
-        @loaded="onCommentsLoaded"
-      />
+      <CommentSection :post-id="post.id" :closed="isClosed" @count="post.comment_count = $event" />
     </template>
 
     <div v-else class="inline-error">

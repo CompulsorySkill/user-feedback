@@ -31,6 +31,8 @@ from app.models import (
     Comment,
     Post,
     PostTag,
+    PostTask,
+    PostTimelineEvent,
     Tag,
     Upload,
     User,
@@ -110,6 +112,19 @@ def blockquote(text: str) -> dict[str, Any]:
 
 def mention_node(label: str) -> dict[str, Any]:
     return {"type": "mention", "attrs": {"id": f"seed-{label}", "label": label}}
+
+
+def bind_mentions(node: Any, user_ids: dict[str, int]) -> None:
+    """种子里的 mention 先用 label 占位，写入前替换成真实用户 id。"""
+    if not isinstance(node, dict):
+        return
+    if node.get("type") == "mention":
+        attrs = node.setdefault("attrs", {})
+        label = attrs.get("label")
+        if label in user_ids:
+            attrs["id"] = str(user_ids[label])
+    for child in node.get("content") or []:
+        bind_mentions(child, user_ids)
 
 
 def paragraph_nodes(*nodes: dict[str, Any]) -> dict[str, Any]:
@@ -359,7 +374,7 @@ POSTS: list[dict[str, Any]] = [
     {
         "board": "product",
         "title": "增加反馈的导出能力（CSV / Markdown）",
-        "status": "planned",
+        "status": "in_progress",
         "author": 2,
         "votes": 23,
         "comments": 3,
@@ -392,6 +407,11 @@ POSTS: list[dict[str, Any]] = [
         "lead": "发版时间和写日志的时间经常对不上，希望能预约发布时间。",
         "body": [
             paragraph("已上线：创建更新日志时可填写发布时间，到点自动转为已发布。"),
+            paragraph_nodes(
+                text_node("排期时和 "),
+                mention_node("周予安"),
+                text_node(" 对过，发布流程已验收。"),
+            ),
             paragraph("实现上只增加了一个 scheduled_at 字段，未引入额外队列。"),
         ],
     },
@@ -801,6 +821,8 @@ async def seed(reset: bool) -> None:
             await session.execute(delete(Tag))
             await session.execute(delete(ChangelogEntry))
             await session.execute(delete(Comment))
+            await session.execute(delete(PostTimelineEvent))
+            await session.execute(delete(PostTask))
             await session.execute(delete(Post))
             await session.execute(delete(Board))
             await session.execute(delete(User))
@@ -825,6 +847,7 @@ async def seed(reset: bool) -> None:
             users.append(user)
 
         await session.flush()
+        user_ids = {user.display_name or user.email: user.id for user in users}
 
         tag_ids: dict[str, int] = {}
         for name in BUILTIN_TAGS:
@@ -841,6 +864,7 @@ async def seed(reset: bool) -> None:
         for index, item in enumerate(POSTS):
             nodes = [paragraph(item["lead"]), *item["body"]]
             content = build_rich_post(nodes, media)
+            bind_mentions(content, user_ids)
             author = users[item["author"]] if item["author"] is not None else None
             created_at = NOW - timedelta(hours=item["hours_ago"])
             anonymous_name = None if author else GUEST_NAMES.get(index)
@@ -863,6 +887,106 @@ async def seed(reset: bool) -> None:
             session.add(post)
             await session.flush()
             posts.append(post)
+            actor_name = (
+                (author.display_name or author.email)
+                if author
+                else (anonymous_name or "匿名用户")
+            )
+            session.add(
+                PostTimelineEvent(
+                    post_id=post.id,
+                    event_type="created",
+                    actor_id=author.id if author else None,
+                    actor_name=actor_name,
+                    to_status="open",
+                    created_at=created_at,
+                )
+            )
+            if index == 2:
+                # 导出需求：已计划 -> 周予安接受任务 -> 进行中，供前端演示。
+                planned_at = NOW - timedelta(hours=25, minutes=30)
+                accepted_at = NOW - timedelta(hours=22)
+                session.add(
+                    PostTimelineEvent(
+                        post_id=post.id,
+                        event_type="status_changed",
+                        actor_id=users[0].id,
+                        actor_name=users[0].display_name or users[0].email,
+                        from_status="open",
+                        to_status="planned",
+                        created_at=planned_at,
+                    )
+                )
+                session.add(
+                    PostTask(
+                        post_id=post.id,
+                        assignee_id=users[3].id,
+                        assignee_name=users[3].display_name or users[3].email,
+                        accepted_at=accepted_at,
+                        created_at=accepted_at,
+                        updated_at=accepted_at,
+                    )
+                )
+                session.add(
+                    PostTimelineEvent(
+                        post_id=post.id,
+                        event_type="task_accepted",
+                        actor_id=users[3].id,
+                        actor_name=users[3].display_name or users[3].email,
+                        from_status="planned",
+                        to_status="in_progress",
+                        created_at=accepted_at,
+                    )
+                )
+            elif index == 3:
+                # 定时发布：完整时间线（提出 -> 已计划 -> 进行中 -> 已完成）。
+                planned_at = NOW - timedelta(hours=46)
+                accepted_at = NOW - timedelta(hours=40)
+                completed_at = NOW - timedelta(hours=20)
+                session.add(
+                    PostTimelineEvent(
+                        post_id=post.id,
+                        event_type="status_changed",
+                        actor_id=users[0].id,
+                        actor_name=users[0].display_name or users[0].email,
+                        from_status="open",
+                        to_status="planned",
+                        created_at=planned_at,
+                    )
+                )
+                session.add(
+                    PostTask(
+                        post_id=post.id,
+                        assignee_id=users[3].id,
+                        assignee_name=users[3].display_name or users[3].email,
+                        accepted_at=accepted_at,
+                        completed_at=completed_at,
+                        created_at=accepted_at,
+                        updated_at=completed_at,
+                    )
+                )
+                session.add(
+                    PostTimelineEvent(
+                        post_id=post.id,
+                        event_type="task_accepted",
+                        actor_id=users[3].id,
+                        actor_name=users[3].display_name or users[3].email,
+                        from_status="planned",
+                        to_status="in_progress",
+                        created_at=accepted_at,
+                    )
+                )
+                session.add(
+                    PostTimelineEvent(
+                        post_id=post.id,
+                        event_type="task_completed",
+                        actor_id=users[3].id,
+                        actor_name=users[3].display_name or users[3].email,
+                        from_status="in_progress",
+                        to_status="completed",
+                        created_at=completed_at,
+                    )
+                )
             for tag_name in POST_TAGS.get(item["board"], []):
                 session.add(PostTag(post_id=post.id, tag_id=tag_ids[tag_name]))
 
@@ -880,10 +1004,12 @@ async def seed(reset: bool) -> None:
                 parent = (
                     inserted[item["parent"]] if item.get("parent") is not None else None
                 )
+                comment_content = {"type": "doc", "content": item["content"]}
+                bind_mentions(comment_content, user_ids)
                 comment = Comment(
                     post_id=post.id,
                     parent_id=parent.id if parent else None,
-                    content={"type": "doc", "content": item["content"]},
+                    content=comment_content,
                     author_id=author.id if author else None,
                     anonymous_token=(
                         None

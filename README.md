@@ -43,7 +43,7 @@ cd backend
 uv sync
 uv run alembic upgrade head            # 唯一 schema 权威，禁止 create_all
 uv run python -m scripts.bootstrap_storage  # 建 bucket=storage 并开启匿名只读
-uv run python -m scripts.seed_dev      # 可选：种子数据（含评论提及、公告与附件）+ 演示图片/MP4 上传 RustFS
+uv run python -m scripts.seed_dev      # 可选：种子数据（含评论提及、时间线任务、公告与附件）+ 演示图片/MP4 上传 RustFS
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
@@ -114,6 +114,7 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | P3 SSO + 角色 + 状态机 + 评论 | ✅ 本地 | HS256 SSO 登录与会话、`ADMIN_EMAILS` 角色、匿名数据合并、Post 状态机与编辑权限、更新日志管理员写与任意类型附件、富文本 3 层楼中楼评论（图片 / 视频） |
 | P4 加固 + CI | ✅ 本地 | 安全头 / SSO 日志脱敏 / 富文本白名单与体积上限、限流清理、8.2 验收补齐、Postgres 迁移演练、双 CI workflow（含 GHCR 镜像构建） |
 | 运营完善 | ✅ 本地 | 标签筛选（多选 OR）、审计日志（管理员操作留痕 + 查询页）、未引用上传对象清理（CLI + 管理员触发）、Vitest 前端单测替代浏览器脚本 |
+| 任务时间线 | ✅ 本地 | 反馈状态时间线与修改人、被提及用户接受 / 完成任务、任务接受人存储与时间线事件 |
 | Docker + Caddy 交付 | ✅ 配置交付 | 双镜像、Compose、Caddy 自动 HTTPS、GHCR 构建、部署文档；当前开发机无 Docker，运行验收待目标机执行 |
 
 近期加固（A2–A5）：会话自动续期（`X-Session-Expired` + refresh 重放）、POST SSO 登录（token 不进 URL）、
@@ -143,6 +144,8 @@ docker compose exec -T backend python -m scripts.cleanup_uploads --grace-hours 2
 | GET | `/api/v1/posts/{id}` | 反馈详情（含 Tiptap JSON、看板、`is_author`） |
 | PATCH | `/api/v1/posts/{id}` | 编辑反馈 / 标签（作者非关闭态 / 管理员） |
 | PATCH | `/api/v1/posts/{id}/status` | 状态流转（管理员任意，作者仅单向关闭） |
+| POST | `/api/v1/posts/{id}/task/accept` | 被提及用户接受任务（置为进行中） |
+| POST | `/api/v1/posts/{id}/task/complete` | 任务接受者完成任务（置为已完成） |
 | POST | `/api/v1/posts/{id}/vote` | 投票（幂等，关闭后拒绝） |
 | DELETE | `/api/v1/posts/{id}/vote` | 取消投票（幂等） |
 | GET | `/api/v1/posts/{id}/comments` | 评论扁平列表（含 `parent_id`） |

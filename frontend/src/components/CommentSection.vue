@@ -20,7 +20,7 @@ import {
 const confirm = useConfirm();
 
 const props = defineProps<{ postId: string; closed: boolean }>();
-const emit = defineEmits<{ count: [number]; loaded: [items: CommentItem[]] }>();
+const emit = defineEmits<{ count: [number] }>();
 
 const auth = useAuthStore();
 
@@ -70,7 +70,6 @@ async function load(): Promise<void> {
     const response = await listComments(props.postId);
     items.value = response.items;
     emit('count', response.items.length);
-    emit('loaded', response.items);
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : '评论加载失败';
   } finally {

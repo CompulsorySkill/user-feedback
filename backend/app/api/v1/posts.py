@@ -180,6 +180,56 @@ async def change_status(
     return post
 
 
+@router.post(
+    "/{post_id}/task/accept",
+    response_model=PostDetail,
+    summary="被提及者接受任务",
+)
+async def accept_task(
+    post_id: uuid.UUID,
+    request: Request,
+    identity: IdentityDep,
+    service: PostServiceDep,
+    audit: AuditServiceDep,
+) -> PostDetail:
+    post = await service.accept_task(post_id, identity)
+    if isinstance(identity, AuthenticatedUser):
+        await audit.record(
+            action="post.task_accept",
+            actor=identity.user,
+            target_type="post",
+            target_id=post_id,
+            detail={"title": post.title, "status": post.status},
+            ip=request_ip(request),
+        )
+    return post
+
+
+@router.post(
+    "/{post_id}/task/complete",
+    response_model=PostDetail,
+    summary="任务接受者完成任务",
+)
+async def complete_task(
+    post_id: uuid.UUID,
+    request: Request,
+    identity: IdentityDep,
+    service: PostServiceDep,
+    audit: AuditServiceDep,
+) -> PostDetail:
+    post = await service.complete_task(post_id, identity)
+    if isinstance(identity, AuthenticatedUser):
+        await audit.record(
+            action="post.task_complete",
+            actor=identity.user,
+            target_type="post",
+            target_id=post_id,
+            detail={"title": post.title, "status": post.status},
+            ip=request_ip(request),
+        )
+    return post
+
+
 @router.post("/{post_id}/vote", response_model=VoteResponse, summary="投票")
 async def vote_post(
     post_id: uuid.UUID,

@@ -21,6 +21,8 @@ EXPECTED_TABLES = {
     "comments",
     "posts",
     "post_tags",
+    "post_tasks",
+    "post_timeline_events",
     "rate_limit_counters",
     "tags",
     "uploads",
@@ -59,7 +61,7 @@ def test_upgrade_creates_all_tables(sqlite_conn: sqlite3.Connection) -> None:
     assert _tables(sqlite_conn) == EXPECTED_TABLES
 
     version = sqlite_conn.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("0009_comment_rich_content",)
+    assert version == ("0010_post_timeline_tasks",)
 
 
 def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:
@@ -162,6 +164,39 @@ def test_comment_content_migrates_to_rich_text(tmp_path) -> None:
             }
         ],
     }
+
+
+def test_timeline_backfills_created_event(tmp_path) -> None:
+    db_path = tmp_path / "timeline-backfill.db"
+    config = alembic_config(f"sqlite+aiosqlite:///{db_path.as_posix()}")
+    command.upgrade(config, "0009_comment_rich_content")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO users (id, email, display_name) VALUES (1, 'alice@example.com', 'Alice')"
+        )
+        conn.execute("INSERT INTO boards (slug, name) VALUES ('general', 'General')")
+        conn.execute(
+            "INSERT INTO posts (id, board_id, title, content, author_id)"
+            " VALUES (?, 1, 'hello', '{}', 1)",
+            (uuid.uuid4().hex,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    command.upgrade(config, "head")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        event = conn.execute(
+            "SELECT event_type, to_status, actor_id, actor_name"
+            " FROM post_timeline_events"
+        ).fetchone()
+    finally:
+        conn.close()
+    assert event == ("created", "open", 1, "Alice")
 
 
 def test_downgrade_removes_schema(tmp_path) -> None:

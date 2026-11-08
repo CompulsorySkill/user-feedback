@@ -5,6 +5,7 @@ import { auditActionLabel, formatAuditDetail } from '@/utils/audit';
 describe('audit utils', () => {
   it('maps known actions and falls back to the raw code', () => {
     expect(auditActionLabel('board.create')).toBe('创建看板');
+    expect(auditActionLabel('post.task_accept')).toBe('接受任务');
     expect(auditActionLabel('upload.cleanup')).toBe('清理上传对象');
     expect(auditActionLabel('custom.action')).toBe('custom.action');
   });

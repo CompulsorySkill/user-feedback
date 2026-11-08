@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,12 @@ class CommentRepository:
         )
         rows = await self.session.execute(stmt)
         return [(comment, name) for comment, name in rows.all()]
+
+    async def list_content_for_post(self, post_id: uuid.UUID) -> list[dict[str, Any]]:
+        rows = await self.session.execute(
+            select(Comment.content).where(Comment.post_id == post_id)
+        )
+        return list(rows.scalars().all())
 
     async def get(self, comment_id: uuid.UUID) -> Comment | None:
         return await self.session.get(Comment, comment_id)

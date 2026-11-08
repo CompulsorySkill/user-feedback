@@ -6,6 +6,8 @@ export const AUDIT_ACTIONS: Array<{ value: string; label: string }> = [
   { value: 'tag.delete', label: '删除标签' },
   { value: 'post.update', label: '编辑反馈' },
   { value: 'post.status', label: '变更反馈状态' },
+  { value: 'post.task_accept', label: '接受任务' },
+  { value: 'post.task_complete', label: '完成任务' },
   { value: 'changelog.create', label: '创建更新日志' },
   { value: 'changelog.update', label: '编辑更新日志' },
   { value: 'changelog.delete', label: '删除更新日志' },

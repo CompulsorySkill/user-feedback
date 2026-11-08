@@ -23,6 +23,7 @@ from app.repositories.audit import AuditRepository
 from app.repositories.boards import BoardRepository
 from app.repositories.changelogs import ChangelogRepository
 from app.repositories.comments import CommentRepository
+from app.repositories.post_timeline import PostTimelineRepository
 from app.repositories.posts import PostRepository
 from app.repositories.tags import TagRepository
 from app.repositories.uploads import UploadRepository
@@ -71,6 +72,10 @@ def get_comment_repository(session: SessionDep) -> CommentRepository:
     return CommentRepository(session)
 
 
+def get_post_timeline_repository(session: SessionDep) -> PostTimelineRepository:
+    return PostTimelineRepository(session)
+
+
 def get_tag_repository(session: SessionDep) -> TagRepository:
     return TagRepository(session)
 
@@ -92,6 +97,9 @@ AnnouncementRepoDep = Annotated[
 UploadRepoDep = Annotated[UploadRepository, Depends(get_upload_repository)]
 VoteRepoDep = Annotated[VoteRepository, Depends(get_vote_repository)]
 CommentRepoDep = Annotated[CommentRepository, Depends(get_comment_repository)]
+PostTimelineRepoDep = Annotated[
+    PostTimelineRepository, Depends(get_post_timeline_repository)
+]
 TagRepoDep = Annotated[TagRepository, Depends(get_tag_repository)]
 AuditRepoDep = Annotated[AuditRepository, Depends(get_audit_repository)]
 UserRepoDep = Annotated[UserRepository, Depends(get_user_repository)]
@@ -160,8 +168,11 @@ def get_post_service(
     boards: BoardRepoDep,
     uploads: UploadRepoDep,
     tags: TagRepoDep,
+    timeline: PostTimelineRepoDep,
+    comments: CommentRepoDep,
+    users: UserRepoDep,
 ) -> PostService:
-    return PostService(session, posts, boards, uploads, tags)
+    return PostService(session, posts, boards, uploads, tags, timeline, comments, users)
 
 
 def get_tag_service(session: SessionDep, tags: TagRepoDep) -> TagService:

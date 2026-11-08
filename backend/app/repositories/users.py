@@ -43,6 +43,10 @@ class UserRepository:
         )
         return list(rows.scalars())
 
+    async def list_admin_ids(self) -> set[int]:
+        rows = await self.session.execute(select(User.id).where(User.role == "admin"))
+        return set(rows.scalars())
+
     async def list_page(
         self,
         *,
