@@ -17,7 +17,7 @@ describe('style.css 主题基线', () => {
 
   it('字体自托管，不引 Google Fonts', () => {
     expect(css).not.toContain('fonts.googleapis.com');
-    expect(css).toMatch(/--font-sans:\s*'Noto Sans'/);
+    expect(css).toMatch(/--font-sans:\s*'Noto Sans SC Variable'/);
   });
 
   it('深色取值只在 .dark 块里，不再用 media query（否则手动切换失效）', () => {

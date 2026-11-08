@@ -1,9 +1,5 @@
 /* 字体自托管（fontsource），不引 Google Fonts：见 AGENTS.md §5.2 */
-@import '@fontsource/noto-sans/400.css';
-@import '@fontsource/noto-sans/500.css';
-@import '@fontsource/noto-sans/600.css';
-@import '@fontsource/noto-sans/700.css';
-@import '@fontsource-variable/dm-sans';
+@import '@fontsource-variable/noto-sans-sc';
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -59,7 +55,7 @@
   --control-height: 40px;
   --control-height-sm: 32px;
 
-  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   font-size: var(--fs-body);
   line-height: 1.6;
   color: var(--text);
@@ -1159,8 +1155,7 @@ input[type='search']::-webkit-search-cancel-button {
 /* shadcn 语义 token 是唯一真源；下面的 --bg/--brand/--line 等只是旧样式的别名，
    改配色请改 :root 里的 shadcn 变量。 */
 @theme inline {
-  --font-sans: 'Noto Sans', system-ui, sans-serif;
-  --font-heading: 'DM Sans Variable', 'DM Sans', sans-serif;
+  --font-sans: 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
