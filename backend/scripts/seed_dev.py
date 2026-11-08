@@ -7,7 +7,7 @@
 
 媒体文件写入 ``backend/.dev-storage/``（已 gitignore），并上传到本机 RustFS 的
 ``storage`` bucket；前端经 Vite ``/storage`` 代理读取，生产环境由 Caddy 反代，
-路径语义一致。
+路径语义一致。公告附件同样写入 ``.dev-storage/uploads/`` 并上传，供下载接口验证。
 """
 
 from __future__ import annotations
@@ -23,7 +23,17 @@ from typing import Any
 from sqlalchemy import delete, select
 
 from app.core.db import SessionLocal, engine
-from app.models import Board, ChangelogEntry, Post, PostTag, Tag, User
+from app.models import (
+    Announcement,
+    AnnouncementAttachment,
+    Board,
+    ChangelogEntry,
+    Post,
+    PostTag,
+    Tag,
+    Upload,
+    User,
+)
 from scripts import bootstrap_storage
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -189,6 +199,62 @@ def ensure_demo_media() -> dict[str, str | None]:
         "cover": "uploads/demo-cover.png" if cover.exists() else None,
         "video": "uploads/demo.mp4" if video.exists() else None,
     }
+
+
+ANNOUNCEMENT_ATTACHMENTS = [
+    {
+        "filename": "公告附件示例.md",
+        "object_key": "uploads/seed-announcement-sample.md",
+        "content_type": "text/markdown",
+        "body": (
+            "# 公告附件示例\n\n"
+            "这是开发种子数据生成的公告附件，用于验证下载接口。\n\n"
+            "- 下载时强制 Content-Disposition: attachment\n"
+            "- 公开公告的附件无需登录即可下载\n"
+        ),
+    },
+    {
+        "filename": "维护窗口说明.txt",
+        "object_key": "uploads/seed-announcement-maintenance.txt",
+        "content_type": "text/plain",
+        "body": "维护窗口：每周三 02:00-03:00（UTC+8）\n期间反馈系统只读。\n",
+    },
+]
+
+
+def ensure_demo_attachments() -> list[dict[str, str | int]]:
+    """生成公告附件并上传 RustFS；不可用时返回空列表，跳过附件行。"""
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    files: list[dict[str, Any]] = []
+    for item in ANNOUNCEMENT_ATTACHMENTS:
+        path = UPLOADS_DIR / str(item["filename"])
+        if not path.exists():
+            path.write_text(str(item["body"]), encoding="utf-8")
+        files.append({**item, "path": path, "size": path.stat().st_size})
+
+    try:
+        client = bootstrap_storage.build_client()
+        bootstrap_storage.ensure_bucket(client)
+        for item in files:
+            bootstrap_storage.upload_file(
+                client,
+                item["path"],
+                str(item["object_key"]),
+                str(item["content_type"]),
+            )
+    except Exception as exc:  # noqa: BLE001 - RustFS 未启动时降级为无附件
+        print(f"RustFS 不可用，跳过公告附件上传：{exc}")
+        return []
+
+    return [
+        {
+            "filename": item["filename"],
+            "object_key": item["object_key"],
+            "content_type": item["content_type"],
+            "size": item["size"],
+        }
+        for item in files
+    ]
 
 
 # --------------------------------------------------------------------------- #
@@ -547,6 +613,64 @@ CHANGELOGS = [
     },
 ]
 
+# attachments 为 ANNOUNCEMENT_ATTACHMENTS 下标；同一附件只能引用一次。
+ANNOUNCEMENTS = [
+    {
+        "title": "反馈系统 v0.4 上线：公告与附件",
+        "hours_ago": 12,
+        "published": True,
+        "pinned": True,
+        "lead": "新增公告功能：管理员可发布公告、标注作者，并置顶其中一篇。",
+        "attachments": [0],
+        "body": [
+            heading(2, "本次更新"),
+            bullet_list(
+                [
+                    "支持管理员发布 / 编辑 / 撤回公告",
+                    "全局只能置顶一篇公告，置顶后排在列表最前",
+                    "公告显示作者与发布时间",
+                    "公告附件支持任意类型文件下载",
+                ]
+            ),
+            paragraph("详细说明见文末附件。"),
+        ],
+    },
+    {
+        "title": "每周维护窗口调整",
+        "hours_ago": 72,
+        "published": True,
+        "pinned": False,
+        "lead": "从本周起，维护窗口调整为每周三 02:00-03:00（UTC+8）。",
+        "attachments": [1],
+        "body": [
+            paragraph("维护期间反馈系统只读，已提交的内容不会丢失。"),
+            blockquote("如遇紧急问题，请通过站内反馈留言。"),
+        ],
+    },
+    {
+        "title": "匿名反馈合并说明",
+        "hours_ago": 168,
+        "published": True,
+        "pinned": False,
+        "lead": "登录后，匿名期间发布的反馈会自动归到账号下，历史投票一并合并。",
+        "attachments": [],
+        "body": [
+            paragraph(
+                "匿名身份通过 HttpOnly cookie 识别；登录时合并一次，之后不再重复迁移。"
+            ),
+        ],
+    },
+    {
+        "title": "草稿：下季度路线图预告",
+        "hours_ago": 2,
+        "published": False,
+        "pinned": False,
+        "lead": "草稿：路线图还在整理，未发布前只在管理员视图中出现。",
+        "attachments": [],
+        "body": [paragraph("草稿内容不应出现在公开列表中。")],
+    },
+]
+
 
 # --------------------------------------------------------------------------- #
 # 写入
@@ -576,15 +700,19 @@ DEMO_ENV = {
 
 async def seed(reset: bool) -> None:
     media = ensure_demo_media()
+    attachment_files = ensure_demo_attachments()
 
     async with SessionLocal() as session:
         if reset:
+            await session.execute(delete(AnnouncementAttachment))
+            await session.execute(delete(Announcement))
             await session.execute(delete(PostTag))
             await session.execute(delete(Tag))
             await session.execute(delete(ChangelogEntry))
             await session.execute(delete(Post))
             await session.execute(delete(Board))
             await session.execute(delete(User))
+            await session.execute(delete(Upload))
             await session.commit()
 
         existing = await session.scalar(select(Board.id).limit(1))
@@ -659,13 +787,57 @@ async def seed(reset: bool) -> None:
                 )
             )
 
+        admin = users[0]
+        for item in ANNOUNCEMENTS:
+            created_at = NOW - timedelta(hours=item["hours_ago"])
+            nodes = [paragraph(item["lead"]), *item["body"]]
+            announcement = Announcement(
+                title=item["title"],
+                content=build_rich_post(nodes, media),
+                excerpt=item["lead"][:200],
+                is_published=item["published"],
+                is_pinned=item["pinned"],
+                published_at=created_at if item["published"] else None,
+                author_name=admin.display_name or admin.email,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+            session.add(announcement)
+            await session.flush()
+            for index in item["attachments"]:
+                attachment = attachment_files[index]
+                session.add(
+                    Upload(
+                        object_key=str(attachment["object_key"]),
+                        identity=f"user:{admin.id}",
+                        purpose="announcement_attachment",
+                        content_type=str(attachment["content_type"]),
+                        size=int(attachment["size"]),
+                        created_at=created_at,
+                    )
+                )
+                # Upload 没有 relationship，先落库再插附件行，否则 FK 顺序不保证。
+                await session.flush()
+                session.add(
+                    AnnouncementAttachment(
+                        announcement_id=announcement.id,
+                        object_key=str(attachment["object_key"]),
+                        filename=str(attachment["filename"]),
+                        content_type=str(attachment["content_type"]),
+                        size=int(attachment["size"]),
+                    )
+                )
+
         await session.commit()
 
     print(
-        f"种子数据写入完成：{len(BOARDS)} 个看板 / {len(POSTS)} 条反馈 / {len(CHANGELOGS)} 条更新日志"
+        f"种子数据写入完成：{len(BOARDS)} 个看板 / {len(POSTS)} 条反馈 / "
+        f"{len(CHANGELOGS)} 条更新日志 / {len(ANNOUNCEMENTS)} 条公告"
     )
     if media["cover"]:
         print(f"演示媒体：{STORAGE_DIR}")
+    if attachment_files:
+        print(f"公告附件：{len(attachment_files)} 个（可经公告详情下载）")
 
 
 def main() -> None:

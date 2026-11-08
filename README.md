@@ -43,7 +43,7 @@ cd backend
 uv sync
 uv run alembic upgrade head            # 唯一 schema 权威，禁止 create_all
 uv run python -m scripts.bootstrap_storage  # 建 bucket=storage 并开启匿名只读
-uv run python -m scripts.seed_dev      # 可选：种子数据 + 演示图片/MP4 上传 RustFS
+uv run python -m scripts.seed_dev      # 可选：种子数据（含公告与附件）+ 演示图片/MP4 上传 RustFS
 uv run uvicorn app.main:app --reload --port 8000
 ```
 

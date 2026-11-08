@@ -7,11 +7,13 @@ import {
   IconLoader2,
   IconPin,
   IconRefresh,
+  IconTrash,
 } from '@tabler/icons-vue';
 import { ref, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 
 import {
+  deleteAnnouncement,
   getAnnouncement,
   pinAnnouncement,
   publishAnnouncement,
@@ -22,11 +24,14 @@ import { ApiError } from '@/api/client';
 import type { AnnouncementDetail } from '@/api/types';
 import RichTextRenderer from '@/components/RichTextRenderer.vue';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAuthStore } from '@/stores/auth';
 import { formatDate } from '@/utils/date';
 import { formatBytes } from '@/utils/format';
 
 const route = useRoute();
+const router = useRouter();
+const confirm = useConfirm();
 const auth = useAuthStore();
 const entry = ref<AnnouncementDetail | null>(null);
 const loading = ref(true);
@@ -76,6 +81,19 @@ async function togglePin(): Promise<void> {
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : '操作失败';
   } finally {
+    pending.value = false;
+  }
+}
+
+async function remove(): Promise<void> {
+  if (!entry.value || pending.value) return;
+  if (!(await confirm({ title: '确认删除这条公告？' }))) return;
+  pending.value = true;
+  try {
+    await deleteAnnouncement(entry.value.id);
+    await router.push('/announcements');
+  } catch (error) {
+    errorMessage.value = error instanceof ApiError ? error.message : '删除失败';
     pending.value = false;
   }
 }
@@ -132,6 +150,10 @@ watch(() => route.params.id, load, { immediate: true });
           >
             <IconLoader2 v-if="pending" class="spin" :size="14" :stroke-width="2" />
             {{ entry.is_published ? '撤回发布' : '发布' }}
+          </Button>
+          <Button type="button" :disabled="pending" @click="remove" variant="destructive" size="lg">
+            <IconTrash :size="14" :stroke-width="2" />
+            删除
           </Button>
         </div>
       </div>
