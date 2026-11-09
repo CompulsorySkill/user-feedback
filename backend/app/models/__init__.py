@@ -9,6 +9,7 @@ from app.models.changelog import ChangelogEntry
 from app.models.changelog_attachment import ChangelogAttachment
 from app.models.comment import Comment
 from app.models.post import Post
+from app.models.post_mention import PostMention
 from app.models.post_task import PostTask
 from app.models.post_timeline import PostTimelineEvent
 from app.models.rate_limit import RateLimitCounter
@@ -27,6 +28,7 @@ __all__ = [
     "ChangelogEntry",
     "Comment",
     "Post",
+    "PostMention",
     "PostTag",
     "PostTask",
     "PostTimelineEvent",

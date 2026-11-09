@@ -23,6 +23,7 @@ from app.repositories.audit import AuditRepository
 from app.repositories.boards import BoardRepository
 from app.repositories.changelogs import ChangelogRepository
 from app.repositories.comments import CommentRepository
+from app.repositories.post_mentions import PostMentionRepository
 from app.repositories.post_timeline import PostTimelineRepository
 from app.repositories.posts import PostRepository
 from app.repositories.tags import TagRepository
@@ -30,10 +31,12 @@ from app.repositories.uploads import UploadRepository
 from app.repositories.users import UserRepository
 from app.repositories.votes import VoteRepository
 from app.services.announcements import AnnouncementService
+from app.services.admin_tasks import AdminTaskService
 from app.services.audit import AuditService
 from app.services.boards import BoardService
 from app.services.changelogs import ChangelogService
 from app.services.comments import CommentService
+from app.services.mentions import MentionService
 from app.services.posts import PostService
 from app.services.tags import TagService
 from app.services.upload_cleanup import UploadCleanupService
@@ -76,6 +79,10 @@ def get_post_timeline_repository(session: SessionDep) -> PostTimelineRepository:
     return PostTimelineRepository(session)
 
 
+def get_post_mention_repository(session: SessionDep) -> PostMentionRepository:
+    return PostMentionRepository(session)
+
+
 def get_tag_repository(session: SessionDep) -> TagRepository:
     return TagRepository(session)
 
@@ -99,6 +106,9 @@ VoteRepoDep = Annotated[VoteRepository, Depends(get_vote_repository)]
 CommentRepoDep = Annotated[CommentRepository, Depends(get_comment_repository)]
 PostTimelineRepoDep = Annotated[
     PostTimelineRepository, Depends(get_post_timeline_repository)
+]
+PostMentionRepoDep = Annotated[
+    PostMentionRepository, Depends(get_post_mention_repository)
 ]
 TagRepoDep = Annotated[TagRepository, Depends(get_tag_repository)]
 AuditRepoDep = Annotated[AuditRepository, Depends(get_audit_repository)]
@@ -162,6 +172,12 @@ def get_board_service(session: SessionDep, boards: BoardRepoDep) -> BoardService
     return BoardService(session, boards)
 
 
+def get_mention_service(
+    mentions: PostMentionRepoDep, comments: CommentRepoDep
+) -> MentionService:
+    return MentionService(mentions, comments)
+
+
 def get_post_service(
     session: SessionDep,
     posts: PostRepoDep,
@@ -171,8 +187,11 @@ def get_post_service(
     timeline: PostTimelineRepoDep,
     comments: CommentRepoDep,
     users: UserRepoDep,
+    mentions: MentionServiceDep,
 ) -> PostService:
-    return PostService(session, posts, boards, uploads, tags, timeline, comments, users)
+    return PostService(
+        session, posts, boards, uploads, tags, timeline, comments, users, mentions
+    )
 
 
 def get_tag_service(session: SessionDep, tags: TagRepoDep) -> TagService:
@@ -224,8 +243,13 @@ def get_comment_service(
     posts: PostRepoDep,
     comments: CommentRepoDep,
     uploads: UploadRepoDep,
+    mentions: MentionServiceDep,
 ) -> CommentService:
-    return CommentService(session, posts, comments, uploads)
+    return CommentService(session, posts, comments, uploads, mentions)
+
+
+def get_admin_task_service(mentions: PostMentionRepoDep) -> AdminTaskService:
+    return AdminTaskService(mentions)
 
 
 BoardServiceDep = Annotated[BoardService, Depends(get_board_service)]
@@ -243,3 +267,5 @@ UploadCleanupServiceDep = Annotated[
 ]
 VoteServiceDep = Annotated[VoteService, Depends(get_vote_service)]
 CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
+MentionServiceDep = Annotated[MentionService, Depends(get_mention_service)]
+AdminTaskServiceDep = Annotated[AdminTaskService, Depends(get_admin_task_service)]

@@ -41,6 +41,7 @@ from app.schemas.post import (
     PostTimelineEvent,
     PostUpdateRequest,
 )
+from app.services.mentions import MentionService
 from app.services.rich_text import collect_media_keys, validate_rich_text
 from app.services.tags import TagService, normalize_tag_filter, to_ref
 
@@ -49,27 +50,6 @@ POST_MEDIA_PURPOSES: dict[str, tuple[str, ...]] = {
     "image": ("post_image",),
     "video": ("post_video",),
 }
-
-
-def mentioned_user_ids(content: Any) -> set[int]:
-    """从正文 mention 节点取出用户 id；非数字 id（旧种子）直接忽略。"""
-    ids: set[int] = set()
-    stack = [content]
-    while stack:
-        node = stack.pop()
-        if not isinstance(node, dict):
-            continue
-        if node.get("type") == "mention":
-            attrs = node.get("attrs")
-            raw = attrs.get("id") if isinstance(attrs, dict) else None
-            try:
-                ids.add(int(raw))
-            except (TypeError, ValueError):
-                pass
-        children = node.get("content")
-        if isinstance(children, list):
-            stack.extend(children)
-    return ids
 
 
 def _actor_name(user) -> str:
@@ -112,6 +92,7 @@ class PostService:
         timeline: PostTimelineRepository,
         comments: CommentRepository,
         users: UserRepository,
+        mentions: MentionService,
     ) -> None:
         self.session = session
         self.posts = posts
@@ -121,14 +102,11 @@ class PostService:
         self.timeline = timeline
         self.comments = comments
         self.users = users
+        self.mentions = mentions
         self.tag_service = TagService(session, tags)
 
-    async def _task_mentioned_user_ids(
-        self, post_id: uuid.UUID, content: Any
-    ) -> set[int]:
-        ids = mentioned_user_ids(content)
-        for comment_content in await self.comments.list_content_for_post(post_id):
-            ids.update(mentioned_user_ids(comment_content))
+    async def _task_mentioned_user_ids(self, post_id: uuid.UUID) -> set[int]:
+        ids = await self.mentions.user_ids(post_id)
         if not ids:
             return set()
         # 编辑器只允许 @ 管理员；任务权限也只认管理员 mention，防止伪造 self-mention 提权。
@@ -260,7 +238,7 @@ class PostService:
         viewer_id = viewer.user.id if isinstance(viewer, AuthenticatedUser) else None
         events = await self.timeline.list_events(post.id)
         task = await self.timeline.get_task(post.id)
-        mentioned_ids = await self._task_mentioned_user_ids(post.id, post.content)
+        mentioned_ids = await self._task_mentioned_user_ids(post.id)
         tag_map = await self.tags.for_posts([post.id])
         return PostDetail(
             **_summary(
@@ -372,6 +350,7 @@ class PostService:
             to_status="open",
             created_at=post.created_at,
         )
+        await self.mentions.sync(post.id, post.content)
         if tag_ids:
             await self.tags.replace_for_post(post.id, tag_ids)
         await self.session.commit()
@@ -430,7 +409,7 @@ class PostService:
         if not isinstance(identity, AuthenticatedUser):
             raise AppException(403, code="IDENTITY_REQUIRED", detail="请先登录")
         user = identity.user
-        if user.id not in await self._task_mentioned_user_ids(post.id, post.content):
+        if user.id not in await self._task_mentioned_user_ids(post.id):
             raise AppException(
                 403, code="TASK_NOT_ASSIGNED", detail="只有被提及的用户可以接受任务"
             )
@@ -553,6 +532,7 @@ class PostService:
                 allowed_purposes=POST_MEDIA_PURPOSES,
                 uploads=self.uploads,
             )
+            await self.mentions.sync(post.id, post.content)
         if payload.tags is not None:
             tag_ids = await self.tag_service.resolve_tag_ids(payload.tags, identity)
             await self.tags.replace_for_post(post.id, tag_ids)

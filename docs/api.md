@@ -30,6 +30,7 @@
 | 变更状态 | ❌ | ❌ | 仅单向关闭自己的反馈 | 任意流转（含重开） |
 | 接受 / 完成任务 | ❌ | ❌ | 正文或评论中被 @ 的登录用户 | 同左（须被提及） |
 | 查看用户目录 | ❌ | ❌ | ❌ | ✅ |
+| 查看任务面板（只看被 @ 的反馈） | ❌ | ❌ | ❌ | ✅ |
 | 维护内置标签 | ❌ | ❌ | ❌ | ✅ |
 | 查看审计日志 / 清理上传对象 | ❌ | ❌ | ❌ | ✅ |
 | 更新日志写 / 发布 | ❌ | ❌ | ❌ | ✅ |
@@ -292,7 +293,42 @@ keyset 分页。响应：
 - 分页为 `id` 倒序 keyset：`before_id` 传上一页 `next_cursor`，`next_cursor` 为 `null` 表示没有更多。
 - `post_count` / `comment_count` 统计该账号已关联的反馈与评论，含未公开看板。
 
-## 10. 审计日志
+## 10. 任务面板
+
+`GET /api/v1/admin/tasks?limit=30&before=&task_state=&board=`（管理员）
+
+```json
+{
+  "items": [
+    {
+      "post_id": "8f14e45f-ceea-467f-a8b1-2c4d1f0e9a11",
+      "title": "导出功能坏了",
+      "board_slug": "product",
+      "board_name": "功能建议",
+      "status": "open",
+      "mentioned_at": "2026-04-01T12:00:00+00:00",
+      "task_state": "pending",
+      "assignee_name": null,
+      "accepted_at": null,
+      "completed_at": null
+    }
+  ],
+  "next_cursor": null
+}
+```
+
+- **只看得到提及自己的反馈**：正文或评论里 `mention` 节点的 `id` 等于当前管理员；
+  别人的提及不可见，也不存在「全站任务」视图。
+- `task_state`：`pending`（没有 `post_tasks` 行）/ `active`（已接受未完成）/ `done`（已完成）；
+  同名查询参数用于筛选。
+- `mentioned_at` 是该管理员第一次被这篇反馈 @ 的时间；重复 @ 不叠加。
+- `board` 按看板 slug 筛选；排序固定为反馈 `created_at` 倒序，`before` 传上一页
+  `next_cursor`（无效游标 `400 INVALID_CURSOR`）。筛选条件变化必须丢弃旧游标。
+- 提及来自投影表 `post_mentions`：发帖、编辑正文、新增评论、删除评论时同步；
+  编辑掉 @ 或删掉含 @ 的评论后，该反馈会从面板消失（已存在的任务与时间线不受影响）。
+- 本接口只读：接受 / 完成任务仍在 `POST /v1/posts/{id}/task/accept|complete`。
+
+## 11. 审计日志
 
 `GET /api/v1/admin/audit-logs?limit=50&before_id=&action=`（管理员）
 
@@ -322,7 +358,7 @@ keyset 分页。响应：
 - `action` 精确筛选；`before_id` 为上一页最后一条的 `id`；按 `id` 倒序。
 - 审计写入失败 best-effort：记录服务端日志，不回滚已提交的业务操作。
 
-## 11. 端点一览
+## 12. 端点一览
 
 | 方法 | 路径 | 权限 |
 |---|---|---|
@@ -336,6 +372,7 @@ keyset 分页。响应：
 | GET | `/v1/admin/tags` | 管理员；全部标签与使用数 |
 | GET | `/v1/admin/audit-logs` | 管理员；审计日志 |
 | GET | `/v1/admin/users` | 管理员；用户目录（只读，`q=` / `role=` / `before_id=`） |
+| GET | `/v1/admin/tasks` | 管理员；被 @ 的反馈与任务状态（`task_state=` / `board=` / `before=`） |
 | POST | `/v1/admin/uploads/cleanup` | 管理员；清理未引用上传对象 |
 | POST | `/v1/admin/tags` | 管理员；新增内置标签 |
 | DELETE | `/v1/admin/tags/{id}` | 管理员；删除标签并解除帖子关联 |
@@ -372,7 +409,7 @@ keyset 分页。响应：
 
 完整请求/响应模型以运行中的 `/api/docs`（OpenAPI）为准。
 
-## 12. 会话续期
+## 13. 会话续期
 
 access token 过期（默认 15 分钟）时，携带旧 access cookie 的响应会附加
 `X-Session-Expired: 1`。前端收到后调用 `POST /v1/auth/refresh` 并重放原请求一次，

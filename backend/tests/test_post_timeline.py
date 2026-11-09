@@ -10,7 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import settings
-from tests.conftest import insert_board, insert_post, insert_user
+from tests.conftest import insert_board, insert_comment, insert_post, insert_user
 
 BASE = datetime(2026, 5, 1, 12, 0, 0)
 SSO_SECRET = "test-sso-secret-0123456789abcdef012345"
@@ -170,9 +170,6 @@ async def test_mentioned_user_accepts_and_completes_task(
 async def test_comment_mention_grants_task_permission(
     client: AsyncClient, sqlite_conn
 ) -> None:
-    import json
-    import uuid
-
     worker_id = insert_user(
         sqlite_conn, email="worker@example.com", display_name="Worker", role="admin"
     )
@@ -183,15 +180,7 @@ async def test_comment_mention_grants_task_permission(
         title="评论提及也能接任务",
         created_at=BASE,
     )
-    sqlite_conn.execute(
-        "INSERT INTO comments (id, post_id, content) VALUES (?, ?, ?)",
-        (
-            uuid.uuid4().hex,
-            post_id,
-            json.dumps(mention_doc(worker_id)),
-        ),
-    )
-    sqlite_conn.commit()
+    insert_comment(sqlite_conn, post_id=post_id, content=mention_doc(worker_id))
 
     await login(client, "worker@example.com", name="Worker")
     detail = (await client.get(f"/api/v1/posts/{post_id}")).json()

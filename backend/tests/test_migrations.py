@@ -20,6 +20,7 @@ EXPECTED_TABLES = {
     "changelog_entries",
     "comments",
     "posts",
+    "post_mentions",
     "post_tags",
     "post_tasks",
     "post_timeline_events",
@@ -61,7 +62,7 @@ def test_upgrade_creates_all_tables(sqlite_conn: sqlite3.Connection) -> None:
     assert _tables(sqlite_conn) == EXPECTED_TABLES
 
     version = sqlite_conn.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("0010_post_timeline_tasks",)
+    assert version == ("0011_post_mentions",)
 
 
 def test_vote_partial_unique_indexes(sqlite_conn: sqlite3.Connection) -> None:
@@ -197,6 +198,54 @@ def test_timeline_backfills_created_event(tmp_path) -> None:
     finally:
         conn.close()
     assert event == ("created", "open", 1, "Alice")
+
+
+def test_mentions_backfill_from_content(tmp_path) -> None:
+    db_path = tmp_path / "mentions-backfill.db"
+    config = alembic_config(f"sqlite+aiosqlite:///{db_path.as_posix()}")
+    command.upgrade(config, "0010_post_timeline_tasks")
+
+    mention = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "mention", "attrs": {"id": "2", "label": "Bob"}}],
+            }
+        ],
+    }
+    post_id = uuid.uuid4().hex
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO users (id, email, display_name) VALUES (1, 'a@example.com', 'A')"
+        )
+        conn.execute(
+            "INSERT INTO users (id, email, display_name) VALUES (2, 'b@example.com', 'B')"
+        )
+        conn.execute("INSERT INTO boards (slug, name) VALUES ('general', 'General')")
+        conn.execute(
+            "INSERT INTO posts (id, board_id, title, content, author_id)"
+            " VALUES (?, 1, 'hello', ?, 1)",
+            (post_id, json.dumps(mention)),
+        )
+        conn.execute(
+            "INSERT INTO comments (id, post_id, content) VALUES (?, ?, ?)",
+            (uuid.uuid4().hex, post_id, json.dumps(mention)),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    command.upgrade(config, "head")
+
+    conn = sqlite3.connect(db_path)
+    try:
+        rows = conn.execute("SELECT post_id, user_id FROM post_mentions").fetchall()
+    finally:
+        conn.close()
+    # 正文与评论里的同一个人只投影一行
+    assert rows == [(post_id, 2)]
 
 
 def test_downgrade_removes_schema(tmp_path) -> None:

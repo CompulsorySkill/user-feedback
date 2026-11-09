@@ -49,6 +49,7 @@ onUnmounted(() => {
           </RouterLink>
           <RouterLink v-if="auth.isAdmin" to="/admin/tags" class="nav-link"> 标签管理 </RouterLink>
           <RouterLink v-if="auth.isAdmin" to="/admin/users" class="nav-link"> 用户管理 </RouterLink>
+          <RouterLink v-if="auth.isAdmin" to="/admin/tasks" class="nav-link"> 任务管理 </RouterLink>
           <RouterLink v-if="auth.isAdmin" to="/admin/audit" class="nav-link"> 审计日志 </RouterLink>
         </nav>
 

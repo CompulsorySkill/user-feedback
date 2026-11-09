@@ -56,6 +56,12 @@ const router = createRouter({
       meta: { requiresAdmin: true },
     },
     {
+      path: '/admin/tasks',
+      name: 'admin-tasks',
+      component: () => import('@/views/AdminTasksView.vue'),
+      meta: { requiresAdmin: true },
+    },
+    {
       path: '/admin/audit',
       name: 'admin-audit',
       component: () => import('@/views/AdminAuditView.vue'),

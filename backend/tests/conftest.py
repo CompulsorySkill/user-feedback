@@ -211,7 +211,50 @@ def insert_post(
         ),
     )
     conn.commit()
+    _project_mentions(conn, post_id.hex, content)
     return post_id.hex
+
+
+def insert_comment(
+    conn: sqlite3.Connection,
+    *,
+    post_id: str,
+    content: dict,
+    parent_id: str | None = None,
+    author_id: int | None = None,
+) -> str:
+    import json
+    import uuid
+
+    comment_id = uuid.uuid4()
+    conn.execute(
+        "INSERT INTO comments (id, post_id, parent_id, content, author_id)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (
+            comment_id.hex,
+            post_id,
+            parent_id,
+            json.dumps(content),
+            author_id,
+        ),
+    )
+    conn.commit()
+    _project_mentions(conn, post_id, content)
+    return comment_id.hex
+
+
+def _project_mentions(
+    conn: sqlite3.Connection, post_id: str, content: dict | None
+) -> None:
+    """夹具直插库时补上 post_mentions，业务代码默认从投影表读权限。"""
+    from app.services.rich_text import mentioned_user_ids
+
+    for user_id in mentioned_user_ids(content or {}):
+        conn.execute(
+            "INSERT OR IGNORE INTO post_mentions (post_id, user_id) VALUES (?, ?)",
+            (post_id, user_id),
+        )
+    conn.commit()
 
 
 def insert_upload(

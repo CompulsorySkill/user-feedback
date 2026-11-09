@@ -163,6 +163,23 @@ export interface Page<T> {
   next_cursor: string | null;
 }
 
+/** 任务状态：没有 post_tasks 行 = pending，有行且未完成 = active。 */
+export type TaskState = 'pending' | 'active' | 'done';
+
+/** 管理员任务面板的一行：@ 了我的反馈 + 任务进度。 */
+export interface AdminTaskItem {
+  post_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  status: PostStatus;
+  mentioned_at: string;
+  task_state: TaskState;
+  assignee_name: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+}
+
 export interface AuditLogItem {
   id: number;
   actor_email: string | null;

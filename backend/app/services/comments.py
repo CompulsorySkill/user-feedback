@@ -19,6 +19,7 @@ from app.repositories.comments import CommentRepository
 from app.repositories.posts import PostRepository
 from app.repositories.uploads import UploadRepository
 from app.schemas.comment import CommentCreateRequest, CommentItem, CommentList
+from app.services.mentions import MentionService
 from app.services.rich_text import collect_media_keys, content_text, validate_rich_text
 
 MAX_DEPTH = 3
@@ -36,11 +37,13 @@ class CommentService:
         posts: PostRepository,
         comments: CommentRepository,
         uploads: UploadRepository,
+        mentions: MentionService,
     ) -> None:
         self.session = session
         self.posts = posts
         self.comments = comments
         self.uploads = uploads
+        self.mentions = mentions
 
     async def _post(self, post_id: uuid.UUID) -> tuple[Post, Board]:
         row = await self.posts.get_with_board(post_id)
@@ -146,6 +149,7 @@ class CommentService:
             anonymous_token=anonymous_token,
         )
         self.comments.add(comment)
+        await self.mentions.add_from_comment(post_id, content)
         await self.session.execute(
             update(Post)
             .where(Post.id == post_id)
@@ -172,6 +176,7 @@ class CommentService:
         for level in levels:
             await self.session.execute(delete(Comment).where(Comment.id.in_(level)))
         post.comment_count = max(0, post.comment_count - sum(len(x) for x in levels))
+        await self.mentions.sync(post_id, post.content)
         await self.session.commit()
         return content
 

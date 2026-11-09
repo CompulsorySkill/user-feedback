@@ -63,6 +63,27 @@ def _validate_marks(marks: Any) -> None:
                 raise _invalid("链接只允许 http(s)")
 
 
+def mentioned_user_ids(content: Any) -> set[int]:
+    """从正文 mention 节点取出用户 id；非数字 id（旧种子）直接忽略。"""
+    ids: set[int] = set()
+    stack = [content]
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") == "mention":
+            attrs = node.get("attrs")
+            raw = attrs.get("id") if isinstance(attrs, dict) else None
+            try:
+                ids.add(int(raw))
+            except (TypeError, ValueError):
+                pass
+        children = node.get("content")
+        if isinstance(children, list):
+            stack.extend(children)
+    return ids
+
+
 def collect_media_keys(content: Any) -> set[str]:
     """取出内容中已有的媒体 key，编辑时允许保留历史媒体。"""
     keys: set[str] = set()

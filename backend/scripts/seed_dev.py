@@ -30,6 +30,7 @@ from app.models import (
     ChangelogEntry,
     Comment,
     Post,
+    PostMention,
     PostTag,
     PostTask,
     PostTimelineEvent,
@@ -37,6 +38,7 @@ from app.models import (
     Upload,
     User,
 )
+from app.services.rich_text import mentioned_user_ids
 from scripts import bootstrap_storage
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -823,6 +825,7 @@ async def seed(reset: bool) -> None:
             await session.execute(delete(Comment))
             await session.execute(delete(PostTimelineEvent))
             await session.execute(delete(PostTask))
+            await session.execute(delete(PostMention))
             await session.execute(delete(Post))
             await session.execute(delete(Board))
             await session.execute(delete(User))
@@ -887,6 +890,8 @@ async def seed(reset: bool) -> None:
             session.add(post)
             await session.flush()
             posts.append(post)
+            for user_id in mentioned_user_ids(content):
+                session.add(PostMention(post_id=post.id, user_id=user_id))
             actor_name = (
                 (author.display_name or author.email)
                 if author
@@ -1022,6 +1027,8 @@ async def seed(reset: bool) -> None:
                 session.add(comment)
                 await session.flush()
                 inserted.append(comment)
+                for user_id in mentioned_user_ids(comment_content):
+                    session.add(PostMention(post_id=post.id, user_id=user_id))
             post.comment_count = len(entries)
             comment_total += len(entries)
 
