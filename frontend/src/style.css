@@ -613,6 +613,15 @@ h6.rt-heading {
   gap: 0.35em;
 }
 
+/* Tailwind preflight 把 ol/ul 的 list-style 清零，这里显式加回序号与圆点 */
+ul.rt-list {
+  list-style: disc;
+}
+
+ol.rt-list {
+  list-style: decimal;
+}
+
 .rich-text > .rt-list:first-child {
   margin-top: 0;
 }

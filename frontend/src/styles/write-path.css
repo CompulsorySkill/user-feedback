@@ -269,6 +269,15 @@
   margin: 0;
 }
 
+/* preflight 清掉了默认 list-style，编辑器里要显式加回 */
+.tiptap ul {
+  list-style: disc;
+}
+
+.tiptap ol {
+  list-style: decimal;
+}
+
 .tiptap blockquote {
   margin: 0.8em 0;
   padding: 0.5em 1em;
