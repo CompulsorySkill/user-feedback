@@ -85,6 +85,14 @@
 - 完成任务：仅任务接受者可调用，状态变为 `completed`，写入 `completed_at` 并追加 `task_completed` 事件。
 - 管理员把状态直接改为 `completed` 时，若已有未完成任务，会同步写入 `completed_at`。
 
+### 编辑反馈
+
+`PATCH /v1/posts/{id}` 接受 `title` / `content` / `tags` / `board_slug`，字段缺省表示不改；
+作者与管理员可调用（`closed` 仅管理员），编辑即覆盖、无版本历史。
+
+- `board_slug` 用于把反馈迁到另一个看板，只能指定**公开看板**，否则 `404 BOARD_NOT_FOUND`。
+- 管理员迁移看板会在审计日志 `post.update` 的 `detail.board_changed` 标记；不写时间线事件。
+
 ## 4. 标签
 
 - 发帖与编辑请求都接受 `tags: string[]`（≤5 个，单个 ≤24 字符）；发帖时匿名作者也可直接创建标签。
@@ -336,7 +344,7 @@ keyset 分页。响应：
 | GET | `/v1/admin/boards` | 管理员 |
 | POST / PATCH / DELETE | `/v1/admin/boards[/{id}]` | 管理员；非空看板默认 `409 BOARD_NOT_EMPTY`，带 `force=true` 级联删除 |
 | GET | `/v1/posts/{id}` | 公开（返回 `is_author`、时间线、任务与当前用户可执行动作） |
-| PATCH | `/v1/posts/{id}` | 作者 / 管理员 |
+| PATCH | `/v1/posts/{id}` | 作者 / 管理员；可改 `title` / `content` / `tags` / `board_slug` |
 | DELETE | `/v1/posts/{id}` | 管理员；级联删除评论、投票与标签关联 |
 | PATCH | `/v1/posts/{id}/status` | 作者（仅关闭）/ 管理员 |
 | POST | `/v1/posts/{id}/task/accept` | 正文中被提及的登录用户；置为进行中并记录任务 |

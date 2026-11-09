@@ -3,15 +3,23 @@ import { IconArrowLeft, IconLoader2, IconSend } from '@tabler/icons-vue';
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 
+import { listBoards } from '@/api/boards';
 import { ApiError } from '@/api/client';
 import { updatePost } from '@/api/postActions';
 import { getPost } from '@/api/posts';
 import { listBuiltinTags } from '@/api/tags';
-import type { PostDetail, TagSummary } from '@/api/types';
+import type { Board, PostDetail, TagSummary } from '@/api/types';
 import PostEditor from '@/components/PostEditor.vue';
 import TagPicker from '@/components/TagPicker.vue';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuthStore } from '@/stores/auth';
 import type { JSONContent } from '@/types/content';
 
@@ -25,6 +33,17 @@ const loadError = ref('');
 const title = ref('');
 const tags = ref<string[]>([]);
 const tagSuggestions = ref<TagSummary[]>([]);
+const boards = ref<Board[]>([]);
+const boardSlug = ref('');
+// 当前看板可能已转为非公开（不在 /v1/boards 里），仍需作为选项显示当前值。
+const boardOptions = computed(() => {
+  const options = boards.value.map((item) => ({ slug: item.slug, name: item.name }));
+  const current = post.value?.board;
+  if (current && !options.some((item) => item.slug === current.slug)) {
+    options.unshift({ slug: current.slug, name: current.name });
+  }
+  return options;
+});
 const editorRef = ref<InstanceType<typeof PostEditor> | null>(null);
 const submitting = ref(false);
 const error = ref('');
@@ -43,6 +62,7 @@ async function load(): Promise<void> {
     post.value = await getPost(String(route.params.id ?? ''));
     title.value = post.value.title;
     tags.value = post.value.tags.map((tag) => tag.name);
+    boardSlug.value = post.value.board.slug;
   } catch (err) {
     loadError.value = err instanceof ApiError ? err.message : '加载失败';
   } finally {
@@ -55,6 +75,14 @@ async function loadTags(): Promise<void> {
     tagSuggestions.value = await listBuiltinTags();
   } catch {
     tagSuggestions.value = [];
+  }
+}
+
+async function loadBoards(): Promise<void> {
+  try {
+    boards.value = await listBoards();
+  } catch {
+    boards.value = [];
   }
 }
 
@@ -74,11 +102,16 @@ async function submit(): Promise<void> {
   submitting.value = true;
   error.value = '';
   try {
-    await updatePost(post.value.id, {
+    const input: Parameters<typeof updatePost>[1] = {
       title: trimmedTitle,
       content,
       tags: tags.value,
-    });
+    };
+    // 只在不同时提交，避免当前看板已转私有被服务端拒绝。
+    if (boardSlug.value && boardSlug.value !== post.value.board.slug) {
+      input.board_slug = boardSlug.value;
+    }
+    await updatePost(post.value.id, input);
     await router.push(`/post/${post.value.id}`);
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : '保存失败，请重试';
@@ -90,6 +123,7 @@ async function submit(): Promise<void> {
 onMounted(() => {
   void load();
   void loadTags();
+  void loadBoards();
 });
 </script>
 
@@ -120,6 +154,23 @@ onMounted(() => {
           <span class="field-label">标题</span>
           <Input v-model="title" maxlength="200" />
         </label>
+
+        <div class="field">
+          <span class="field-label">所属板块</span>
+          <Select
+            :model-value="boardSlug"
+            @update:model-value="(value) => (boardSlug = String(value))"
+          >
+            <SelectTrigger class="w-full" aria-label="选择所属板块">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="item in boardOptions" :key="item.slug" :value="item.slug">
+                {{ item.name }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <div class="field">
           <span class="field-label">标签（最多 5 个）</span>

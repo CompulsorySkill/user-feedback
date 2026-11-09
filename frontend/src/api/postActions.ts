@@ -5,6 +5,7 @@ export interface PostUpdateInput {
   title?: string;
   content?: import('@/types/content').JSONContent;
   tags?: string[];
+  board_slug?: string;
 }
 
 export function updatePostStatus(id: string, status: PostStatus): Promise<PostDetail> {

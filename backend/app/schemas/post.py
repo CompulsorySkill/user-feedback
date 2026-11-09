@@ -113,6 +113,8 @@ class PostUpdateRequest(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     content: dict[str, Any] | None = None
     tags: list[str] | None = Field(default=None, max_length=5)
+    # 迁移所属看板；只能移到公开看板，None 表示不改。
+    board_slug: str | None = Field(default=None, max_length=64)
 
     @field_validator("title")
     @classmethod

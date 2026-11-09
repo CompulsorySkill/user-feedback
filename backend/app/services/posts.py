@@ -534,6 +534,13 @@ class PostService:
         if post.status == "closed" and not is_admin:
             raise AppException(403, code="POST_CLOSED", detail="已关闭的反馈不能编辑")
 
+        if payload.board_slug is not None:
+            board = await self.boards.get_public_by_slug(payload.board_slug)
+            if board is None:
+                raise AppException(
+                    404, code="BOARD_NOT_FOUND", detail="看板不存在或未公开"
+                )
+            post.board_id = board.id
         if payload.title is not None:
             post.title = payload.title
         if payload.content is not None:

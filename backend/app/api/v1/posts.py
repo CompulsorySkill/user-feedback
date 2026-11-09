@@ -148,6 +148,7 @@ async def update_post(
                 "title_changed": payload.title is not None,
                 "content_changed": payload.content is not None,
                 "tags_changed": payload.tags is not None,
+                "board_changed": payload.board_slug is not None,
             },
             ip=request_ip(request),
         )
