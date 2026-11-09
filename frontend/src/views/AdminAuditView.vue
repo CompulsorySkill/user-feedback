@@ -154,8 +154,13 @@ onMounted(load);
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部操作</SelectItem>
-            <SelectItem v-for="action in AUDIT_ACTIONS" :key="action.value" :value="action.value">
+            <SelectItem value="all" size="sm">全部操作</SelectItem>
+            <SelectItem
+              v-for="action in AUDIT_ACTIONS"
+              :key="action.value"
+              :value="action.value"
+              size="sm"
+            >
               {{ action.label }}
             </SelectItem>
           </SelectContent>

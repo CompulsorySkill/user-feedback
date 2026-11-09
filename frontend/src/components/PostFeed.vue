@@ -369,7 +369,7 @@ watch(
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="item in SORT_OPTIONS" :key="item.value" :value="item.value">
+          <SelectItem v-for="item in SORT_OPTIONS" :key="item.value" :value="item.value" size="sm">
             {{ item.label }}
           </SelectItem>
         </SelectContent>

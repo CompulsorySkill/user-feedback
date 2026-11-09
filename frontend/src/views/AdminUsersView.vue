@@ -109,9 +109,9 @@ onMounted(load);
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部角色</SelectItem>
-            <SelectItem value="admin">管理员</SelectItem>
-            <SelectItem value="user">普通用户</SelectItem>
+            <SelectItem value="all" size="sm">全部角色</SelectItem>
+            <SelectItem value="admin" size="sm">管理员</SelectItem>
+            <SelectItem value="user" size="sm">普通用户</SelectItem>
           </SelectContent>
         </Select>
       </label>
