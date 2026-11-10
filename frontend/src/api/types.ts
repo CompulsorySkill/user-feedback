@@ -104,12 +104,19 @@ export interface PostDetail extends PostSummary {
   /** 同看板更早 / 更晚的各 5 条，均按时间正序。 */
   previous: PostNeighbor[];
   next: PostNeighbor[];
+  /** 正文里 postRef 节点引用的其他反馈，按出现顺序。 */
+  references: PostReference[];
 }
 
 export interface PostNeighbor {
   id: string;
   title: string;
   created_at: string;
+}
+
+export interface PostReference {
+  id: string;
+  title: string;
 }
 
 export interface ChangelogSummary {

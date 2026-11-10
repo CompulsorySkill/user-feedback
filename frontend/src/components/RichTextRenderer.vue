@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
 
 import { storageUrl } from '@/composables/useStorageUrl';
 import { attrNumber, attrString, type JSONContent, type JSONMark } from '@/types/content';
@@ -36,6 +37,10 @@ const videoSrc = computed(() => attrString(props.node, 'src'));
 const videoPoster = computed(() => attrString(props.node, 'poster'));
 // 提及只保存展示名，渲染为内联文本，不解析成链接或 HTML。
 const mentionLabel = computed(() => attrString(props.node, 'label'));
+
+// 引用只保留反馈 id 与标题快照，渲染成站内链接。
+const refId = computed(() => attrString(props.node, 'id'));
+const refTitle = computed(() => attrString(props.node, 'title'));
 
 function collectText(node: JSONContent): string {
   const own = node.text ?? '';
@@ -101,6 +106,14 @@ function collectText(node: JSONContent): string {
   <span v-else-if="node.type === 'mention' && mentionLabel" class="rt-mention">
     @{{ mentionLabel }}
   </span>
+
+  <RouterLink
+    v-else-if="node.type === 'postRef' && refId && refTitle"
+    :to="`/post/${refId}`"
+    class="rt-post-ref"
+  >
+    → {{ refTitle }}
+  </RouterLink>
 
   <figure v-else-if="node.type === 'image' && imageSrc" class="rt-figure">
     <img

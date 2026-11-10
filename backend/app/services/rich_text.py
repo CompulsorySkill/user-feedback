@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 from urllib.parse import urlparse
 
@@ -36,9 +37,11 @@ ALLOWED_NODES = {
     "image",
     "video",
     "mention",
+    "postRef",
 }
 ALLOWED_MARKS = {"bold", "italic", "strike", "underline", "code", "link"}
 MAX_MENTION_LABEL_LENGTH = 128
+MAX_POST_REF_TITLE_LENGTH = 200
 
 
 def _invalid(message: str) -> AppException:
@@ -81,6 +84,31 @@ def mentioned_user_ids(content: Any) -> set[int]:
         children = node.get("content")
         if isinstance(children, list):
             stack.extend(children)
+    return ids
+
+
+def referenced_post_ids(content: Any) -> list[uuid.UUID]:
+    """按出现顺序取出 postRef 节点引用的反馈 id，去重。"""
+    ids: list[uuid.UUID] = []
+    seen: set[str] = set()
+    stack = [content]
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") == "postRef":
+            attrs = node.get("attrs")
+            raw = attrs.get("id") if isinstance(attrs, dict) else None
+            try:
+                post_id = uuid.UUID(str(raw))
+            except (TypeError, ValueError):
+                continue
+            if str(post_id) not in seen:
+                seen.add(str(post_id))
+                ids.append(post_id)
+        children = node.get("content")
+        if isinstance(children, list):
+            stack.extend(reversed(children))
     return ids
 
 
@@ -171,6 +199,21 @@ async def validate_rich_text(
             if len(label) > MAX_MENTION_LABEL_LENGTH:
                 raise _invalid("提及名称过长")
             text_parts.append(f"@{label}")
+
+        if node_type == "postRef":
+            # 只存 id 与标题快照；标题渲染时再按库里最新值对齐，删除的反馈直接不展示。
+            attrs = node.get("attrs")
+            raw_id = attrs.get("id") if isinstance(attrs, dict) else None
+            title = attrs.get("title") if isinstance(attrs, dict) else None
+            try:
+                uuid.UUID(str(raw_id))
+            except (TypeError, ValueError):
+                raise _invalid("引用节点缺少合法的反馈 id") from None
+            if not isinstance(title, str) or not title.strip():
+                raise _invalid("引用节点缺少标题")
+            if len(title) > MAX_POST_REF_TITLE_LENGTH:
+                raise _invalid("引用标题过长")
+            text_parts.append(title)
 
         children = node.get("content")
         if children is not None and not isinstance(children, list):

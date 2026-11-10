@@ -58,6 +58,9 @@ function post(overrides: Partial<PostDetail> = {}): PostDetail {
     task: null,
     can_accept_task: true,
     can_complete_task: false,
+    previous: [],
+    next: [],
+    references: [],
     ...overrides,
   };
 }

@@ -61,6 +61,7 @@ function detail(overrides: Partial<PostDetail> = {}): PostDetail {
     can_complete_task: false,
     previous: [],
     next: [],
+    references: [],
     ...overrides,
   };
 }
@@ -109,6 +110,24 @@ describe('PostDetailView 同看板侧栏', () => {
     expect(sides).toHaveLength(2);
     expect(sides[1]!.find('.timeline-stub').exists()).toBe(true);
     expect(wrapper.find('.post-detail-main .timeline-stub').exists()).toBe(false);
+  });
+
+  it('正文里的引用在末尾列出链接', async () => {
+    mocks.getPost.mockResolvedValue(
+      detail({ references: [{ id: 'post-9', title: '被引用的反馈' }] }),
+    );
+    const wrapper = await mountView();
+
+    const section = wrapper.get('.changelog-attachments');
+    expect(section.text()).toContain('引用的反馈');
+    expect(section.get('a[data-to="/post/post-9"]').text()).toContain('被引用的反馈');
+  });
+
+  it('没有引用时不渲染引用区', async () => {
+    mocks.getPost.mockResolvedValue(detail());
+    const wrapper = await mountView();
+
+    expect(wrapper.find('.changelog-attachments').exists()).toBe(false);
   });
 
   it('看板只有这一条反馈时显示空态', async () => {

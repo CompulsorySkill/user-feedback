@@ -184,6 +184,17 @@ class PostRepository:
         post, board, author_name = row
         return post, board, author_name
 
+    async def titles_for_ids(self, ids: Sequence[uuid.UUID]) -> dict[uuid.UUID, str]:
+        """引用列表用：只返回仍存在且在看板公开的反馈标题。"""
+        if not ids:
+            return {}
+        stmt = (
+            select(Post.id, Post.title)
+            .join(Board, Board.id == Post.board_id)
+            .where(Post.id.in_(ids), Board.is_public.is_(True))
+        )
+        return {row[0]: row[1] for row in (await self.session.execute(stmt)).all()}
+
     async def neighbors(
         self, post: Post, *, limit: int = 5
     ) -> tuple[list[tuple], list[tuple]]:

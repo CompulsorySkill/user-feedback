@@ -7,6 +7,7 @@ import {
   IconCode,
   IconH2,
   IconItalic,
+  IconLink,
   IconList,
   IconListNumbers,
   IconLoader2,
@@ -20,9 +21,11 @@ import StarterKit from '@tiptap/starter-kit';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import { computed, ref, watch } from 'vue';
 
+import PostRefPicker from '@/components/PostRefPicker.vue';
 import { useUpload } from '@/composables/useUpload';
 import { StorageImage, VideoNode } from '@/editor/extensions';
 import { AdminMention } from '@/editor/mention';
+import { PostRef } from '@/editor/postRef';
 import type { JSONContent } from '@/types/content';
 import { imageFilesFromClipboard } from '@/utils/clipboard';
 
@@ -65,6 +68,7 @@ const editor = useEditor({
     StorageImage.configure({ inline: false, allowBase64: false }),
     VideoNode,
     AdminMention,
+    PostRef,
     Placeholder.configure({
       placeholder: props.placeholder,
     }),
@@ -116,6 +120,16 @@ function insertMedia(file: File, purpose: 'image' | 'video', key: string): void 
 
 function insertMention(): void {
   editor.value?.chain().focus().insertContent('@').run();
+}
+
+const refPickerOpen = ref(false);
+
+function insertPostRef(post: { id: string; title: string }): void {
+  editor.value
+    ?.chain()
+    .focus()
+    .insertContent({ type: 'postRef', attrs: { id: post.id, title: post.title } })
+    .run();
 }
 
 async function pasteImages(files: File[]): Promise<void> {
@@ -233,6 +247,9 @@ defineExpose({
       <button type="button" class="tool-button" title="提及管理员" @click="insertMention">
         <IconAt :size="16" :stroke-width="2" />
       </button>
+      <button type="button" class="tool-button" title="引用其他反馈" @click="refPickerOpen = true">
+        <IconLink :size="16" :stroke-width="2" />
+      </button>
 
       <span class="tool-sep" />
 
@@ -293,5 +310,7 @@ defineExpose({
       accept="image/png,image/jpeg,image/webp,image/gif,video/mp4"
       @change="onFileChange"
     />
+
+    <PostRefPicker v-model:open="refPickerOpen" @pick="insertPostRef" />
   </div>
 </template>

@@ -740,6 +740,21 @@ ol.rt-list {
   white-space: nowrap;
 }
 
+/* 正文里引用的其他反馈（postRef）：编辑器与只读渲染共用 */
+.rt-post-ref {
+  padding: 0.05em 0.35em;
+  border-radius: 5px;
+  border-bottom: 1px solid var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+  white-space: nowrap;
+}
+
+.rt-post-ref:hover {
+  background: var(--brand);
+  color: var(--primary-foreground);
+}
+
 .rt-italic {
   font-style: italic;
 }

@@ -230,6 +230,57 @@ async def test_post_detail_lists_five_neighbors_per_side(
     assert body["next"][0]["id"] == str(uuid.UUID(ids[7]))
 
 
+async def test_post_detail_lists_referenced_posts_in_content_order(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    private_board = insert_board(
+        sqlite_conn, slug="internal", name="内部", is_public=False
+    )
+    kept_id = insert_post(
+        sqlite_conn, board_id=board_id, title="旧标题", created_at=BASE
+    )
+    hidden_id = insert_post(
+        sqlite_conn, board_id=private_board, title="非公开看板", created_at=BASE
+    )
+
+    def ref(post_id: str, title: str) -> dict:
+        return {
+            "type": "postRef",
+            "attrs": {"id": str(uuid.UUID(post_id)), "title": title},
+        }
+
+    content = {
+        "type": "doc",
+        "content": [
+            {"type": "paragraph", "content": [ref(hidden_id, "非公开看板")]},
+            {"type": "paragraph", "content": [ref(kept_id, "旧标题")]},
+            {"type": "paragraph", "content": [ref(kept_id, "旧标题")]},
+            {
+                "type": "paragraph",
+                "content": [
+                    ref("00000000-0000-4000-8000-000000000000", "已被删除的反馈")
+                ],
+            },
+        ],
+    }
+    post_id = insert_post(
+        sqlite_conn,
+        board_id=board_id,
+        title="引用其他反馈",
+        created_at=BASE,
+        content=content,
+    )
+
+    response = await client.get(f"/api/v1/posts/{post_id}")
+
+    assert response.status_code == 200
+    # 只留仍存在且看板公开的，去重，标题取库里最新值
+    assert response.json()["references"] == [
+        {"id": str(uuid.UUID(kept_id)), "title": "旧标题"}
+    ]
+
+
 async def test_post_detail_unknown_returns_404(client: AsyncClient) -> None:
     response = await client.get("/api/v1/posts/00000000-0000-4000-8000-000000000000")
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 
 from httpx import AsyncClient
@@ -16,9 +17,7 @@ BASE = datetime(2026, 1, 1, 12, 0, 0)
 def doc(text: str = "正文") -> dict:
     return {
         "type": "doc",
-        "content": [
-            {"type": "paragraph", "content": [{"type": "text", "text": text}]}
-        ],
+        "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}],
     }
 
 
@@ -140,9 +139,7 @@ async def test_presign_rejects_oversized_file(client: AsyncClient) -> None:
 # --------------------------------------------------------------------------- #
 
 
-async def test_create_post_with_owned_image(
-    client: AsyncClient, sqlite_conn
-) -> None:
+async def test_create_post_with_owned_image(client: AsyncClient, sqlite_conn) -> None:
     insert_board(sqlite_conn)
     upload = await presign(client)
 
@@ -294,6 +291,59 @@ async def test_create_post_rejects_invalid_document(
     assert too_deep.json()["detail"] == "富文本嵌套过深"
 
 
+async def test_create_post_accepts_post_reference(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    quoted_id = insert_post(
+        sqlite_conn, board_id=board_id, title="要引用的", created_at=BASE
+    )
+    content = {
+        "type": "doc",
+        "content": [
+            {"type": "paragraph", "content": [{"type": "text", "text": "参见"}]},
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "postRef",
+                        "attrs": {"id": quoted_id, "title": "要引用的"},
+                    }
+                ],
+            },
+        ],
+    }
+
+    created = await client.post(
+        "/api/v1/boards/product/posts",
+        json={"title": "引用一条", "content": content},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["references"] == [
+        {"id": str(uuid.UUID(quoted_id)), "title": "要引用的"}
+    ]
+
+    bad = await client.post(
+        "/api/v1/boards/product/posts",
+        json={
+            "title": "坏引用",
+            "content": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {"type": "postRef", "attrs": {"id": "nope", "title": "x"}}
+                        ],
+                    }
+                ],
+            },
+        },
+    )
+    assert bad.status_code == 400
+    assert bad.json()["code"] == "INVALID_CONTENT"
+
+
 async def test_create_post_rejects_when_guest_posting_disabled(
     client: AsyncClient, sqlite_conn
 ) -> None:
@@ -358,9 +408,7 @@ async def test_unvote_decrements_count(client: AsyncClient, sqlite_conn) -> None
     assert again.json() == {"voted": False, "vote_count": 0}
 
 
-async def test_vote_closed_post_rejected(
-    client: AsyncClient, sqlite_conn
-) -> None:
+async def test_vote_closed_post_rejected(client: AsyncClient, sqlite_conn) -> None:
     board_id = insert_board(sqlite_conn)
     post_id = await _post_id(sqlite_conn, board_id=board_id, status="closed")
 
@@ -370,9 +418,7 @@ async def test_vote_closed_post_rejected(
     assert response.json()["code"] == "POST_CLOSED"
 
 
-async def test_vote_disabled_board_rejected(
-    client: AsyncClient, sqlite_conn
-) -> None:
+async def test_vote_disabled_board_rejected(client: AsyncClient, sqlite_conn) -> None:
     board_id = insert_board(sqlite_conn, allow_guest_voting=False)
     post_id = await _post_id(sqlite_conn, board_id=board_id)
 

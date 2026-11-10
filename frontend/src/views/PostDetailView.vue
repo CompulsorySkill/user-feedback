@@ -2,6 +2,7 @@
 import {
   IconArrowLeft,
   IconEdit,
+  IconLink,
   IconLoader2,
   IconMessage,
   IconRefresh,
@@ -175,6 +176,23 @@ watch(() => route.params.id, load, { immediate: true });
 
             <section class="rich-text">
               <RichTextRenderer :node="post.content" />
+            </section>
+
+            <section v-if="post.references.length" class="changelog-attachments">
+              <h2>引用的反馈</h2>
+              <RouterLink
+                v-for="item in post.references"
+                :key="item.id"
+                :to="`/post/${item.id}`"
+                class="attachment-item"
+              >
+                <span class="attachment-icon">
+                  <IconLink :size="18" :stroke-width="1.8" />
+                </span>
+                <span class="attachment-main">
+                  <span class="attachment-name">{{ item.title }}</span>
+                </span>
+              </RouterLink>
             </section>
 
             <details v-if="post.environment" class="env-panel">

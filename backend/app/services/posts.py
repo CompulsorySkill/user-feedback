@@ -37,13 +37,18 @@ from app.schemas.post import (
     PostCreateRequest,
     PostDetail,
     PostNeighbor,
+    PostReference,
     PostSummary,
     PostTaskInfo,
     PostTimelineEvent,
     PostUpdateRequest,
 )
 from app.services.mentions import MentionService
-from app.services.rich_text import collect_media_keys, validate_rich_text
+from app.services.rich_text import (
+    collect_media_keys,
+    referenced_post_ids,
+    validate_rich_text,
+)
 from app.services.tags import TagService, normalize_tag_filter, to_ref
 
 # 反馈中允许的媒体节点 -> Upload purpose
@@ -242,6 +247,8 @@ class PostService:
         mentioned_ids = await self._task_mentioned_user_ids(post.id)
         tag_map = await self.tags.for_posts([post.id])
         previous, following = await self.posts.neighbors(post)
+        ref_ids = referenced_post_ids(post.content)
+        ref_titles = await self.posts.titles_for_ids(ref_ids)
         return PostDetail(
             **_summary(
                 post,
@@ -297,6 +304,11 @@ class PostService:
             next=[
                 PostNeighbor(id=row[0], title=row[1], created_at=row[2])
                 for row in following
+            ],
+            references=[
+                PostReference(id=post_id, title=ref_titles[post_id])
+                for post_id in ref_ids
+                if post_id in ref_titles
             ],
         )
 

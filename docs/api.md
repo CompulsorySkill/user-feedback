@@ -76,7 +76,8 @@
   "previous": [
     { "id": "...", "title": "更早的一条", "created_at": "2026-04-28T12:00:00+00:00" }
   ],
-  "next": []
+  "next": [],
+  "references": [{ "id": "...", "title": "被引用的反馈" }]
 }
 ```
 
@@ -244,6 +245,9 @@ keyset 分页。响应：
 - 节点与 mark 白名单（未知节点 / 标记直接拒绝）；链接仅 http(s)
 - `mention` 节点只存 `id` 与 `label`（≤128 字符），仅作为内联文本渲染，`label` 必填；
   候选名单来自公开接口 `GET /v1/admins`，摘要拼接为 `@label`
+- `postRef` 节点引用另一条反馈，只存 `id`（UUID）与 `title`（≤200 字符），编辑器从公开反馈列表选取；
+  渲染时标题取库里最新值，**引用目标被删除或转为非公开看板后不展示**；反馈详情额外返回
+  `references: [{id, title}]`（按正文出现顺序去重），用于正文末尾的链接列表
 - `image` / `video` 的 `src` 必须是**当前身份**的 `Upload`，且 purpose / content_type 匹配，否则 `400 INVALID_CONTENT`
   - 反馈：`post_image` / `post_video`；评论：`comment_image` / `comment_video`；
     更新日志：`changelog_image` / `changelog_video`；公告：`announcement_image` / `announcement_video`

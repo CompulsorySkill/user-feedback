@@ -71,6 +71,13 @@ class PostNeighbor(UTCModel):
     created_at: datetime
 
 
+class PostReference(BaseModel):
+    """正文中引用（postRef 节点）的其他反馈，渲染在正文末尾。"""
+
+    id: uuid.UUID
+    title: str
+
+
 class PostDetail(PostSummary):
     board: BoardRef
     content: dict[str, Any]
@@ -82,6 +89,7 @@ class PostDetail(PostSummary):
     can_complete_task: bool = False
     previous: list[PostNeighbor] = Field(default_factory=list)
     next: list[PostNeighbor] = Field(default_factory=list)
+    references: list[PostReference] = Field(default_factory=list)
 
 
 class AuthorFacet(BaseModel):
