@@ -63,6 +63,14 @@ class PostTaskInfo(UTCModel):
     completed_at: datetime | None
 
 
+class PostNeighbor(UTCModel):
+    """同看板的前 / 后一条反馈；详情页侧栏用。"""
+
+    id: uuid.UUID
+    title: str
+    created_at: datetime
+
+
 class PostDetail(PostSummary):
     board: BoardRef
     content: dict[str, Any]
@@ -72,6 +80,8 @@ class PostDetail(PostSummary):
     task: PostTaskInfo | None = None
     can_accept_task: bool = False
     can_complete_task: bool = False
+    previous: list[PostNeighbor] = Field(default_factory=list)
+    next: list[PostNeighbor] = Field(default_factory=list)
 
 
 class AuthorFacet(BaseModel):

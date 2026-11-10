@@ -36,6 +36,7 @@ from app.schemas.post import (
     ClientEnvironment,
     PostCreateRequest,
     PostDetail,
+    PostNeighbor,
     PostSummary,
     PostTaskInfo,
     PostTimelineEvent,
@@ -240,6 +241,7 @@ class PostService:
         task = await self.timeline.get_task(post.id)
         mentioned_ids = await self._task_mentioned_user_ids(post.id)
         tag_map = await self.tags.for_posts([post.id])
+        previous, following = await self.posts.neighbors(post)
         return PostDetail(
             **_summary(
                 post,
@@ -288,6 +290,14 @@ class PostService:
                 and task.completed_at is None
                 and post.status != "closed"
             ),
+            previous=[
+                PostNeighbor(id=row[0], title=row[1], created_at=row[2])
+                for row in previous
+            ],
+            next=[
+                PostNeighbor(id=row[0], title=row[1], created_at=row[2])
+                for row in following
+            ],
         )
 
     async def create(

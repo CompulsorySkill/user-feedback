@@ -140,7 +140,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-[min(1120px,100%_-_32px)]">
+  <div class="mx-auto w-[min(1560px,100%-40px)]">
     <RouterLink
       :to="board ? `/b/${board.slug}` : '/'"
       class="mb-5 inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-primary"

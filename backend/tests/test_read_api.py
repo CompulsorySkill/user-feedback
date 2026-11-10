@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta
 
 from httpx import AsyncClient
@@ -21,7 +22,9 @@ BASE = datetime(2026, 1, 1, 12, 0, 0)
 # --------------------------------------------------------------------------- #
 
 
-async def test_list_boards_only_public_with_counts(client: AsyncClient, sqlite_conn) -> None:
+async def test_list_boards_only_public_with_counts(
+    client: AsyncClient, sqlite_conn
+) -> None:
     product_id = insert_board(sqlite_conn, slug="product", name="功能建议")
     insert_board(sqlite_conn, slug="internal", name="内部看板", is_public=False)
     insert_post(sqlite_conn, board_id=product_id, title="a", created_at=BASE)
@@ -124,7 +127,9 @@ async def test_posts_list_includes_author_and_anonymous(
     assert items[1]["author_name"] is None
 
 
-async def test_posts_list_rejects_invalid_cursor(client: AsyncClient, sqlite_conn) -> None:
+async def test_posts_list_rejects_invalid_cursor(
+    client: AsyncClient, sqlite_conn
+) -> None:
     insert_board(sqlite_conn)
 
     response = await client.get(
@@ -140,7 +145,9 @@ async def test_posts_list_rejects_invalid_cursor(client: AsyncClient, sqlite_con
 # --------------------------------------------------------------------------- #
 
 
-async def test_post_detail_returns_rich_content(client: AsyncClient, sqlite_conn) -> None:
+async def test_post_detail_returns_rich_content(
+    client: AsyncClient, sqlite_conn
+) -> None:
     board_id = insert_board(sqlite_conn)
     user_id = insert_user(sqlite_conn, email="lin@example.com", display_name="林小满")
     content = {
@@ -177,14 +184,50 @@ async def test_post_detail_anonymous_has_no_author(
     client: AsyncClient, sqlite_conn
 ) -> None:
     board_id = insert_board(sqlite_conn)
-    post_id = insert_post(
-        sqlite_conn, board_id=board_id, title="匿名", created_at=BASE
-    )
+    post_id = insert_post(sqlite_conn, board_id=board_id, title="匿名", created_at=BASE)
 
     response = await client.get(f"/api/v1/posts/{post_id}")
 
     assert response.status_code == 200
     assert response.json()["author_name"] is None
+
+
+async def test_post_detail_lists_five_neighbors_per_side(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    board_id = insert_board(sqlite_conn)
+    other_board = insert_board(sqlite_conn, slug="bugs", name="问题反馈")
+    # 同看板 13 条，当前条位于第 7；其他看板的条不应出现
+    titles = [f"t{i}" for i in range(13)]
+    ids = [
+        insert_post(
+            sqlite_conn,
+            board_id=board_id,
+            title=title,
+            created_at=BASE + timedelta(hours=i),
+        )
+        for i, title in enumerate(titles)
+    ]
+    insert_post(
+        sqlite_conn,
+        board_id=other_board,
+        title="别的看板",
+        created_at=BASE + timedelta(hours=5),
+    )
+
+    response = await client.get(f"/api/v1/posts/{ids[6]}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["title"] for item in body["previous"]] == [
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+    ]
+    assert [item["title"] for item in body["next"]] == ["t7", "t8", "t9", "t10", "t11"]
+    assert body["next"][0]["id"] == str(uuid.UUID(ids[7]))
 
 
 async def test_post_detail_unknown_returns_404(client: AsyncClient) -> None:
@@ -198,9 +241,7 @@ async def test_post_in_private_board_returns_404(
     client: AsyncClient, sqlite_conn
 ) -> None:
     board_id = insert_board(sqlite_conn, slug="internal", name="内部", is_public=False)
-    post_id = insert_post(
-        sqlite_conn, board_id=board_id, title="机密", created_at=BASE
-    )
+    post_id = insert_post(sqlite_conn, board_id=board_id, title="机密", created_at=BASE)
 
     response = await client.get(f"/api/v1/posts/{post_id}")
 
@@ -212,9 +253,7 @@ async def test_post_in_private_board_returns_404(
 # --------------------------------------------------------------------------- #
 
 
-async def test_changelog_list_hides_drafts(
-    client: AsyncClient, sqlite_conn
-) -> None:
+async def test_changelog_list_hides_drafts(client: AsyncClient, sqlite_conn) -> None:
     insert_changelog(sqlite_conn, title="已发布", created_at=BASE)
     insert_changelog(
         sqlite_conn, title="草稿", created_at=BASE - timedelta(hours=1), published=False

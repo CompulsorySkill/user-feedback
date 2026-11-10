@@ -59,7 +59,7 @@ async function run(action: 'accept' | 'complete'): Promise<void> {
 
 <template>
   <section
-    class="mt-6 rounded-lg border border-border bg-card p-4"
+    class="rounded-lg border border-border bg-card p-4"
     aria-labelledby="post-timeline-title"
   >
     <div class="flex flex-wrap items-center justify-between gap-3">

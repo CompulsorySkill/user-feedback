@@ -101,99 +101,131 @@ watch(() => route.params.id, load, { immediate: true });
         <IconArrowLeft :size="15" :stroke-width="2" /> {{ post.board.name }}
       </RouterLink>
 
-      <article class="post-detail">
-        <header class="post-detail-head">
-          <div class="post-badges">
-            <StatusBadge :status="post.status" />
-            <span class="post-time" :title="formatDateTime(post.created_at)">
-              {{ formatDate(post.created_at) }}
-            </span>
-          </div>
-          <h1>{{ post.title }}</h1>
-          <TagList v-if="post.tags.length" :tags="post.tags" class="post-detail-tags" />
-          <div class="post-detail-meta">
-            <AuthorTag :post="post" />
-            <span class="meta-item">
-              <IconMessage :size="15" :stroke-width="1.8" />
-              {{ post.comment_count }} 条评论
-            </span>
-            <span class="meta-item subtle" :title="formatDateTime(post.updated_at)">
-              更新于 {{ formatRelative(post.updated_at) }}
-            </span>
-          </div>
-          <div class="post-detail-actions">
-            <PostStatusControl :post="post" @updated="onPostUpdated" />
-            <RouterLink
-              v-if="canEdit"
-              :to="`/post/${post.id}/edit`"
-              data-slot="button"
-              :class="buttonVariants({ variant: 'outline', size: 'lg' })"
-            >
-              <IconEdit :size="15" :stroke-width="2" />
-              编辑反馈
-            </RouterLink>
-            <Button
-              v-if="auth.isAdmin"
-              type="button"
-              :disabled="deleting"
-              @click="removePost"
-              variant="destructive"
-              size="lg"
-              class="border-destructive/30"
-            >
-              <IconLoader2 v-if="deleting" class="spin" :size="15" :stroke-width="2" />
-              <IconTrash v-else :size="15" :stroke-width="2" />
-              删除反馈
-            </Button>
-          </div>
-          <p v-if="actionError" class="inline-error">{{ actionError }}</p>
-        </header>
+      <div class="post-detail-layout">
+        <aside class="post-detail-side" aria-label="同看板其他反馈">
+          <h2 class="sidebar-title">同看板反馈</h2>
+          <ul v-if="post.previous.length || post.next.length" class="post-neighbors">
+            <li v-for="item in post.previous" :key="item.id">
+              <RouterLink :to="`/post/${item.id}`" :title="item.title">
+                {{ item.title }}
+              </RouterLink>
+            </li>
+            <li class="post-neighbor-current" aria-current="page">{{ post.title }}</li>
+            <li v-for="item in post.next" :key="item.id">
+              <RouterLink :to="`/post/${item.id}`" :title="item.title">
+                {{ item.title }}
+              </RouterLink>
+            </li>
+          </ul>
+          <p v-else class="post-neighbor-empty">该看板还没有其他反馈。</p>
+        </aside>
 
-        <div v-if="isClosed" class="notice notice-closed">
-          该反馈已关闭，不再接受新的投票与评论；历史内容仍然保留。
+        <div class="post-detail-main">
+          <article class="post-detail">
+            <header class="post-detail-head">
+              <div class="post-badges">
+                <StatusBadge :status="post.status" />
+                <span class="post-time" :title="formatDateTime(post.created_at)">
+                  {{ formatDate(post.created_at) }}
+                </span>
+              </div>
+              <h1>{{ post.title }}</h1>
+              <TagList v-if="post.tags.length" :tags="post.tags" class="post-detail-tags" />
+              <div class="post-detail-meta">
+                <AuthorTag :post="post" />
+                <span class="meta-item">
+                  <IconMessage :size="15" :stroke-width="1.8" />
+                  {{ post.comment_count }} 条评论
+                </span>
+                <span class="meta-item subtle" :title="formatDateTime(post.updated_at)">
+                  更新于 {{ formatRelative(post.updated_at) }}
+                </span>
+              </div>
+              <div class="post-detail-actions">
+                <PostStatusControl :post="post" @updated="onPostUpdated" />
+                <RouterLink
+                  v-if="canEdit"
+                  :to="`/post/${post.id}/edit`"
+                  data-slot="button"
+                  :class="buttonVariants({ variant: 'outline', size: 'lg' })"
+                >
+                  <IconEdit :size="15" :stroke-width="2" />
+                  编辑反馈
+                </RouterLink>
+                <Button
+                  v-if="auth.isAdmin"
+                  type="button"
+                  :disabled="deleting"
+                  @click="removePost"
+                  variant="destructive"
+                  size="lg"
+                  class="border-destructive/30"
+                >
+                  <IconLoader2 v-if="deleting" class="spin" :size="15" :stroke-width="2" />
+                  <IconTrash v-else :size="15" :stroke-width="2" />
+                  删除反馈
+                </Button>
+              </div>
+              <p v-if="actionError" class="inline-error">{{ actionError }}</p>
+            </header>
+
+            <div v-if="isClosed" class="notice notice-closed">
+              该反馈已关闭，不再接受新的投票与评论；历史内容仍然保留。
+            </div>
+
+            <section class="rich-text">
+              <RichTextRenderer :node="post.content" />
+            </section>
+
+            <details v-if="post.environment" class="env-panel">
+              <summary>发布者附带的浏览器 / 操作系统信息</summary>
+              <dl class="env-grid">
+                <div v-if="post.environment.user_agent">
+                  <dt>User Agent</dt>
+                  <dd>{{ post.environment.user_agent }}</dd>
+                </div>
+                <div v-if="post.environment.platform">
+                  <dt>平台</dt>
+                  <dd>{{ post.environment.platform }}</dd>
+                </div>
+                <div v-if="post.environment.language">
+                  <dt>语言</dt>
+                  <dd>{{ post.environment.language }}</dd>
+                </div>
+                <div v-if="post.environment.viewport">
+                  <dt>视口</dt>
+                  <dd>{{ post.environment.viewport }}</dd>
+                </div>
+                <div v-if="post.environment.timezone">
+                  <dt>时区</dt>
+                  <dd>{{ post.environment.timezone }}</dd>
+                </div>
+              </dl>
+            </details>
+
+            <footer class="post-detail-foot">
+              <span class="action-hint">
+                {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论支持 3 层回复' }}
+              </span>
+              <VoteButton
+                :post-id="post.id"
+                :initial-count="post.vote_count"
+                :disabled="isClosed"
+              />
+            </footer>
+          </article>
+
+          <CommentSection
+            :post-id="post.id"
+            :closed="isClosed"
+            @count="post.comment_count = $event"
+          />
         </div>
 
-        <section class="rich-text">
-          <RichTextRenderer :node="post.content" />
-        </section>
-
-        <details v-if="post.environment" class="env-panel">
-          <summary>发布者附带的浏览器 / 操作系统信息</summary>
-          <dl class="env-grid">
-            <div v-if="post.environment.user_agent">
-              <dt>User Agent</dt>
-              <dd>{{ post.environment.user_agent }}</dd>
-            </div>
-            <div v-if="post.environment.platform">
-              <dt>平台</dt>
-              <dd>{{ post.environment.platform }}</dd>
-            </div>
-            <div v-if="post.environment.language">
-              <dt>语言</dt>
-              <dd>{{ post.environment.language }}</dd>
-            </div>
-            <div v-if="post.environment.viewport">
-              <dt>视口</dt>
-              <dd>{{ post.environment.viewport }}</dd>
-            </div>
-            <div v-if="post.environment.timezone">
-              <dt>时区</dt>
-              <dd>{{ post.environment.timezone }}</dd>
-            </div>
-          </dl>
-        </details>
-
-        <footer class="post-detail-foot">
-          <span class="action-hint">
-            {{ isClosed ? '反馈已关闭' : '匿名即可投票 · 评论支持 3 层回复' }}
-          </span>
-          <VoteButton :post-id="post.id" :initial-count="post.vote_count" :disabled="isClosed" />
-        </footer>
-      </article>
-
-      <PostTimeline :post="post" @updated="onPostUpdated" />
-
-      <CommentSection :post-id="post.id" :closed="isClosed" @count="post.comment_count = $event" />
+        <aside class="post-detail-side" aria-label="进度时间线">
+          <PostTimeline :post="post" @updated="onPostUpdated" />
+        </aside>
+      </div>
     </template>
 
     <div v-else class="inline-error">

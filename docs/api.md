@@ -72,9 +72,16 @@
   ],
   "task": null,
   "can_accept_task": false,
-  "can_complete_task": false
+  "can_complete_task": false,
+  "previous": [
+    { "id": "...", "title": "更早的一条", "created_at": "2026-04-28T12:00:00+00:00" }
+  ],
+  "next": []
 }
 ```
+
+- `previous` / `next`：同看板下比当前反馈更早 / 更晚的各 5 条（`(created_at, id)` 排序，均按时间正序返回），
+  供详情页左侧相邻反馈列表使用；不区分状态，不含当前这条。
 
 - `event_type`：`created` / `status_changed` / `task_accepted` / `task_completed`。
 - 发帖时自动记录 `created`；迁移会为历史反馈回填一条 `created`。

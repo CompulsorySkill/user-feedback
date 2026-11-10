@@ -101,6 +101,15 @@ export interface PostDetail extends PostSummary {
   task: PostTaskInfo | null;
   can_accept_task: boolean;
   can_complete_task: boolean;
+  /** 同看板更早 / 更晚的各 5 条，均按时间正序。 */
+  previous: PostNeighbor[];
+  next: PostNeighbor[];
+}
+
+export interface PostNeighbor {
+  id: string;
+  title: string;
+  created_at: string;
 }
 
 export interface ChangelogSummary {

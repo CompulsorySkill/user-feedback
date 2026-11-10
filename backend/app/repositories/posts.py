@@ -51,7 +51,9 @@ class PostRepository:
         if statuses:
             stmt = stmt.where(Post.status.in_(list(statuses)))
         if author:
-            stmt = stmt.where(or_(User.display_name == author, Post.anonymous_name == author))
+            stmt = stmt.where(
+                or_(User.display_name == author, Post.anonymous_name == author)
+            )
         if query:
             escaped = (
                 query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -181,6 +183,27 @@ class PostRepository:
             return None
         post, board, author_name = row
         return post, board, author_name
+
+    async def neighbors(
+        self, post: Post, *, limit: int = 5
+    ) -> tuple[list[tuple], list[tuple]]:
+        """同看板下比当前反馈早 / 晚的各 limit 条（按 created_at, id 定位）。"""
+        key = tuple_(Post.created_at, Post.id)
+        current = (post.created_at, post.id)
+
+        async def fetch(newer: bool) -> list[tuple]:
+            stmt = select(Post.id, Post.title, Post.created_at).where(
+                Post.board_id == post.board_id,
+                key > current if newer else key < current,
+            )
+            if newer:
+                stmt = stmt.order_by(Post.created_at, Post.id)
+            else:
+                stmt = stmt.order_by(Post.created_at.desc(), Post.id.desc())
+            return list((await self.session.execute(stmt.limit(limit))).all())
+
+        # 较早的一侧按时间倒序取最近 5 条，再翻回正序展示。
+        return list(reversed(await fetch(False))), await fetch(True)
 
     async def delete_with_content(self, post: Post) -> None:
         """显式级联删除，不依赖数据库 FK 开关（测试与服务端连接行为一致）。"""
