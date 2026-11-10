@@ -255,3 +255,42 @@ async def test_attachment_limit_and_type(client: AsyncClient) -> None:
         },
     )
     assert invalid_key.status_code == 422
+
+
+async def test_update_keeps_attachment_uploaded_by_other_admin(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    """同一规则也适用于更新日志：已有附件换人编辑时可原样保留。"""
+    await login(client)
+    attachment = await presign_attachment(client, filename="legacy.zip")
+    created = await client.post(
+        "/api/v1/changelogs",
+        json={
+            "title": "历史日志",
+            "content": changelog_doc(),
+            "attachments": [
+                {"object_key": attachment["object_key"], "filename": "legacy.zip"}
+            ],
+        },
+    )
+    assert created.status_code == 201
+    entry_id = created.json()["id"]
+
+    sqlite_conn.execute(
+        "UPDATE uploads SET identity = 'user:9999' WHERE object_key = ?",
+        (attachment["object_key"],),
+    )
+    sqlite_conn.commit()
+
+    updated = await client.patch(
+        f"/api/v1/changelogs/{entry_id}",
+        json={
+            "attachments": [
+                {"object_key": attachment["object_key"], "filename": "legacy.zip"}
+            ]
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    assert [item["filename"] for item in updated.json()["attachments"]] == [
+        "legacy.zip"
+    ]

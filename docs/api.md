@@ -230,6 +230,8 @@ keyset 分页。响应：
 ```
 
 - 附件必须是**当前管理员**的 `Upload`，且 purpose 为 `changelog_attachment`；否则 400 `INVALID_ATTACHMENT`
+- 例外：**本文已有**的附件可以原样回传（object_key 与当前附件行一致），不校验上传人——
+  否则换个人编辑就会因归属校验整次保存失败；类型 / 大小沿用原附件行
 - `filename` 仅作下载展示，服务端会去掉路径与控制字符；真实类型 / 大小取自 Upload 记录
 - 附件下载：`GET /v1/changelogs/{id}/attachments/{attachment_id}`
   - 强制 `application/octet-stream` + `attachment`，防止 HTML/SVG 等在同源内联执行

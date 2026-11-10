@@ -317,3 +317,64 @@ async def test_announcement_attachment_update_and_purpose(
     )
     assert denied.status_code == 400
     assert denied.json()["code"] == "INVALID_ATTACHMENT"
+
+
+async def test_announcement_update_keeps_attachment_uploaded_by_other_admin(
+    client: AsyncClient, sqlite_conn
+) -> None:
+    """换个人编辑不该因为附件上传人不同而整次保存失败（旧实现报 INVALID_ATTACHMENT）。"""
+    await login(client, ADMIN_EMAIL)
+    attachment = await presign_attachment(client, filename="legacy.zip")
+    created = await client.post(
+        "/api/v1/announcements",
+        json={
+            "title": "历史公告",
+            "content": doc(),
+            "attachments": [
+                {"object_key": attachment["object_key"], "filename": "legacy.zip"}
+            ],
+        },
+    )
+    assert created.status_code == 201
+    entry_id = created.json()["id"]
+
+    # 把 Upload 的归属改成另一个管理员：模拟「附件是别人传的」
+    sqlite_conn.execute(
+        "UPDATE uploads SET identity = 'user:9999' WHERE object_key = ?",
+        (attachment["object_key"],),
+    )
+    sqlite_conn.commit()
+
+    updated = await client.patch(
+        f"/api/v1/announcements/{entry_id}",
+        json={
+            "content": doc("改过的正文"),
+            "attachments": [
+                {"object_key": attachment["object_key"], "filename": "legacy.zip"}
+            ],
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    assert [item["filename"] for item in updated.json()["attachments"]] == [
+        "legacy.zip"
+    ]
+
+    # 新加的附件仍然必须是自己的
+    insert_upload(
+        sqlite_conn,
+        object_key="uploads/foreign-announcement.zip",
+        created_at=datetime(2026, 1, 1),
+        identity="user:9999",
+        purpose="announcement_attachment",
+        content_type="application/zip",
+    )
+    denied = await client.patch(
+        f"/api/v1/announcements/{entry_id}",
+        json={
+            "attachments": [
+                {"object_key": "uploads/foreign-announcement.zip", "filename": "f.zip"}
+            ]
+        },
+    )
+    assert denied.status_code == 400
+    assert denied.json()["code"] == "INVALID_ATTACHMENT"

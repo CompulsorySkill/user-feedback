@@ -24,8 +24,13 @@ async def validate_attachments(
     identity: str,
     uploads: UploadRepository,
     purpose: str,
+    existing: dict[str, dict[str, str | int]] | None = None,
 ) -> list[dict[str, str | int]]:
-    """校验附件属于当前身份且 purpose 匹配，返回可落库的元数据。"""
+    """校验附件属于当前身份且 purpose 匹配，返回可落库的元数据。
+
+    `existing` 是这条内容当前已挂的附件（object_key -> 元数据）：编辑时允许原样保留，
+    即使上传人是其他管理员——否则换个人编辑就会因归属校验而整次保存失败。
+    """
     if len(items) > MAX_ATTACHMENTS:
         raise AppException(
             400,
@@ -48,7 +53,13 @@ async def validate_attachments(
     result: list[dict[str, str | int]] = []
     for item in items:
         upload = uploads_by_key.get(item.object_key)
-        if upload is None or upload.purpose != purpose:
+        kept = (existing or {}).get(item.object_key)
+        if upload is not None and upload.purpose == purpose:
+            content_type, size = upload.content_type, upload.size
+        elif kept is not None:
+            # 本文已有的附件：保留原元数据，不因上传人不是当前管理员而拒绝。
+            content_type, size = str(kept["content_type"]), int(kept["size"])
+        else:
             raise AppException(
                 400,
                 code="INVALID_ATTACHMENT",
@@ -60,8 +71,8 @@ async def validate_attachments(
             {
                 "object_key": item.object_key,
                 "filename": sanitize_filename(item.filename),
-                "content_type": upload.content_type,
-                "size": upload.size,
+                "content_type": content_type,
+                "size": size,
             }
         )
     return result

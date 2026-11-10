@@ -139,14 +139,28 @@ class AnnouncementService:
         )
 
     async def _validate_attachments(
-        self, items: list[AttachmentInput], actor: User
+        self,
+        items: list[AttachmentInput],
+        actor: User,
+        *,
+        existing: dict[str, dict[str, str | int]] | None = None,
     ) -> list[dict[str, str | int]]:
         return await validate_attachments(
             items,
             identity=f"user:{actor.id}",
             uploads=self.uploads,
             purpose="announcement_attachment",
+            existing=existing,
         )
+
+    async def _existing_attachments(
+        self, announcement_id: uuid.UUID
+    ) -> dict[str, dict[str, str | int]]:
+        rows = await self.announcements.list_attachments(announcement_id)
+        return {
+            row.object_key: {"content_type": row.content_type, "size": row.size}
+            for row in rows
+        }
 
     @staticmethod
     def _attachment_rows(
@@ -205,7 +219,11 @@ class AnnouncementService:
                 payload.content, actor, allowed_object_keys=previous_media
             )
         if payload.attachments is not None:
-            attachments = await self._validate_attachments(payload.attachments, actor)
+            attachments = await self._validate_attachments(
+                payload.attachments,
+                actor,
+                existing=await self._existing_attachments(announcement_id),
+            )
             await self.announcements.replace_attachments(
                 announcement_id, self._attachment_rows(announcement_id, attachments)
             )
