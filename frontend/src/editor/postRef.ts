@@ -22,6 +22,8 @@ export const PostRef = Node.create({
     return [{ tag: 'span[data-post-ref]' }];
   },
 
+  // 编辑器内用 emoji 前缀（@tabler 图标写进 renderHTML 会因 viewBox 被小写化而 0×0）；
+  // 只读渲染走 RichTextRenderer，用真正的 IconLink。
   renderHTML({ HTMLAttributes }) {
     return [
       'span',
@@ -29,7 +31,7 @@ export const PostRef = Node.create({
         'data-post-ref': HTMLAttributes.id,
         class: 'rt-post-ref',
       }),
-      `→ ${HTMLAttributes.title}`,
+      `🔗 ${HTMLAttributes.title}`,
     ];
   },
 });

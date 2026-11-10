@@ -51,6 +51,8 @@ describe('RichTextRenderer', () => {
 
     const link = wrapper.get('.rt-post-ref');
     expect(link.attributes('data-to')).toBe('/post/00000000-0000-4000-8000-000000000001');
-    expect(link.text()).toBe('→ 导出功能坏了');
+    expect(link.text()).toBe('导出功能坏了');
+    // 左侧是 Tabler 的链接图标，不是字符箭头
+    expect(link.find('svg.rt-post-ref-icon').exists()).toBe(true);
   });
 });

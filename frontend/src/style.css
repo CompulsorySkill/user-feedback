@@ -742,12 +742,19 @@ ol.rt-list {
 
 /* 正文里引用的其他反馈（postRef）：编辑器与只读渲染共用 */
 .rt-post-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 0.05em 0.35em;
   border-radius: 5px;
   border-bottom: 1px solid var(--brand);
   background: var(--brand-soft);
   color: var(--brand);
   white-space: nowrap;
+}
+
+.rt-post-ref-icon {
+  flex: none;
 }
 
 .rt-post-ref:hover {

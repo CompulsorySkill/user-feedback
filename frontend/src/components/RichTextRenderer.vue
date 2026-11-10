@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { IconLink } from '@tabler/icons-vue';
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 
@@ -112,7 +113,8 @@ function collectText(node: JSONContent): string {
     :to="`/post/${refId}`"
     class="rt-post-ref"
   >
-    → {{ refTitle }}
+    <IconLink :size="13" :stroke-width="1.8" aria-hidden="true" class="rt-post-ref-icon" />
+    {{ refTitle }}
   </RouterLink>
 
   <figure v-else-if="node.type === 'image' && imageSrc" class="rt-figure">
