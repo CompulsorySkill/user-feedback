@@ -13,6 +13,9 @@ const storageTarget = process.env.VITE_STORAGE_PROXY_TARGET ?? 'http://127.0.0.1
 const storagePrefix = process.env.S3_BUCKET ?? 'storage';
 
 export default defineConfig({
+  // 相对路径产物 + 启动时注入的 <base href>：静态资源与懒加载 chunk 都跟着部署前缀走，
+  // 子路径部署（BASE_PATH）不需要重新构镜像，也不会向域根发 /assets 请求。
+  base: '',
   devtools: {
     apply: 'serve',
   },

@@ -104,8 +104,11 @@ CADDY_LOCAL_CERTS=local_certs
 ```
 
 - `COOKIE_SECURE` 保持默认（浏览器侧是 https）。`S3_*` / `SSO_*` / `ADMIN_*` 按 §3 的要求填。
-- 前缀在**容器启动时**注入 `index.html`（`frontend/docker-entrypoint.sh`）：静态资源 URL、
-  前端路由 base、API 前缀都跟着走。**同一份镜像**可以挂到任意前缀，GHCR 预构建镜像同样适用。
+- 前缀在**容器启动时**注入 `index.html`（`frontend/docker-entrypoint.sh`）：静态资源用相对路径，
+  前缀由注入的 `<base href="/<prefix>/">` 与 `__FEEDBACK_BASE__` 提供；前端路由 base、API 前缀、
+  媒体前缀也跟着走。**同一份镜像**可以挂到任意前缀，GHCR 预构建镜像同样适用。
+- 因此浏览器不会向域根请求 `/assets/*`：反代只转发 `/feedback/*` 也不会丢静态资源或懒加载 chunk
+  （构建产物为相对路径，chunk 相对入口模块 URL 解析）。
 - 启动脚本会校验 `BASE_PATH`（空或 `/segment[/segment]`，字符限 `[A-Za-z0-9._~-]`），
   非法值直接退出，不会写进 HTML。
 
@@ -158,10 +161,10 @@ location /feedback/ {
 BASE=https://example.com/feedback
 curl -fsS "$BASE/api/health"                          # {"status":"ok",...}
 
-# index.html 里的静态资源地址应带 /feedback 前缀
-ASSET=$(curl -fsS "$BASE/" | grep -o '/feedback/assets/index-[^"]*' | head -1)
-echo "$ASSET"
-curl -sI "https://example.com$ASSET" | head -1              # HTTP/2 200
+# index.html 应注入带前缀的 <base>，静态资源是相对路径
+curl -fsS "$BASE/" | grep -o '<base href="/feedback/">'
+ASSET=$(curl -fsS "$BASE/" | grep -o 'src="./assets/index-[^"]*' | head -1 | cut -d'"' -f2)
+curl -sI "https://example.com/feedback/${ASSET#./}" | head -1   # HTTP/2 200
 ```
 
 浏览器侧再确认：打开 `$BASE` → 列表正常；发一条带图片的反馈（直传 200）；

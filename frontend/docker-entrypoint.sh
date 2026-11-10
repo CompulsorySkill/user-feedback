@@ -19,7 +19,9 @@ fi
 if [ -z "$BASE" ]; then
   sed 's|__BASE__||g' /srv/index.template.html > /srv/index.html
 else
-  sed -e "s|__BASE__|$BASE|g" -e "s|=\"/|=\"$BASE/|g" /srv/index.template.html > /srv/index.html
+  # 产物里的静态资源是相对路径，前缀由 <base href> 与 __FEEDBACK_BASE__ 提供，
+  # 不能再去改写 "="/ 这类绝对地址（那会把 <base> 自己也改坏）。
+  sed "s|__BASE__|$BASE|g" /srv/index.template.html > /srv/index.html
 fi
 
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

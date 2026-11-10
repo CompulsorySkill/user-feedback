@@ -1,20 +1,22 @@
 // 构建后生成 index 模板：容器启动时用它注入部署前缀（BASE_PATH），
 // 这样同一份镜像可以挂到任意子路径，不必为每个前缀重新构建。
-import { readFileSync, writeFileSync } from 'node:fs'
+// 产物是相对路径，靠注入的 <base href> 解析，因此深链接（/prefix/post/x）也能正确取到 ./assets。
+import { readFileSync, writeFileSync } from 'node:fs';
 
-const file = new URL('../dist/index.html', import.meta.url)
-const html = readFileSync(file, 'utf8')
-const marker = "<script>window.__FEEDBACK_BASE__='__BASE__';</script>"
+const file = new URL('../dist/index.html', import.meta.url);
+const html = readFileSync(file, 'utf8');
+const marker = '<base href="__BASE__/"><script>window.__FEEDBACK_BASE__=\'__BASE__\';</script>';
 
 if (html.includes('__FEEDBACK_BASE__')) {
-  throw new Error('dist/index.html 已包含运行时注入标记，重复构建？')
+  throw new Error('dist/index.html 已包含运行时注入标记，重复构建？');
 }
-if (!html.includes('</head>')) {
-  throw new Error('dist/index.html 缺少 </head>，无法注入运行时 base')
+if (!html.includes('<head>')) {
+  throw new Error('dist/index.html 缺少 <head>，无法注入运行时 base');
 }
 
+// 必须插在 head 最前：<base> 只对解析顺序在它之后的相对 URL 生效。
 writeFileSync(
   new URL('../dist/index.template.html', import.meta.url),
-  html.replace('</head>', `${marker}</head>`),
-)
-console.log('dist/index.template.html written')
+  html.replace('<head>', `<head>${marker}`),
+);
+console.log('dist/index.template.html written');
