@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Feedback"
-    app_version: str = "1.1.1"
+    app_version: str = "1.1.2"
     environment: str = "development"
 
     database_url: str = "sqlite+aiosqlite:///./feedback.db"
